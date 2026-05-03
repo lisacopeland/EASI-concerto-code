@@ -1,0 +1,20 @@
+<src>
+	<div class="page" ng-controller="form" layout="column" layout-align="start stretch">
+		<demographics-header></demographics-header>
+
+		<form name="form" flex="noshrink">
+			<md-content layout="column" layout-align="start stretch" layout-margin="" class="page-content form-fields-container">
+				<p>[['demographics_prompt'|trans]]</p>
+				<div ng-repeat="field in fields" ng-switch="field.type" class="form-field" ng-if="canShow(field)">
+					<form-options ng-switch-when="options" field="field" responses="responses" collections="collections"></form-options>
+					<form-options-multiple ng-switch-when="optionsMultiple" field="field" responses="responses" collections="collections"></form-options-multiple>
+				</div>
+				
+				<div layout layout-align="end center">
+					<md-button class="md-raised md-primary" name="next" ng-disabled="!form.$valid"><md-icon>arrow_forward</md-icon> [['submit'|trans]]</md-button>
+				</div>
+			</md-content>
+		</form>
+		<demographics-footer></demographics-footer>
+	</div>
+</src>

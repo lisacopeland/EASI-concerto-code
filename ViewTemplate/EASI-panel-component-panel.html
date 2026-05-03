@@ -1,0 +1,79 @@
+<src>
+	<div class="progress-container">
+		<md-progress-linear md-mode="indeterminate" ng-if="api.isBusy()"></md-progress-linear>
+	</div>
+
+	<div flex="100%" layout="row">
+		<md-sidenav class="md-sidenav-left" md-is-locked-open="true" md-whiteframe="4"> 
+			<md-toolbar>
+				<div class="md-toolbar-tools">
+					<h2 flex="" md-truncate="">{{'panel_easi_scoring_program'|trans}}</h2>
+				</div>
+			</md-toolbar>
+			<md-content style="position: sticky; top: 0;"> 
+				<md-subheader>{{'panel_clients'|trans}}</md-subheader> 
+				<md-list-item ng-click="addClient()"> 
+					<md-icon>person_add</md-icon>
+					<p>{{'panel_clients_add'|trans}}</p>
+				</md-list-item> 
+				<md-list-item ng-click="viewClients()"> 
+					<md-icon>people</md-icon>
+					<p>{{'panel_clients_view'|trans}}</p>
+				</md-list-item> 
+
+				<md-divider></md-divider> 
+				<md-subheader>{{'panel_easi_scoring_program_ESP'|trans}}</md-subheader> 
+				<md-list-item ng-click="goToExternalUrlFromDictionary('esp_instructional_videos_url')"> 
+					<md-icon>folder</md-icon>
+					<p>{{'panel_esp_instructional_videos'|trans}}</p>
+				</md-list-item> 
+				<md-list-item ng-click="faq()"> 
+					<md-icon>folder</md-icon>
+					<p>{{'panel_faqs'|trans}}</p>
+				</md-list-item> 
+
+				<md-divider></md-divider> 
+				<md-subheader>{{'easi'|trans}}</md-subheader> 
+				<md-list-item ng-click="goToExternalUrlFromDictionary('easi_test_sheets_and_manuals_url')"> 
+					<md-icon>folder</md-icon>
+					<p>{{'panel_easi_test_sheets_manuals'|trans}}</p>
+				</md-list-item> 
+				<md-list-item ng-click="instructionalVideos()"> 
+					<md-icon>folder</md-icon>
+					<p>{{'panel_easi_instructional_videos'|trans}}</p>
+				</md-list-item> 
+				<md-list-item ng-click="scoringInformation()"> 
+					<md-icon>folder</md-icon>
+					<p>{{'panel_easi_scoring_information'|trans}}</p>
+				</md-list-item> 
+				<md-list-item ng-click="about()"> 
+					<md-icon>folder</md-icon>
+					<p>{{'panel_about_easi'|trans}}</p>
+				</md-list-item> 
+				<md-list-item ng-click="other()"> 
+					<md-icon>folder</md-icon>
+					<p>{{'panel_other_resources'|trans}}</p>
+				</md-list-item> 
+
+				<md-divider></md-divider> 
+				<md-subheader>{{'panel_profile'|trans}}</md-subheader> 
+				<md-list-item> 
+					<md-icon>language</md-icon>
+					<md-select ng-model="language" ng-change="onLanguageChanged()">
+						<md-option ng-repeat="languageOption in languages" ng-value="languageOption.code">[[languageOption.label]]</md-option>
+					</md-select>
+				</md-list-item>
+				<md-list-item ng-click="editProfile()"> 
+					<md-icon>person_outline</md-icon>
+					<p>{{'panel_profile_edit'|trans}}</p>
+				</md-list-item> 
+				<md-list-item ng-click="logOut()"> 
+					<md-icon>logout</md-icon>
+					<p>{{'panel_logout'|trans}}</p>
+				</md-list-item> 
+			</md-content> 
+		</md-sidenav> 
+		<ng-view flex="100%"></ng-view>
+	</div>
+
+</src>

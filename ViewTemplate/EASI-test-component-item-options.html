@@ -1,0 +1,11 @@
+<src>
+	<div layout="column" layout-align="center stretch" class="item-options" md-colors="{borderColor:'default-primary'}" tabindex="0" ng-keypress="onKeyPressed($event)" ng-focus="onFocus()" ng-blur="onBlur()">
+		<div ng-html="item.question_trans|trans" class="item-options-question">
+		</div>
+
+		<div layout-gt-sm="row" layout-align-gt-sm="start center" layout="column" class="item-options-container">
+			<md-button class="concerto-nosubmit md-raised" ng-class="{'md-accent': item.value === option.value}" ng-click="selectOption(option.value, $event)" ng-html="option.label|trans" ng-repeat="option in options" tabindex="-1" flex ng-style="settings.optionStyle"></md-button>
+			<md-button class="concerto-nosubmit md-raised" ng-class="{'md-accent': item.skipped}" ng-click="selectSkip()" ng-html="skipLabel|trans" flex ng-style="settings.optionStyle" tabindex="-1" ng-if="item.skippable"></md-button>
+		</div>
+	</div>
+</src>

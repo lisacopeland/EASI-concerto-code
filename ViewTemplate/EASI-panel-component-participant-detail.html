@@ -1,0 +1,38 @@
+<src>
+	<md-subheader class="md-primary md-dense" ng-if="participant">
+		<md-button class="md-fab md-raised md-mini" ng-click="goBack()">
+			<md-tooltip>go back</md-tooltip>
+			<md-icon>arrow_back</md-icon>
+		</md-button>
+		<span>{{ 'panel_client_edit_header'|trans:{id:participant.customId} }}</span>
+	</md-subheader>
+
+	<md-content class="layout-padding" ng-if="participant">
+		<md-nav-bar md-selected-nav-item="section">
+			<md-nav-item md-nav-click="goTo('sessions')" name="sessions" ng-disabled="!participant.valid">
+				{{'panel_client_data_entry'|trans}}
+			</md-nav-item>
+
+			<md-nav-item md-nav-click="goTo('scores')" name="scores" ng-disabled="!participant.valid">
+				{{'panel_client_results'|trans}}
+			</md-nav-item>
+			<md-nav-item md-nav-click="goTo('audit')" name="audit" ng-disabled="!participant.valid">
+				{{'panel_client_audit'|trans}}
+			</md-nav-item>
+			<md-nav-item md-nav-click="goTo('demographics')" name="demographics" ng-disabled="!participant.valid">
+				{{'demographics'|trans}}
+			</md-nav-item>
+			<md-nav-item md-nav-click="goTo('edit')" name="edit">
+				{{'edit'|trans}}
+			</md-nav-item>
+		</md-nav-bar>
+		
+		<div ng-switch="section">
+			<participant-detail-sessions participant="participant" ng-switch-when="sessions"></participant-detail-sessions>
+			<participant-detail-scores participant="participant" ng-switch-when="scores"></participant-detail-scores>
+			<participant-detail-audit participant="participant" ng-switch-when="audit"></participant-detail-audit>
+			<participant-detail-demographics participant="participant" ng-switch-when="demographics"></participant-detail-demographics>
+			<participant-detail-edit participant="participant" ng-switch-default></participant-detail-edit>
+		</div>
+	</md-content>
+</src>

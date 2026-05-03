@@ -1,0 +1,82 @@
+<src>
+	<div layout="row" layout-align="space-between center">
+		<div>
+			<md-input-container>
+				<label>{{'panel_audit_test_session'|trans}}</label>
+				<md-select ng-model="selectedSessionFullId" ng-change="refresh()">
+					<md-option><em>{{'not_selected'|trans}}</em></md-option>
+					<md-option ng-repeat="session in sessions" ng-value="session.fullId">
+						[[session.fullId]]: {{session.testTitle|trans}} ([[session.timeFinished]])
+					</md-option>
+				</md-select>
+			</md-input-container>
+		</div>
+
+		<div>
+			<md-button class="md-raised" ng-click="refresh()"><md-icon>refresh</md-icon> {{'refresh'|trans}}</md-button>
+		</div>
+	</div>
+
+	<div ng-show="session">
+		<md-subheader class="md-primary expandable" ng-click="expandables.responses = !expandables.responses">
+			<md-icon>[[expandables.responses ? 'expand_more' : 'expand_less']]</md-icon>
+			{{'panel_audit_responses'|trans}}
+		</md-subheader>
+		<div ng-show="expandables.responses">
+			<md-table-container>
+				<table md-table>
+					<thead md-head md-order="responsesQuery.order">
+						<tr md-row>
+							<th md-column md-order-by="item_id"><span>{{'panel_audit_response_item_id'|trans}}</span></th>
+							<th md-column md-order-by="auditLabel"><span>{{'panel_audit_response_item_label'|trans}}</span></th>
+							<th md-column md-order-by="label"><span>{{'panel_audit_response_label'|trans}}</span></th>
+							<th md-column md-order-by="value"><span>{{'panel_audit_response_value'|trans}}</span></th>
+							<th md-column md-order-by="score"><span>{{'panel_audit_response_raw_score'|trans}}</span></th>
+							<th md-column md-order-by="excludedFromScoring"><span>{{'panel_audit_response_excluded_from_scoring'|trans}}</span></th>
+							<th md-column md-order-by="trait"><span>{{'panel_audit_response_trait'|trans}}</span></th>
+							<th md-column md-order-by="timeCreated"><span>{{'panel_audit_response_submission_time'|trans}}</span></th>
+						</tr>
+					</thead>
+					<tbody md-body>
+						<tr md-row ng-repeat="response in responses | orderBy: responsesQuery.order">
+							<td md-cell>[[response.item_id]]</td>
+							<td md-cell>{{response.auditLabel_trans|trans}}</td>
+							<td md-cell>{{response.label_trans|trans}}</td>
+							<td md-cell>[[response.value]]</td>
+							<td md-cell>[[response.score]]</td>
+							<td md-cell>
+								<md-checkbox ng-model="response.excludeFromScoring" ng-disabled="true" ng-true-value="1" ng-false-value="0">
+								</md-checkbox>
+							</td>
+							<td md-cell>{{response.trait|trans}}</td>
+							<td md-cell>[[response.timeCreated]]</td>
+						</tr>
+					</tbody>
+				</table>
+			</md-table-container>
+		</div>
+
+		<md-subheader class="md-primary expandable" ng-click="expandables.scores = !expandables.scores">
+			<md-icon>[[expandables.scores ? 'expand_more' : 'expand_less']]</md-icon>
+			{{'panel_audit_scores'|trans}}
+		</md-subheader>
+		<div ng-show="expandables.scores">
+			<fieldset ng-if="scores.length > 0" style="align-self: stretch;">
+				<legend>[[session.fullId]]: {{session.testTitle|trans}} ([[session.timeFinished]])</legend>
+
+				<md-list layout="row" layout-wrap layout-align="start start">
+					<md-list-item class="md-2-line score-item" ng-repeat="score in scores">
+						<div class="md-list-item-text" layout="column">
+							<h4>{{score.name|trans}}</h4>
+							<p>[[score.value]]</p>
+						</div>
+					</md-list-item>
+				</md-list>
+
+				<p ng-repeat="score in scores" ng-if="score.feedback">{{score.feedback_trans|trans}}</p>
+			</fieldset>
+		</div>
+	</div>
+
+	<msg type="warning" ng-if="!session">{{'panel_audit_no_session'|trans}}</msg>
+</src>

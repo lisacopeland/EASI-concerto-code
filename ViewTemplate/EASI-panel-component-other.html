@@ -1,0 +1,11 @@
+<src>
+	<md-subheader class="md-primary md-dense">
+		<md-button class="md-fab md-raised md-mini" ng-click="goBack()">
+			<md-tooltip>{{'go_back'|trans}}</md-tooltip>
+			<md-icon>arrow_back</md-icon>
+		</md-button>
+		<span>{{'panel_other'|trans}}</span>
+	</md-subheader>
+	<md-content class="layout-padding" ng-html="content.other.html_trans|trans">
+	</md-content>
+</src>

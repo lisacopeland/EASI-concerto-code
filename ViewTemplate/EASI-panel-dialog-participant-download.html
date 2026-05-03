@@ -1,0 +1,93 @@
+<src>
+	<md-dialog style="width: 1000px;">
+		<md-toolbar>
+			<div class="md-toolbar-tools">
+				<h2>[['exporting_clients'|trans]]</h2>
+			</div>
+		</md-toolbar> 
+		<md-dialog-content>
+			<div class="md-dialog-content">
+				<div ng-if="!generationStarted">
+					<p>[['select_exported_columns'|trans]]</p>
+					<div class="cols-container">
+						<div class="cols-elem">
+							<md-checkbox ng-model="cols.assessmentReason" ng-true-value="true" ng-false-value="false">[['panel_client_assessment_reason'|trans]]</md-checkbox>
+						</div>
+						<div class="cols-elem">
+							<md-checkbox ng-model="cols.clinicalAssessmentReferrer" ng-true-value="true" ng-false-value="false">[['panel_client_clinical_assessment_referrer'|trans]]</md-checkbox>
+						</div>
+						<div class="cols-elem">
+							<md-checkbox ng-model="cols.countryOfResidence" ng-true-value="true" ng-false-value="false">[['panel_client_country_of_residence'|trans]]</md-checkbox>
+						</div>
+						<div class="cols-elem">
+							<md-checkbox ng-model="cols.customId" ng-true-value="true" ng-false-value="false">[['panel_client_custom_id'|trans]]</md-checkbox>
+						</div>
+						<div class="cols-elem">
+							<md-checkbox ng-model="cols.dateOfBirth" ng-true-value="true" ng-false-value="false">[['panel_client_date_of_birth'|trans]]</md-checkbox>
+						</div>
+						<div class="cols-elem">
+							<md-checkbox ng-model="cols.diagnoses" ng-true-value="true" ng-false-value="false">[['panel_client_diagnoses'|trans]]</md-checkbox>
+						</div>
+						<div class="cols-elem">
+							<md-checkbox ng-model="cols.diagnosesSelected" ng-true-value="true" ng-false-value="false">[['panel_client_diagnoses_selected'|trans]]</md-checkbox>
+						</div>
+						<div class="cols-elem">
+							<md-checkbox ng-model="cols.email" ng-true-value="true" ng-false-value="false">[['panel_client_email'|trans]]</md-checkbox>
+						</div>
+						<div class="cols-elem">
+							<md-checkbox ng-model="cols.gender" ng-true-value="true" ng-false-value="false">[['panel_client_gender'|trans]]</md-checkbox>
+						</div>
+						<div class="cols-elem">
+							<md-checkbox ng-model="cols.id" ng-true-value="true" ng-false-value="false">[['id'|trans]]</md-checkbox>
+						</div>
+						<div class="cols-elem">
+							<md-checkbox ng-model="cols.initials" ng-true-value="true" ng-false-value="false">[['panel_client_initials'|trans]]</md-checkbox>
+						</div>
+						<div class="cols-elem">
+							<md-checkbox ng-model="cols.languageCode" ng-true-value="true" ng-false-value="false">[['panel_client_primary_language'|trans]]</md-checkbox>
+						</div>
+						<div class="cols-elem">
+							<md-checkbox ng-model="cols.researchGroup" ng-true-value="true" ng-false-value="false">[['panel_client_research_group'|trans]]</md-checkbox>
+						</div>
+						<div class="cols-elem">
+							<md-checkbox ng-model="cols.researchProjectSelected" ng-true-value="true" ng-false-value="false">[['panel_client_research_projects'|trans]]</md-checkbox>
+						</div>
+						<div class="cols-elem">
+							<md-checkbox ng-model="cols.testAdmin" ng-true-value="true" ng-false-value="false">[['csv_client_test_admin'|trans]]</md-checkbox>
+						</div>
+						<div class="cols-elem">
+							<md-checkbox ng-model="cols.testScores" ng-true-value="true" ng-false-value="false">[['csv_client_test_scores'|trans]]</md-checkbox>
+						</div>
+						<div class="cols-elem">
+							<md-checkbox ng-model="cols.testResponses" ng-true-value="true" ng-false-value="false">[['csv_client_test_responses'|trans]]</md-checkbox>
+						</div>
+						
+						<div class="cols-elem" ng-repeat="test in tests" ng-if="cols.testAdmin || cols.testScores || cols.testResponses">
+							<md-checkbox ng-model="cols[test.code]" ng-true-value="true" ng-false-value="false">[[test.title_trans]]</md-checkbox>
+						</div>
+					</div>
+				</div>
+
+				<div ng-if="generationStarted">
+					<div ng-if="status === 0 || status === 1">
+						<p>[['generating_export_file'|trans]]</p>
+						<div class="progress-container">
+							<md-progress-linear md-mode="indeterminate"></md-progress-linear>
+						</div>
+					</div>
+					<div ng-if="status === 2">
+						<p>[['export_file_available'|trans]]</p>
+					</div>
+					<div ng-if="status < 0">
+						<p>[['export_failed'|trans]]</p>
+					</div>
+				</div>
+			</div>
+		</md-dialog-content> 
+		<md-dialog-actions layout="row" layout-align="end"> 
+			<md-button ng-click="cancel()" ng-if="!generationStarted || status < 0"> [['cancel'|trans]] </md-button> 
+			<md-button ng-click="startGeneration()" ng-if="!generationStarted" ng-disabled="!isAnyColumnSelected()"> [['generate'|trans]] </md-button> 
+			<md-button ng-click="download()" ng-if="status === 2"> [['download'|trans]] </md-button> 
+		</md-dialog-actions>
+	</md-dialog>
+</src>

@@ -1,0 +1,21 @@
+<src>
+	<div class="page" ng-controller="intro" layout="column" layout-align="start stretch">
+		<test-header></test-header>
+
+		<md-content layout="column" layout-align="start stretch" layout-margin="" class="page-content" flex="noshrink">
+			<div ng-html="test.instructionsTranscript_trans|trans" ng-if="test.instructionsTranscript_trans"></div>
+
+			<div ng-if="test.instructionsFile_trans">
+				<md-button class="md-primary" ng-href="/files/protected/EASI/instructions/{{test.instructionsFile_trans|trans}}?token=[[token]]" target="_blank">
+					<md-icon>download</md-icon> {{trans:download_instructions}}
+				</md-button>
+			</div>
+
+			<div layout layout-align="end center">
+				<md-button class="md-raised md-primary"><md-icon>arrow_forward</md-icon> {{trans:continue}}</md-button>
+			</div>
+		</md-content>
+		
+		<test-footer></test-footer>
+	</div>
+</src>

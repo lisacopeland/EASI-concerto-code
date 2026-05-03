@@ -1,0 +1,21 @@
+<src>
+	<div class="page" ng-controller="assessmentDate" layout="column" layout-align="start stretch">
+		<test-header></test-header>
+
+		<md-content class="page-content" flex="noshrink">
+			<form name="assessmentDateForm">
+				{{trans:test_assessment_date_prompt}}
+
+				<div style="border: 1px solid lightgray; display: inline-block;">
+					<md-calendar ng-model="values.date" name="date" required md-max-date="maxDate"></md-calendar>
+				</div>
+
+				<div layout layout-align="end center">
+					<md-button class="md-raised md-primary" ng-disabled="assessmentDateForm.$invalid"><md-icon>arrow_forward</md-icon> {{trans:continue}}</md-button>
+				</div>
+			</form>
+		</md-content>
+
+		<test-footer></test-footer>
+	</div>
+</src>

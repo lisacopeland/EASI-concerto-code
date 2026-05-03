@@ -1,0 +1,73 @@
+<src>
+	<div layout="row" layout-align="space-between center" class="md-dense">
+		<div>
+			<md-input-container>
+				<label>{{'panel_session_test'|trans}}</label>
+				<md-select ng-model="query.testCode" ng-change="getSessions()">
+					<md-option value="*"><em>{{'all'|trans}}</em></md-option>
+					<md-option ng-repeat="test in testService.collection" ng-value="test.code">
+						{{test.title_trans|trans}}
+					</md-option>
+				</md-select>
+			</md-input-container>
+		</div>
+
+		<div>
+			<md-button class="md-raised" ng-click="add()" ng-disabled="!participant.valid"><md-icon>add</md-icon> {{'add'|trans}}</md-button>
+			<md-button class="md-raised" ng-click="getSessions()"><md-icon>refresh</md-icon> {{'refresh'|trans}}</md-button>
+			<md-button class="md-raised md-warn" ng-click="deleteSelected()" ng-show="selectedSessions.length > 0"><md-icon>delete</md-icon> {{'delete_selected'|trans}}</md-button>
+		</div>
+	</div>
+
+	<div ng-if="sessionsCollection.length > 0">
+		<md-table-container>
+			<table md-table md-row-select multiple ng-model="selectedSessions">
+				<thead md-head md-order="query.order">
+					<tr md-row>
+						<th md-column md-order-by="fullId"><span>{{'id'|trans}}</span></th>
+						<th md-column md-order-by="testTitle"><span>{{'panel_session_test_title'|trans}}</span></th>
+						<th md-column md-order-by="dateAssessment"><span>{{'panel_session_date_of_assessment'|trans}}</span></th>
+						<th md-column md-order-by="timeStarted"><span>{{'panel_session_time_started'|trans}}</span></th>
+						<th md-column md-order-by="timeFinished"><span>{{'panel_session_time_finished'|trans}}</span></th>
+						<th md-column md-order-by="status"><span>{{'panel_session_status'|trans}}</span></th>
+						<th md-column><span></span></th>
+					</tr>
+				</thead>
+				<tbody md-body>
+					<tr md-row md-select="session" md-select-id="testId + '-' + id" ng-repeat="session in sessionsCollection | orderBy: query.order">
+						<td md-cell>[[session.fullId]]</td>
+						<td md-cell>{{session.testTitle_trans|trans}}</td>
+						<td md-cell>[[session.dateAssessment ? session.dateAssessment : '-']]</td>
+						<td md-cell>[[session.timeStarted ? session.timeStarted : '-']]</td>
+						<td md-cell>[[session.timeFinished ? session.timeFinished : '-']]</td>
+						<td md-cell><span session-status="session.status"></span></td>
+						<td md-cell layout="row" layout-align="end center" layout-wrap>
+							<md-button ng-click="goToAudit(session)" ng-if="session.status === 2"><md-icon>show_chart</md-icon> {{'panel_session_audit'|trans}}</md-button>
+							<md-button ng-click="launch(session)"><md-icon>play_arrow</md-icon> {{'panel_session_launch_test'|trans}}</md-button>
+
+							<md-menu>
+								<md-button class="md-icon-button" ng-click="$mdMenu.open($event)">
+									<md-icon md-menu-origin>more_vert</md-icon>
+								</md-button>
+								<md-menu-content>
+									<md-menu-item ng-if="session.email && session.allowManualInvitationEmail == 1">
+										<md-button ng-click="email(session)"><md-icon>email</md-icon><span md-menu-align-target>{{'panel_session_email_link'|trans}}</span></md-button>
+									</md-menu-item>
+									<md-menu-item ng-if="session.status < 2">
+										<md-button ng-click="copyLaunchLink(session)"><md-icon>link</md-icon><span md-menu-align-target>{{'panel_session_copy_test_link'|trans}}</span></md-button>
+									</md-menu-item>
+									<md-menu-item ng-if="session.status === 2">
+										<md-button ng-click="copyLaunchLink(session)"><md-icon>link</md-icon><span md-menu-align-target>{{'panel_session_copy_report_link'|trans}}</span></md-button>
+									</md-menu-item>
+								</md-menu-content>
+							</md-menu>
+						</td>
+					</tr>
+				</tbody>
+			</table>
+		</md-table-container>
+		<md-table-pagination md-limit="query.limit" md-limit-options="[50, 100, 250]" md-page="query.page" md-total="[[sessionsTotalCount]]" md-on-paginate="getSessions" md-page-select md-label="paginationLabels"></md-table-pagination>
+	</div>
+
+	<msg type="warning" ng-if="sessionsCollection.length === 0 && ongoingFetchesNum === 0">{{'panel_session_none_available'|trans}}</msg>
+</src>

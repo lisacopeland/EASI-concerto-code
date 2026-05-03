@@ -1,0 +1,12 @@
+.item-open {
+  transition: all 0.25s;
+}
+
+.item-open:focus-within {
+  padding: 8px;
+  border: 1px solid;
+}
+
+.skip {
+  margin: 0.5em 0;
+}

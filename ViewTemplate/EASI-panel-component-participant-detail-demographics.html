@@ -1,0 +1,18 @@
+<src>
+	<form name="participantForm">
+		<div layout="row" layout-align="end center">
+			<md-button class="md-raised md-primary" ng-click="email()" ng-if="participant.email"><md-icon>email</md-icon> {{'panel_demographics_resend_parent_email'|trans}}</md-button>
+			<md-button class="md-raised" ng-click="copyLink()"><md-icon>link</md-icon> {{'panel_demographics_copy_link'|trans}}</md-button>
+		</div>
+		<fieldset class="md-dense">
+			<legend>{{'demographics'|trans}}</legend>
+			<div layout="column" layout-align="start start" class="demographics-container">
+				<div ng-repeat="field in fields" class="demographics-field">
+					<label>{{field.label_trans|trans}}:</label>
+					<div>[[field.value]]</div>
+				</div>
+			</div>
+			<msg type="warning" ng-if="fields.length === 0 && demographicsLoaded">{{'panel_demographics_no_data'|trans}}</msg>
+		</fieldset>
+	</form>
+</src>

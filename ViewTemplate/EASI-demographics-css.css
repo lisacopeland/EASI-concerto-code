@@ -1,0 +1,22 @@
+.page {
+  height: 100%;
+}
+
+.page-content {
+  max-width: 1200px;
+  margin: auto;
+  padding: 8px;
+  width: 100%;
+}
+
+md-input-container {
+  width: 100%;
+}
+
+.form-fields-container {
+  gap: 1em;
+}
+
+.form-field label {
+  font-weight: bold;
+}

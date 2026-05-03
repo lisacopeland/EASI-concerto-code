@@ -1,0 +1,10 @@
+md-content {
+  overflow: inherit;
+}
+
+.sticky-buttons-container {
+  position: sticky;
+  bottom: 1em;
+  z-index: 3;
+  align-self: end;
+}

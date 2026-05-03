@@ -1,0 +1,71 @@
+<src>
+	<md-dialog>
+		<form ng-cloak="">
+			<md-toolbar>
+				<div class="md-toolbar-tools">
+					<h2>[['selecting_filters'|trans]]</h2>
+				</div>
+			</md-toolbar> 
+			<md-dialog-content>
+				<div class="md-dialog-content">
+					<div class="filter-container">
+						<div class="filter-checkbox">
+							<md-checkbox ng-model="filters.admin.enabled" ng-true-value="true" ng-false-value="false" ng-change="onChange('admin')">[['panel_client_administrator'|trans]]</md-checkbox>
+						</div>
+						<div class="filter-checkbox">
+							<md-checkbox ng-model="filters.archived.enabled" ng-true-value="true" ng-false-value="false" ng-change="onChange('archived')">[['panel_archived_label'|trans]]</md-checkbox>
+						</div>
+						<div class="filter-checkbox">
+							<md-checkbox ng-model="filters.assessmentReason.enabled" ng-true-value="true" ng-false-value="false" ng-change="onChange('assessmentReason')">[['panel_client_assessment_reason'|trans]]</md-checkbox>
+						</div>
+						<div class="filter-checkbox">
+							<md-checkbox ng-model="filters.clinicalAssessmentReferrer.enabled" ng-true-value="true" ng-false-value="false" ng-change="onChange('clinicalAssessmentReferrer')">[['panel_client_clinical_assessment_referrer'|trans]]</md-checkbox>
+						</div>
+						<div class="filter-checkbox">
+							<md-checkbox ng-model="filters.countryOfResidence.enabled" ng-true-value="true" ng-false-value="false" ng-change="onChange('countryOfResidence')">[['panel_client_country_of_residence'|trans]]</md-checkbox>
+						</div>
+						<div class="filter-checkbox">
+							<md-checkbox ng-model="filters.customId.enabled" ng-true-value="true" ng-false-value="false" ng-change="onChange('customId')">[['panel_client_custom_id'|trans]]</md-checkbox>
+						</div>
+						<div class="filter-checkbox">
+							<md-checkbox ng-model="filters.dateOfBirth.enabled" ng-true-value="true" ng-false-value="false" ng-change="onChange('dateOfBirth')">[['panel_client_date_of_birth'|trans]]</md-checkbox>
+						</div>
+						<div class="filter-checkbox">
+							<md-checkbox ng-model="filters.diagnoses.enabled" ng-true-value="true" ng-false-value="false" ng-change="onChange('diagnoses')">[['panel_client_diagnoses'|trans]]</md-checkbox>
+						</div>
+						<div class="filter-checkbox">
+							<md-checkbox ng-model="filters.diagnosesSelected.enabled" ng-true-value="true" ng-false-value="false" ng-change="onChange('diagnosesSelected')">[['panel_client_select_diagnoses'|trans]]</md-checkbox>
+						</div>
+						<div class="filter-checkbox">
+							<md-checkbox ng-model="filters.email.enabled" ng-true-value="true" ng-false-value="false" ng-change="onChange('email')">[['panel_client_email'|trans]]</md-checkbox>
+						</div>
+						<div class="filter-checkbox">
+							<md-checkbox ng-model="filters.exportExclusion.enabled" ng-true-value="true" ng-false-value="false" ng-change="onChange('exportExclusion')">[['panel_client_export_exclusion'|trans]]</md-checkbox>
+						</div>
+						<div class="filter-checkbox">
+							<md-checkbox ng-model="filters.gender.enabled" ng-true-value="true" ng-false-value="false" ng-change="onChange('gender')">[['panel_client_gender'|trans]]</md-checkbox>
+						</div>
+						<div class="filter-checkbox">
+							<md-checkbox ng-model="filters.id.enabled" ng-true-value="true" ng-false-value="false" ng-change="onChange('id')">[['id'|trans]]</md-checkbox>
+						</div>
+						<div class="filter-checkbox">
+							<md-checkbox ng-model="filters.initials.enabled" ng-true-value="true" ng-false-value="false" ng-change="onChange('initials')">[['panel_client_initials'|trans]]</md-checkbox>
+						</div>
+						<div class="filter-checkbox">
+							<md-checkbox ng-model="filters.lastAssessment.enabled" ng-true-value="true" ng-false-value="false" ng-change="onChange('lastAssessment')">[['panel_client_last_assessment'|trans]]</md-checkbox>
+						</div>
+						<div class="filter-checkbox">
+							<md-checkbox ng-model="filters.primaryLanguage.enabled" ng-true-value="true" ng-false-value="false" ng-change="onChange('primaryLanguage')">[['panel_client_primary_language'|trans]]</md-checkbox>
+						</div>
+						<div class="filter-checkbox">
+							<md-checkbox ng-model="filters.researchProjectSelected.enabled" ng-true-value="true" ng-false-value="false" ng-change="onChange('researchProjectSelected')">[['Research project'|trans]]</md-checkbox>
+						</div>
+					</div>
+				</div>
+			</md-dialog-content> 
+			<md-dialog-actions layout="row" layout-align="end"> 
+				<md-button ng-click="ok()"> [['ok'|trans]]</md-button> 
+			</md-dialog-actions>
+		</form>
+	</md-dialog>
+</src>

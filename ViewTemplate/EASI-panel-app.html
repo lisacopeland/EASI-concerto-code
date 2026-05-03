@@ -1,0 +1,6 @@
+<src>
+	<div ng-controller="panelApp" ng-switch="auth.isAuthorized()" class="panel-app">
+		<panel-login ng-switch-when="false"></panel-login>
+		<panel ng-switch-when="true"></panel>
+	</div>
+</src>

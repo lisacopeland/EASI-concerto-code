@@ -1,0 +1,31 @@
+<src>
+	<div ng-show="return == 0" class="login-page" layout="column" layout-align="center center" layout-align-xs="center stretch" ng-style="{'background': 'url('+dictionary.login_bg_image+') center/cover'}" style="position: absolute; width: 100vw; height: 100vh;">
+		<div flex="noshrink" layout="column" layout-align="center center" layout-align-xs="center stretch">
+			<md-card style="min-width: 400px;">
+				<md-card-title>
+					<md-card-title-text>
+						<span class="md-headline">{{'panel_easi_admin_panel'|trans}}</span>
+					</md-card-title-text>
+				</md-card-title>
+
+				<md-card-content layout="column" class="md-dense">
+					<md-input-container>
+						<label>{{'panel_login_login_label'|trans}}</label>
+						<input ng-model="login" type="text">
+					</md-input-container>
+					<md-input-container>
+						<label>{{'panel_login_password_label'|trans}}</label>
+						<input ng-model="password" type="password">
+					</md-input-container>
+				</md-card-content>
+				<md-card-actions layout="row" layout-align="end">
+					<md-button class="md-primary md-raised" ng-click="logIn()" ng-disabled="api.isBlocked()"><md-icon>login</md-icon> {{'panel_login_login_button'|trans}}</md-button>
+					<md-button class="md-accent md-raised" href="https://login.easitests.com/forgotPassword?client_id=6bbto14uknbbc4p2va7uvih8ac&response_type=code&scope=aws.cognito.signin.user.admin+email+openid+phone+profile&redirect_uri=https%3A%2F%2Fwww.easitests.com%2Ftest%2Fpanel">{{'panel_login_forgot_password_button'|trans}}</md-button>
+				</md-card-actions>
+				<md-progress-linear md-mode="indeterminate" ng-if="api.isBlocked()"></md-progress-linear>
+			</md-card>
+		</div>
+
+		<panel-footer style="width: 100%" hide-xs></panel-footer>
+	</div>
+</src>

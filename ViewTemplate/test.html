@@ -1,0 +1,56 @@
+<src>
+	{{template:itemOpen,css=FALSE,html=FALSE}}
+	{{template:itemOptions,css=FALSE,html=FALSE}}
+	{{template:itemPainMannequin,css=FALSE,html=FALSE}}
+	{{template:itemGracelyScale,css=FALSE,html=FALSE}}
+</src>
+<div class="body" ng-controller="test">
+	{{template:header}}
+	<div class="questions">
+		<div class="container">
+			<form autocomplete="off" name="form">
+				<div ng-repeat="item in items track by $index">
+					<div class="instructions" ng-html="item.instructions" ng-if="item.instructions && ($index == 0 || items[$index-1].instructions != item.instructions)">
+					</div>
+
+					<div class="question-text" ng-html="item.question">
+					</div>
+
+					<div ng-switch="item.responseOptions.type">
+						<src>
+							<item-open item="item" ng-switch-when="open" response="responses['r' + item.id]" response-required="responseRequired"></item-open>
+							<item-options item="item" ng-switch-when="options" response="responses['r' + item.id]" response-required="responseRequired"></item-options>
+							<item-pain-mannequin item="item" ng-switch-when="painMannequin" response="responses['r' + item.id]" response-required="responseRequired"></item-pain-mannequin>
+							<item-gracely-scale item="item" ng-switch-when="gracelyScale" response="responses['r' + item.id]" response-required="responseRequired"></item-gracely-scale>
+						</src>
+					</div>
+
+					<div ng-show="item.skippable == 1">
+						<input id="skip[[item.id]]" name="skip[[item.id]]" ng-false-value="0" ng-model="responses['r' + item.id].skipped" ng-true-value="1" type="checkbox" />
+						
+						<label for="skip[[item.id]]">
+							skip item 
+						</label>
+					</div>
+
+					<div class="form-error" ng-show="form.response.$error.required && form.response.$dirty">
+						{{responseRequiredAlert}}
+					</div>
+				</div>
+
+				<div class="question-footer">
+					<button class="main-btn left-btn" name="back" ng-show="canGoBack">
+						{{backButtonLabel}}
+					</button>
+					<div class="question-page" ng-show="showPageInfo && page != null && totalPages != null">
+						Page [[page]] / [[totalPages]]
+					</div>
+					<button class="main-btn right-btn" id="submitButton" name="next" ng-disabled="form.$invalid || !isFormValid()">
+						{{nextButtonLabel}}
+					</button>
+				</div>
+			</form>
+		</div>
+	</div>
+	{{template:footer}}
+</div>

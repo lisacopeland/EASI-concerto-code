@@ -1,0 +1,14 @@
+<src>
+	<div>
+		<label>{{field.label_trans|trans}}</label>
+		<div layout-gt-sm="[[layout]]" layout-align-gt-sm="space-between stretch" layout="column" ng-if="subtype === 'buttons'">
+			<md-button class="concerto-nosubmit md-raised" ng-class="{'md-accent': isOptionSelected(option)}" ng-click="selectOption(option, $event)" ng-html="option" ng-repeat="option in options track by $index" flex></md-button>
+		</div>
+		<md-input-container ng-if="subtype === 'select'">
+			<md-select ng-model="responses[field.name]" name="[[field.name]]">
+				<md-option ng-value="undefined">{{'not_selected'|trans}}</md-option>
+				<md-option ng-value="option" ng-repeat="option in options track by $index">{{option|trans}}</md-option>
+			</md-select>
+		</md-input-container>
+	</div>
+</src>

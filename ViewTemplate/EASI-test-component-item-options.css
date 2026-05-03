@@ -1,0 +1,9 @@
+.item-options {
+  transition: all 0.25s;
+}
+
+.item-options:focus {
+  padding: 8px;
+  border: 1px solid;
+  outline: none;
+}

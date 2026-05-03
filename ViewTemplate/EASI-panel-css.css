@@ -1,0 +1,144 @@
+fieldset {
+  border: 1px solid lightgrey;
+  padding: 1em;
+  margin: 1em 0;
+}
+
+.progress-container {
+  background-color: rgb(63,81,181);
+  min-height: 5px; 
+  position: sticky; 
+  top: 0;
+  z-index: 1;
+}
+
+input[type="file"] {
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  right: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.demographics-container {
+  gap: 1em;
+}
+
+.demographics-field label {
+  font-weight: bold;
+}
+
+.expandable {
+  cursor: pointer;
+}
+
+.chart-container {
+  max-width: 1200px; 
+  width: 100%;
+}
+
+.chart-container canvas {
+  width: 100%;
+}
+
+.print-header {
+  display: none;
+}
+
+.banner-container {
+  text-align: center;
+}
+
+.banner-container img {
+  width: 100%;
+}
+
+md-sidenav {
+  overflow: initial;
+}
+
+src {
+  display: flex; 
+  flex-direction: column; 
+  height: 100%;
+}
+
+md-sidenav {
+  font-size: 0.8em;
+  width: auto;
+}
+
+.md-sidenav-left md-select {
+  width: 100%;
+}
+
+th, td {
+  padding: 0 !important;
+}
+
+md-checkbox {
+  margin: 0 0.5em !important;
+}
+
+.archived td:not(.md-checkbox-cell, .actions-cell) {
+  opacity: 0.5;
+}
+
+.filter-container {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.filter-container md-card {
+  display: flex;
+}
+
+.filter-container md-card-title {
+  flex: none;
+}
+
+.filter-container md-card-content {
+  flex: 1;
+  display: flex;
+}
+
+.filter-container md-input-container {
+  margin: 0;
+}
+
+.filter-container .filter-checkbox {
+  width: 33%;
+}
+
+.cols-container {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.cols-container .cols-elem {
+  width: 33%;
+}
+
+@media print {
+  src {
+    display: block;
+  }
+
+  .print-header {
+    display: block;
+  }
+
+  md-toolbar, .progress-container, .md-subheader, md-nav-bar, .actions, md-sidenav {
+    display: none !important;
+  }
+
+  .chart-container canvas {
+    max-width: 100%;
+  }
+
+  .print-page {
+    page-break-inside: avoid;
+  }
+}

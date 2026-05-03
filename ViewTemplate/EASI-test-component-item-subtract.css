@@ -1,0 +1,16 @@
+.item-subtract {
+  transition: all 0.25s;
+}
+
+.item-subtract:focus-within {
+  padding: 8px;
+  border: 1px solid;
+}
+
+.item-subtract-inputs-container > * {
+  flex: 1;
+}
+
+.skip {
+  margin: 0.5em 0;
+}

@@ -1,0 +1,10 @@
+<src>
+	<md-toolbar>
+		<div class="md-toolbar-tools" layout="row" layout-align="start center">
+			<h2 md-truncate="" flex>{{'demographics_header'|trans}}</h2>
+			<md-select ng-model="language" ng-change="onLanguageChanged()">
+				<md-option ng-repeat="languageOption in languages" ng-value="languageOption.code">[[languageOption.label]]</md-option>
+			</md-select>
+		</div>
+	</md-toolbar>
+</src>

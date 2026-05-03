@@ -1,0 +1,10 @@
+<src>
+	<div>
+		<label>{{field.label_trans|trans}}</label>
+		<div layout="row" layout-wrap>
+			<div flex="25" ng-repeat="option in options track by $index">
+				<md-checkbox ng-checked="isOptionSelected(option)" ng-click="toggleOption(option)">{{option|trans}}</md-checkbox>
+			</div>
+		</div>
+	</div>
+</src>

@@ -1,0 +1,58 @@
+<src>
+	<!DOCTYPE html>
+	<html>
+		<head>
+			<meta charset="UTF-8"/>
+			<meta name="robots" content="noindex"/>
+			<meta name="viewport" content="width=device-width, initial-scale=1"/>
+			<title>EASI test</title>
+			<link rel="stylesheet" href="{{url}}/bundles/concertotest/css/test.css"/>
+			<link rel="stylesheet" href="{{url}}/bundles/concertotest/angularjs/bower_components/jquery-ui/themes/base/jquery-ui.min.css"/>
+			<script type="text/javascript" src="{{url}}/bundles/concertotest/angularjs/bower_components/jquery/dist/jquery.min.js"></script>
+			<script type="text/javascript" src="{{url}}/bundles/concertotest/angularjs/bower_components/jquery-ui/jquery-ui.min.js"></script>
+			<script type="text/javascript" src="{{url}}/bundles/concertotest/angularjs/bower_components/angular/angular.min.js"></script>
+			<script type="text/javascript" src="{{url}}/bundles/concertotest/angularjs/bower_components/angular-sanitize/angular-sanitize.min.js"></script>
+			<script type="text/javascript" src="{{url}}/bundles/concertotest/angularjs/bower_components/angular-cookies/angular-cookies.min.js"></script>
+			<script type="text/javascript" src="{{url}}/bundles/concertotest/angularjs/app/js/app.js"></script>
+			<script type="text/javascript" src="{{url}}/bundles/concertotest/angularjs/app/js/controllers/test_runner_controller.js"></script>
+			<script type="text/javascript" src="{{url}}/bundles/concertotest/angularjs/app/js/directives/concerto_test_directive.js"></script>
+			<script type="text/javascript" src="{{url}}/bundles/concertopanel/angularjs/app/concerto_panel/js/directives/ng-html.js"></script>
+			<script type="text/javascript" src="{{url}}/bundles/concertotest/angularjs/bower_components/angular-file-upload/dist/angular-file-upload.min.js"></script>
+			<script type="text/javascript" src="{{url}}/bundles/concertotest/js/customevent-polyfill.js"></script>
+			<link rel="icon" type="image/x-icon" href="{{url}}/favicon.ico"/>
+
+			<script src="/bundles/concertotest/angularjs/bower_components/angular-aria/angular-aria.js" type="text/javascript"></script>
+			<script src="/bundles/concertotest/angularjs/bower_components/angular-animate/angular-animate.js" type="text/javascript"></script>
+			<script src="/bundles/concertotest/angularjs/bower_components/angular-messages/angular-messages.js" type="text/javascript"></script>
+			<script src="/bundles/concertotest/angularjs/bower_components/angular-material/angular-material.js" type="text/javascript"></script>
+
+			<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700,400italic">
+			<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+			<link rel="stylesheet" type="text/css" href="/bundles/concertotest/angularjs/bower_components/angular-material/angular-material.css">
+
+			<link rel="stylesheet" type="text/css" href="/ViewTemplate/EASI-css/css"/>
+			<link rel="stylesheet" type="text/css" href="/ViewTemplate/EASI-demographics-css/css"/>
+
+			<script type="text/javascript" src="/ViewTemplate/EASI-demographics-component-header/js"></script>
+			<script type="text/javascript" src="/ViewTemplate/EASI-demographics-component-footer/js"></script>
+			<script type="text/javascript" src="/ViewTemplate/EASI-component-form-options/js"></script>
+			<script type="text/javascript" src="/ViewTemplate/EASI-component-form-optionsMultiple/js"></script>
+			<script type="text/javascript" src="/ViewTemplate/EASI-component-msg/js"></script>
+
+			<script type="text/javascript" src="/ViewTemplate/EASI-panel-service-api/js"></script>
+			<script type="text/javascript" src="/ViewTemplate/EASI-filter-trans/js"></script>
+
+			<script type="text/javascript">
+				testRunner.requires.push('ngMaterial');
+				testRunner.requires.push('ngMessages');
+
+				testRunner.config(function($mdThemingProvider) {
+					$mdThemingProvider.theme('default').accentPalette('deep-purple');
+				});
+			</script>
+		</head>
+		<body ng-app="testRunner" ng-cloak>
+			{{content}}
+		</body>
+	</html>
+</src>

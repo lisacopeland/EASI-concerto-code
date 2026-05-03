@@ -1,0 +1,29 @@
+<src>
+	<div layout="column" layout-align="center stretch" class="item-subtract" md-colors="{borderColor:'default-primary'}">
+		<div ng-html="item.question_trans|trans" class="item-subtract-question">
+		</div>
+
+		<div ng-if="item.skippable" class="skip">
+			<input type="checkbox" id="s-[[item.id]]" ng-model="item.skipped" ng-change="onSkipChanged()" tabindex="-1" ng-true-value="1" ng-false-value="0" /><label ng-html="skipLabel|trans" for="s-[[item.id]]"></label>
+		</div>
+
+		<div layout="row" layout-align="start center" class="item-subtract-inputs-container">
+			<md-input-container>
+				<label>{{placeholderLeft|trans}}</label>
+				<input ng-model="left" type="number" name="r[[item.id]]-left" ng-min="settings.min" ng-max="settings.max" ng-step="settings.step" ng-focus="onFocus()" ng-blur="onBlur()" class="md-primary" ng-required="item.required == 1 && !item.skippable" ng-change="subtract()" ng-disabled="item.skipped">
+				<div ng-messages="$parent.form['r'+item.id+'-left'].$error" multiple>
+					<div ng-message="min">{{ 'test_min_value'|trans:{min: settings.min} }}</div>
+					<div ng-message="max">{{ 'test_max_value'|trans:{max: settings.max} }}</div>
+				</div>
+			</md-input-container>
+			<md-input-container>
+				<label>{{placeholderRight|trans}}</label>
+				<input ng-model="right" type="number" name="r[[item.id]]-right" ng-min="settings.min" ng-max="settings.max" ng-step="settings.step" ng-focus="onFocus()" ng-blur="onBlur()" class="md-primary" ng-required="item.required == 1 && !item.skippable" ng-change="subtract()" ng-disabled="item.skipped">
+				<div ng-messages="$parent.form['r'+item.id+'-right'].$error" multiple>
+					<div ng-message="min">{{ 'test_min_value'|trans:{min: settings.min} }}</div>
+					<div ng-message="max">{{ 'test_max_value'|trans:{max: settings.max} }}</div>
+				</div>
+			</md-input-container>
+		</div>
+	</div>
+</src>

@@ -1,0 +1,4 @@
+.panel-app, panel, panel-login {
+  height: 100%;
+  display: block;
+}

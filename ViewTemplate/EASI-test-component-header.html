@@ -1,0 +1,18 @@
+<src>
+	<md-toolbar>
+		<div class="md-toolbar-tools" layout="row" layout-align="start center">
+			<h2 md-truncate="" flex>{{test.title_trans|trans}}</h2>
+			<md-button ng-href="/files/protected/EASI/instructions/{{test.instructionsFile_trans|trans}}?token=[[token]]" target="_blank" ng-if="test.instructionsFile_trans && instructionsAvailable">
+				<md-icon>download</md-icon>
+				{{'test_download_instructions'|trans}}
+			</md-button>
+			<md-button ng-click="goToInstructions()" ng-if="instructionsAvailable">
+				<md-icon>arrow_back</md-icon>
+				{{'test_go_back_to_instructions'|trans}}
+			</md-button>
+			<md-select ng-model="language" ng-change="onLanguageChanged()" tabindex="-1">
+				<md-option ng-repeat="languageOption in languages" ng-value="languageOption.code" tabindex="-1">[[languageOption.label]]</md-option>
+			</md-select>
+		</div>
+	</md-toolbar>
+</src>

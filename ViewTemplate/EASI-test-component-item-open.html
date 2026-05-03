@@ -1,0 +1,20 @@
+<src>
+	<div layout="column" layout-align="center stretch" class="item-open" md-colors="{borderColor:'default-primary'}">
+		<div ng-html="item.question_trans|trans" class="item-options-question">
+		</div>
+
+		<div ng-if="item.skippable" class="skip">
+			<input type="checkbox" id="s-[[item.id]]" ng-model="item.skipped" ng-change="onSkipChanged()" tabindex="-1" ng-true-value="1" ng-false-value="0" />
+			<label ng-html="skipLabel|trans" for="s-[[item.id]]"></label>
+		</div>
+		
+		<md-input-container>
+			<label>{{placeholder|trans}}</label>
+			<input ng-model="item.value" type="[[settings.inputType]]" name="r[[item.id]]" ng-min="settings.min" ng-max="settings.max" ng-step="settings.step" ng-focus="onFocus()" ng-blur="onBlur()" class="md-primary" ng-required="item.required == 1 && !item.skippable" maxlength="1024" ng-disabled="item.skipped">
+			<div ng-messages="$parent.form['r'+item.id].$error" multiple>
+				<div ng-message="min">{{ 'test_min_value'|trans:{min: settings.min} }}</div>
+				<div ng-message="max">{{ 'test_max_value'|trans:{max: settings.max} }}</div>
+			</div>
+		</md-input-container>
+	</div>
+</src>

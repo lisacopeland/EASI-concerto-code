@@ -1,0 +1,48 @@
+<src>
+	<div class="page" ng-controller="feedback" layout="column" layout-align="start stretch">
+		<test-header></test-header>
+		<div class="progress-container">
+			<md-progress-linear md-mode="indeterminate" ng-if="ongoingFetchesNum > 0"></md-progress-linear>
+		</div>
+
+		<md-content layout="column" layout-align="start stretch" layout-margin="" class="page-content" flex="noshrink">
+			<h2>[[ 'test_feedback_header'|trans:{id: participant.customId} ]]</h2>
+
+			<div ng-if="test.feedbackInfo_trans">
+				<h3>{{trans:test_feedback_info_header}}</h3>
+				<div>[[test.feedbackInfo_trans|trans]]</div>
+			</div>
+
+			<div ng-if="test.returnToPanel != 1">
+				<h3>{{trans:test_feedback_scores_header}}</h3>
+
+				<msg ng-if="emptyScores" type="warning">{{trans:test_feedback_no_scores_available}}</msg>
+
+				<md-list layout="row" layout-wrap layout-align="start start">
+					<md-list-item class="md-2-line score-item" ng-repeat="(scoreName, scoreValue) in scores">
+						<div class="md-list-item-text" layout="column">
+							<h4>[[scoreName|trans]]</h4>
+							<p>[[scoreValue|formatScoreValue:scoreName]]</p>
+						</div>
+					</md-list-item>
+				</md-list>
+
+				<h3 ng-if="feedback.length > 0">{{trans:test_feedback_interpretation_header}}</h3>
+				<p ng-repeat="f in feedback">[[f.feedback_trans|trans]]</p>
+
+				<h3>{{trans:test_feedback_history_header}}</h3>
+
+				<div layout="row" layout-align="center center" ng-show="dataSets.length > 0">
+					<div style="max-width: 1200px; width: 100%;">
+						<canvas id="chart"></canvas>
+					</div>
+				</div>
+			</div>
+
+			<div layout layout-align="end center" ng-if="test.returnToPanel == 1">
+				<md-button class="md-raised md-primary concerto-nosubmit" name="panel" ng-click="returnToPanel()"><md-icon>arrow_forward</md-icon> {{trans:test_return_to_panel}}</md-button>
+			</div>
+		</md-content>
+		<test-footer></test-footer>
+	</div>
+</src>

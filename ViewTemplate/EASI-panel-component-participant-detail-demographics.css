@@ -1,0 +1,7 @@
+.demographics-field {
+  gap: 1em;
+}
+
+.demographics-field label {
+  font-weight: bold;
+}

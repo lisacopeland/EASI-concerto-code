@@ -1,0 +1,35 @@
+html {
+  overflow-y: scroll;
+}
+
+html, #testContainer, #testHtml, body {
+  height: 100%;
+  /* fix for mat-select disabling body vertical scrollbar */
+  position: relative !important;
+}
+
+.center {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+}
+
+md-tooltip {
+  font-size: 1em !important;
+  padding: 0.25em;
+}
+
+.score-item {
+  width: 12em;
+  flex: inherit !important;
+  text-align: center;
+}
+
+.score-item h4 {
+  font-weight: 500 !important;
+}
+
+.md-list-item-text {
+  margin: inherit !important;
+}

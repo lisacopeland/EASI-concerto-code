@@ -1,0 +1,25 @@
+<src>
+	<md-dialog style="width: 500px;">
+		<form ng-cloak="" name="sessionForm">
+			<md-toolbar>
+				<div class="md-toolbar-tools">
+					<h2>[['panel_session_adding'|trans]]</h2>
+				</div>
+			</md-toolbar> 
+			<md-dialog-content>
+				<div class="md-dialog-content">
+					<md-input-container style="width: 100%;">
+						<label>[['panel_session_test'|trans]]</label>
+						<md-select ng-model="session.testCode">
+							<md-option ng-repeat="test in testService.collection | orderBy:'+orderIndex'" ng-value="test.code">[[test.title_trans|trans]]</md-option>
+						</md-select>
+					</md-input-container>
+				</div>
+			</md-dialog-content> 
+			<md-dialog-actions layout="row" layout-align="end"> 
+				<md-button ng-click="cancel()"> [['cancel'|trans]] </md-button> 
+				<md-button ng-click="add()" ng-disabled="!session.testCode"> [['add'|trans]] </md-button> 
+			</md-dialog-actions>
+		</form>
+	</md-dialog>
+</src>
