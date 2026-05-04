@@ -5,7 +5,6 @@ testRunner.component('panelLogin', {
   },
   controller: function controller($scope, api, notif, auth, transFilter) {
     $scope.dictionary = testRunner.R.dictionary;
-    $scope.return = testRunner.R.return;
 
     this.$onInit = function () {
       const params = new URLSearchParams(window.location.search)

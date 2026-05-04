@@ -12,7 +12,6 @@
 					<item-subtract ng-switch-when="subtract" item="item"></item-subtract>
 				</div>
 				<div layout layout-align="end center" class="sticky-buttons-container">
-					<md-button class="md-raised" name="assessmentDate"><md-icon>date_range</md-icon> {{trans:test_change_assessment_date}}</md-button>
 					<md-button class="md-raised" name="previous" ng-show="R.canGoBack && R.page &gt; 1"><md-icon>arrow_back</md-icon> {{trans:go_back}}</md-button>
 					<md-button class="md-raised" name="save"><md-icon style="color: orange;">save</md-icon> {{trans:save}}</md-button>
 					<md-button class="md-raised md-primary" name="next" ng-disabled="!isValid(form)"><md-icon style="color: green;">done</md-icon> {{trans:submit}}</md-button>

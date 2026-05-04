@@ -11,7 +11,7 @@ testRunner.component('itemOptions', {
     $scope.settings = {};
     $scope.defaultSkipLabel = $scope.dictionary.skip;
     $scope.skipLabel = null;
-
+    
     let getSkipLabel = function(item) {
       return $scope.settings['skipLabel_' + $scope.language] ? $scope.settings['skipLabel_' + $scope.language] : ($scope.settings.skipLabel ? $scope.settings.skipLabel : $scope.defaultSkipLabel);
     }
@@ -62,18 +62,9 @@ testRunner.component('itemOptions', {
       if(isValidOption(value)) {
         $scope.item.skipped = false;
         $scope.item.value = value;
-
-        //auto focus next
-        const tabable = $("[tabindex=0]");
-        if(tabable.length > 0) {
-          const activeElement = $(document.activeElement);
-          const activeIndex = tabable.index(activeElement);
-          const nextIndex = (activeIndex + 1) % tabable.length;
-          tabable.get(nextIndex).focus();
-        }
       }
     }
-
+    
     $scope.selectSkip = function() {
       $scope.item.skipped = true; 
       $scope.item.value = null;

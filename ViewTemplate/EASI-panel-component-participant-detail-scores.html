@@ -1,19 +1,19 @@
 <src>
-	<div class="print-header">{{'panel_results_tested_by'|trans}} <strong>[[getAdminName()]]</strong></div>
-	<div class="print-header">{{'panel_results_client'|trans}} <strong>#[[participant.id]], [[participant.initials]], [[participant.dateOfBirth]]</strong></div>
+	<div class="print-header">Tested by: <strong>[[getAdminLogin()]]</strong></div>
+	<div class="print-header">Participant <strong>#[[participant.id]], [[participant.initials]], [[participant.dateOfBirth]]</strong></div>
 	
 	<div layout="row" layout-align="end center" class="actions">
-		<md-button class="md-raised" ng-click="print()"><md-icon>printer</md-icon> {{'print'|trans}}</md-button>
-		<md-button class="md-raised" ng-click="getScores()"><md-icon>refresh</md-icon> {{'refresh'|trans}}</md-button>
+		<md-button class="md-raised" ng-click="print()"><md-icon>printer</md-icon> Print</md-button>
+		<md-button class="md-raised" ng-click="getScores()"><md-icon>refresh</md-icon> Refresh</md-button>
 	</div>
 
 	<md-subheader class="md-primary expandable" ng-click="expandables.tests = !expandables.tests">
 		<md-icon>[[expandables.tests ? 'expand_more' : 'expand_less']]</md-icon>
-		{{'panel_results_tests'|trans}}
+		Tests
 	</md-subheader>
 	<div layout="row" layout-wrap="" layout-align="start center" class="md-dense" ng-show="expandables.tests">
 		<md-switch ng-model="query.allTests" ng-true-value="1" ng-false-value="0" ng-change="getScores()">
-			{{'all_tests'|trans}}
+			All Tests
 		</md-switch>
 		<md-switch ng-model="query.tests[test.id]" ng-true-value="1" ng-false-value="0" ng-repeat="test in testService.collection" ng-change="getScores()" ng-if="query.allTests === 0">
 			[[test.code]]
@@ -23,7 +23,7 @@
 	<div ng-show="summaryDataSets.length > 0" class="print-page">
 		<md-subheader class="md-primary expandable" ng-click="expandables.summary = !expandables.summary">
 			<md-icon>[[expandables.summary ? 'expand_more' : 'expand_less']]</md-icon>
-			{{'panel_results_scores_summary'|trans}}
+			Scores summary
 		</md-subheader>
 		<div layout="column" layout-align="center center" ng-show="expandables.summary && summaryDataSets.length > 0">
 			<div class="chart-container">
@@ -35,22 +35,22 @@
 	<div ng-show="scoresCollection.length > 0" class="print-page">
 		<md-subheader class="md-primary expandable" ng-click="expandables.details = !expandables.details">
 			<md-icon>[[expandables.details ? 'expand_more' : 'expand_less']]</md-icon>
-			{{'panel_results_results'|trans}}
+			Results
 		</md-subheader>
 		<div ng-show="expandables.details">
 			<fieldset ng-repeat="test in tests" ng-if="getTestScores(test.code).length > 0" style="align-self: stretch; page-break-inside: avoid;">
-				<legend>{{test.title_trans|trans}}</legend>
+				<legend>[[test.title]]</legend>
 
 				<md-list layout="row" layout-wrap layout-align="start start">
 					<md-list-item class="md-2-line score-item" ng-repeat="score in getTestScores(test.code)">
 						<div class="md-list-item-text" layout="column">
-							<h4>{{score.name|trans}}</h4>
+							<h4>[[score.name]]</h4>
 							<p>[[score.value]]</p>
 						</div>
 					</md-list-item>
 				</md-list>
 
-				<p ng-repeat="score in getTestScores(test.code, true)">{{score.feedback_trans|trans}}</p>
+				<p ng-repeat="score in getTestScores(test.code, true)">[[score.feedback]]</p>
 			</fieldset>
 		</div>
 	</div>
@@ -58,7 +58,7 @@
 	<div ng-show="scoresDataSets.length > 0" class="print-page">
 		<md-subheader class="md-primary expandable" ng-click="expandables.history = !expandables.history">
 			<md-icon>[[expandables.history ? 'expand_more' : 'expand_less']]</md-icon>
-			{{'panel_results_scores_history'|trans}}
+			Scores history
 		</md-subheader>
 		<div layout="row" layout-align="center center" ng-show="expandables.history">
 			<div class="chart-container">
@@ -67,5 +67,5 @@
 		</div>
 	</div>
 	
-	<msg type="warning" ng-if="scoresDataSets.length === 0 && summaryDataSets.length === 0">{{'panel_results_no_data'|trans}}</msg>
+	<msg type="warning" ng-if="scoresDataSets.length === 0 && summaryDataSets.length === 0">No data to show.</msg>
 </src>

@@ -11,7 +11,6 @@
 		<form name="userProfile">
 			<div layout="row" layout-align="end center">
 				<md-button class="md-raised md-primary" ng-click="updateUserProfile()" ng-disabled="userProfile.$invalid"><md-icon>save</md-icon> Save</md-button>
-				<md-button class="md-raised md-primary" ng-click="getTherapists()" ng-disabled="userProfile.$invalid"><md-icon>save</md-icon> GetTherapists</md-button>
 			</div>
 			<fieldset class="md-dense">
 				<legend>User profile</legend>
@@ -78,7 +77,7 @@
 			</fieldset>
 			<fieldset class="md-dense" >
 				<legend>Subscription details</legend>
-				<div layout="row" layout-align="start center" ng-if="!profileLoading">
+				<div layout="row" layout-align="center center" ng-if="!profileLoading">
 					<msg type="warning" ng-if="showStripeLink">{{'admin_edit_subscription_notice'|trans}}</msg>
 				</div>
 

@@ -60,11 +60,8 @@ testRunner.service('auth', function (api, $cookies, $rootScope) {
         }
     }
     // Public Functions
-    this.getTherapists = function (PaginationToken, Filter) {
-        return api.action("getTherapists", {
-            PaginationToken,
-            Filter
-        });
+    this.getTherapists = function () {
+        return api.action("getTherapists", {});
     }
 
     this.getTokenCookie = function () {

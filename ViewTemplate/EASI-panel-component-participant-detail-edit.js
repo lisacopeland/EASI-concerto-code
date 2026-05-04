@@ -327,9 +327,5 @@ testRunner.component('participantDetailEdit', {
     $scope.onDobInputKeyPressed = function (event) {
       event.preventDefault();
     }
-    
-    $scope.isAdmin = function () {
-      return auth.user.type === 1;
-    }
   }
 });

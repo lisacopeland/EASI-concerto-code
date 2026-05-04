@@ -99,17 +99,6 @@
 					</div>
 				</md-input-container>
 			</div>
-			
-			<div layout="row" layout-align="start start" class="checkbox-container" ng-if="isAdmin()">
-				<md-input-container>
-					<label>{{'panel_client_export_exclusion'|trans}}</label>
-					<md-select ng-model="participant.exportExclusion" name="exportExclusion" required>
-						<md-option value=""><em>{{'not_selected'|trans}}</em></md-option>
-						<md-option value="1">{{'yes'|trans}}</md-option>
-						<md-option value="0">{{'no'|trans}}</md-option>
-					</md-select>
-				</md-input-container>
-			</div>
 
 			<div layout="row" layout-align="start start">
 				<!--

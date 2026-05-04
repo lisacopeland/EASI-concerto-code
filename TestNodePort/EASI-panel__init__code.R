@@ -20,18 +20,16 @@ diagnoses = concerto.table.query("
 SELECT 
 *,
 IFNULL({{labelTransCol}}, label) label_trans
-FROM EASI_diagnoses
-ORDER BY label_trans ASC", list(labelTransCol=labelTransCol))
+FROM EASI_diagnoses", list(labelTransCol=labelTransCol))
 
 labelTransCol = lib$getTransCol("EASI_researchProjects", "label", language)
 researchProjects = concerto.table.query("
 SELECT 
 *,
 IFNULL({{labelTransCol}}, label) label_trans
-FROM EASI_researchProjects
-ORDER BY label_trans ASC", list(labelTransCol=labelTransCol))
+FROM EASI_researchProjects", list(labelTransCol=labelTransCol))
 
-languages = concerto.table.query("SELECT * FROM EASI_languages ORDER BY label ASC")
+languages = concerto.table.query("SELECT * FROM EASI_languages")
 collections = list(
   diagnoses = diagnoses,
   researchProjects = researchProjects,

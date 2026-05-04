@@ -6,232 +6,26 @@
 	<md-content class="layout-padding">
 		<div layout="row" layout-align="space-between center" class="md-dense">
 			<div layout="row" layout-align="start center" layout-wrap style="gap: 0.5em;">
-				<md-button class="md-raised" ng-click="selectFilters()"><md-icon>search</md-icon> {{'select_filters'|trans}}</md-button>
+				<md-input-container>
+					<label>{{'search'|trans}}</label>
+					<input ng-model="query.search" ng-change="getParticipants()" ng-model-options="{ debounce: 500 }">
+				</md-input-container>
+				<md-input-container style="margin-left: 0;">
+					<label>{{'panel_archived_label'|trans}}</label>
+					<md-select ng-model="query.archived" ng-change="getParticipants()">
+						<md-option ng-value="''">{{'panel_archived_all'|trans}}</md-option>
+						<md-option ng-value="1">{{'panel_archived_archived'|trans}}</md-option>
+						<md-option ng-value="0">{{'panel_archived_nonarchived'|trans}}</md-option>
+					</md-select>
+				</md-input-container>
 			</div>
 			<div layout="row" layout-align="end center" layout-wrap>
 				<md-button class="md-raised" ng-click="addSingle()"><md-icon>add</md-icon> {{'panel_clients_add'|trans}}</md-button>
 				<md-button class="md-raised" ng-click="batchImport()"><md-icon>playlist_add</md-icon> {{'panel_clients_batch_import'|trans}}</md-button>
 				<md-button class="md-raised" ng-click="getParticipants()"><md-icon>refresh</md-icon> {{'refresh'|trans}}</md-button>
-				<md-button class="md-raised" ng-click="downloadDialog()" ng-show="selectedParticipants.length > 0"><md-icon>download</md-icon> {{'download_selected'|trans}}</md-button>
+				<md-button class="md-raised" ng-click="downloadSelected()" ng-show="selectedParticipants.length > 0"><md-icon>download</md-icon> {{'download_selected'|trans}}</md-button>
 				<md-button class="md-raised" ng-click="toggleArchiveSelected()" ng-show="selectedParticipants.length > 0"><md-icon>archive</md-icon> {{'archive_selected'|trans}}</md-button>
 				<md-button class="md-raised md-warn" ng-click="deleteSelected()" ng-show="selectedParticipants.length > 0"><md-icon>delete</md-icon> {{'delete_selected'|trans}}</md-button>
-			</div>
-		</div>
-
-		<div>
-			<div class="filter-container">
-				<md-card ng-if="filters.admin.enabled">
-					<md-card-title>{{'panel_client_administrator'|trans}}</md-card-title>
-					<md-card-content>
-						<md-input-container md-no-float="">
-							<input ng-model="filters.admin.value" ng-model-options="{ debounce: 500 }" placeholder="Enter value">
-						</md-input-container>
-						<!--
-						<md-input-container>
-							<md-select multiple ng-model="filters.admin.value" placeholder="Select value" class="md-ellipsis" style="max-width: 300px;">
-								<md-option ng-value="admin.id" ng-repeat="admin in admins">#[[admin.id]]: [[admin.login]]</md-option>
-							</md-select>
-						</md-input-container>
-						-->
-					</md-card-content>
-				</md-card>
-				
-				<md-card ng-if="filters.archived.enabled">
-					<md-card-title>{{'panel_archived_label'|trans}}</md-card-title>
-					<md-card-content>
-						<md-input-container>
-							<md-select multiple ng-model="filters.archived.value" placeholder="Select value">
-								<md-option ng-value="1">{{'panel_archived_archived'|trans}}</md-option>
-								<md-option ng-value="0">{{'panel_archived_nonarchived'|trans}}</md-option>
-							</md-select>
-						</md-input-container>
-					</md-card-content>
-				</md-card>
-				
-				<md-card ng-if="filters.assessmentReason.enabled">
-					<md-card-title>{{'panel_client_assessment_reason'|trans}}</md-card-title>
-					<md-card-content>
-						<md-input-container>
-							<md-select multiple ng-model="filters.assessmentReason.value" placeholder="Select value" class="md-ellipsis" style="max-width: 300px;">
-								<md-option ng-value="reason" ng-repeat="reason in assessmentReasons">{{reason|trans}}</md-option>
-							</md-select>
-						</md-input-container>
-					</md-card-content>
-				</md-card>
-				
-				<md-card ng-if="filters.clinicalAssessmentReferrer.enabled">
-					<md-card-title>{{'panel_client_clinical_assessment_referrer'|trans}}</md-card-title>
-					<md-card-content>
-						<md-input-container>
-							<md-select multiple ng-model="filters.clinicalAssessmentReferrer.value" placeholder="Select value" class="md-ellipsis" style="max-width: 300px;">
-								<md-option ng-value="referrer" ng-repeat="referrer in clinicalAssessmentReferrers">{{referrer|trans}}</md-option>
-							</md-select>
-						</md-input-container>
-					</md-card-content>
-				</md-card>
-				
-				<md-card ng-if="filters.countryOfResidence.enabled">
-					<md-card-title>{{'panel_client_country_of_residence'|trans}}</md-card-title>
-					<md-card-content>
-						<md-input-container>
-							<md-select multiple ng-model="filters.countryOfResidence.value" placeholder="Select value" class="md-ellipsis" style="max-width: 300px;">
-								<md-option ng-value="country.name" ng-repeat="country in countries">{{country.name|trans}}</md-option>
-							</md-select>
-						</md-input-container>
-					</md-card-content>
-				</md-card>
-				
-				<md-card ng-if="filters.customId.enabled">
-					<md-card-title>{{'panel_client_custom_id'|trans}}</md-card-title>
-					<md-card-content>
-						<md-input-container md-no-float="">
-							<input ng-model="filters.customId.value" ng-model-options="{ debounce: 500 }" placeholder="Enter value">
-						</md-input-container>
-					</md-card-content>
-				</md-card>
-				
-				<md-card ng-if="filters.dateOfBirth.enabled">
-					<md-card-title>{{'panel_client_date_of_birth'|trans}}</md-card-title>
-					<md-card-content>
-						<md-input-container>
-							<md-select ng-model="filters.dateOfBirth.operator">
-								<md-option ng-value="'equal'">{{'op_equal'|trans}}</md-option>
-								<md-option ng-value="'lesser'">{{'op_lesser'|trans}}</md-option>
-								<md-option ng-value="'lesserOrEqual'">{{'op_lesser_or_equal'|trans}}</md-option>
-								<md-option ng-value="'greater'">{{'op_greater'|trans}}</md-option>
-								<md-option ng-value="'greaterOrEqual'">{{'op_greater_or_equal'|trans}}</md-option>
-								<md-option ng-value="'between'">{{'op_between'|trans}}</md-option>
-							</md-select>
-						</md-input-container>
-
-						<md-input-container md-no-float="">
-							<md-datepicker ng-model="filters.dateOfBirth.value1" ng-model-options="{timezone: 'UTC'}"></md-datepicker>
-						</md-input-container>
-						<md-input-container md-no-float="" ng-if="filters.dateOfBirth.operator === 'between'">
-							<md-datepicker ng-model="filters.dateOfBirth.value2" ng-model-options="{timezone: 'UTC'}"></md-datepicker>
-						</md-input-container>
-
-					</md-card-content>
-				</md-card>
-				
-				<md-card ng-if="filters.diagnoses.enabled">
-					<md-card-title>{{'panel_client_diagnoses'|trans}}</md-card-title>
-					<md-card-content>
-						<md-input-container>
-							<md-select multiple ng-model="filters.diagnoses.value" placeholder="Select value">
-								<md-option value="1">{{'yes'|trans}}</md-option>
-								<md-option value="0">{{'no'|trans}}</md-option>
-							</md-select>
-						</md-input-container>
-					</md-card-content>
-				</md-card>
-				
-				<md-card ng-if="filters.diagnosesSelected.enabled">
-					<md-card-title>{{'panel_client_select_diagnoses'|trans}}</md-card-title>
-					<md-card-content>
-						<md-input-container>
-							<md-select multiple ng-model="filters.diagnosesSelected.value" placeholder="Select value" class="md-ellipsis" style="max-width: 300px;">
-								<md-option ng-value="diagnose.label" ng-repeat="diagnose in diagnoses">[[diagnose.label]]</md-option>
-							</md-select>
-						</md-input-container>
-					</md-card-content>
-				</md-card>
-				
-				<md-card ng-if="filters.email.enabled">
-					<md-card-title>{{'panel_client_email'|trans}}</md-card-title>
-					<md-card-content>
-						<md-input-container md-no-float="">
-							<input ng-model="filters.email.value" ng-model-options="{ debounce: 500 }" placeholder="Enter value">
-						</md-input-container>
-					</md-card-content>
-				</md-card>
-				
-				<md-card ng-if="filters.exportExclusion.enabled">
-					<md-card-title>{{'panel_client_export_exclusion'|trans}}</md-card-title>
-					<md-card-content>
-						<md-input-container>
-							<md-select multiple ng-model="filters.exportExclusion.value" placeholder="Select value">
-								<md-option ng-value="1">Yes</md-option>
-								<md-option ng-value="0">No</md-option>
-							</md-select>
-						</md-input-container>
-					</md-card-content>
-				</md-card>
-				
-				<md-card ng-if="filters.gender.enabled">
-					<md-card-title>{{'panel_client_gender'|trans}}</md-card-title>
-					<md-card-content>
-						<md-input-container>
-							<md-select multiple ng-model="filters.gender.value" placeholder="Select value" class="md-ellipsis" style="max-width: 300px;">
-								<md-option ng-value="gender" ng-repeat="gender in genders">[[gender]]</md-option>
-							</md-select>
-						</md-input-container>
-					</md-card-content>
-				</md-card>
-
-				<md-card ng-if="filters.id.enabled">
-					<md-card-title>{{'id'|trans}}</md-card-title>
-					<md-card-content>
-						<md-input-container md-no-float="">
-							<input ng-model="filters.id.value" ng-model-options="{ debounce: 500 }" placeholder="Enter value">
-						</md-input-container>
-					</md-card-content>
-				</md-card>
-
-				<md-card ng-if="filters.initials.enabled">
-					<md-card-title>{{'panel_client_initials'|trans}}</md-card-title>
-					<md-card-content>
-						<md-input-container md-no-float="">
-							<input ng-model="filters.initials.value" ng-model-options="{ debounce: 500 }" placeholder="Enter value">
-						</md-input-container>
-					</md-card-content>
-				</md-card>
-				
-				<md-card ng-if="filters.lastAssessment.enabled">
-					<md-card-title>{{'panel_client_last_assessment'|trans}}</md-card-title>
-					<md-card-content>
-						<md-input-container>
-							<md-select ng-model="filters.lastAssessment.operator">
-								<md-option ng-value="'equal'">{{'op_equal'|trans}}</md-option>
-								<md-option ng-value="'lesser'">{{'op_lesser'|trans}}</md-option>
-								<md-option ng-value="'lesserOrEqual'">{{'op_lesser_or_equal'|trans}}</md-option>
-								<md-option ng-value="'greater'">{{'op_greater'|trans}}</md-option>
-								<md-option ng-value="'greaterOrEqual'">{{'op_greater_or_equal'|trans}}</md-option>
-								<md-option ng-value="'between'">{{'op_between'|trans}}</md-option>
-							</md-select>
-						</md-input-container>
-
-						<md-input-container md-no-float="">
-							<md-datepicker ng-model="filters.lastAssessment.value1" ng-model-options="{timezone: 'UTC'}"></md-datepicker>
-						</md-input-container>
-						<md-input-container md-no-float="" ng-if="filters.lastAssessment.operator === 'between'">
-							<md-datepicker ng-model="filters.lastAssessment.value2" ng-model-options="{timezone: 'UTC'}"></md-datepicker>
-						</md-input-container>
-
-					</md-card-content>
-				</md-card>
-				
-				<md-card ng-if="filters.primaryLanguage.enabled">
-					<md-card-title>{{'panel_client_primary_language'|trans}}</md-card-title>
-					<md-card-content>
-						<md-input-container>
-							<md-select multiple ng-model="filters.primaryLanguage.value" placeholder="Select value" class="md-ellipsis" style="max-width: 300px;">
-								<md-option ng-value="language.code" ng-repeat="language in languages">[[language.label]]</md-option>
-							</md-select>
-						</md-input-container>
-					</md-card-content>
-				</md-card>
-				
-				<md-card ng-if="filters.researchProjectSelected.enabled">
-					<md-card-title>{{'Research project'|trans}}</md-card-title>
-					<md-card-content>
-						<md-input-container>
-							<md-select multiple ng-model="filters.researchProjectSelected.value" placeholder="Select value" class="md-ellipsis" style="max-width: 300px;">
-								<md-option ng-value="researchProject.label" ng-repeat="researchProject in researchProjects">[[researchProject.label_trans]]</md-option>
-							</md-select>
-						</md-input-container>
-					</md-card-content>
-				</md-card>
 			</div>
 		</div>
 
@@ -240,13 +34,12 @@
 				<table md-table md-row-select multiple ng-model="selectedParticipants">
 					<thead md-head md-order="query.order">
 						<tr md-row>
-							<th md-column md-order-by="customId">{{'panel_client_custom_id'|trans}}</th>
+							<th md-column md-order-by="customId">{{'id'|trans}}</th>
 							<th md-column md-order-by="initials">{{'panel_client_initials'|trans}}</th>
 							<th md-column md-order-by="dateOfBirth">{{'panel_client_date_of_birth'|trans}}</th>
 							<th md-column md-order-by="gender">{{'panel_client_gender'|trans}}</th>
 							<th md-column md-order-by="lastAssessmentDate">{{'panel_client_last_assessment'|trans}}</th>
 							<th md-column md-order-by="adminLogin" ng-if="isAdmin()">{{'panel_client_administrator'|trans}}</th>
-							<th md-column md-order-by="adminLogin" ng-if="isAdmin()">{{'panel_client_export_exclusion'|trans}}</th>
 							<th md-column></th>
 						</tr>
 					</thead>
@@ -264,7 +57,6 @@
 							<td md-cell>[[participant.gender]]</td>
 							<td md-cell>[[participant.lastAssessmentDate]]</td>
 							<td md-cell ng-if="isAdmin()">[[participant.adminLogin]]</td>
-							<td md-cell ng-if="isAdmin()"><md-checkbox ng-model="participant.exportExclusion" ng-true-value="1" ng-false-value="0" disabled></md-checkbox></td>
 							<td md-cell class="actions-cell" layout="row" layout-align="end center" layout-wrap>
 								<md-button ng-click="goToSessions(participant)" ng-disabled="!participant.valid"><md-icon>schedule</md-icon> {{'panel_client_tests'|trans}}</md-button>
 								<md-button ng-click="goToScores(participant)" ng-disabled="!participant.valid"><md-icon>insert_chart</md-icon> {{'panel_client_results'|trans}}</md-button>
@@ -288,7 +80,7 @@
 					</tbody>
 				</table>
 			</md-table-container>
-			<md-table-pagination md-limit="query.limit" md-limit-options="[50, 100, 250]" md-page="query.page" md-total="[[participantsTotalCount]]" md-on-paginate="getParticipants" md-page-select md-label="paginationLabels"></md-table-pagination>
+			<md-table-pagination md-limit="query.limit" md-limit-options="[50, 100, 250, 500, 1000, 5000, 10000]" md-page="query.page" md-total="[[participantsTotalCount]]" md-on-paginate="getParticipants" md-page-select md-label="paginationLabels"></md-table-pagination>
 		</div>
 
 		<msg type="warning" ng-if="participantsCollection.length === 0 && ongoingFetchesNum === 0">{{'panel_client_none_available'|trans}}</msg>

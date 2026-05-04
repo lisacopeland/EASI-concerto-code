@@ -86,41 +86,6 @@ md-checkbox {
   opacity: 0.5;
 }
 
-.filter-container {
-  display: flex;
-  flex-wrap: wrap;
-}
-
-.filter-container md-card {
-  display: flex;
-}
-
-.filter-container md-card-title {
-  flex: none;
-}
-
-.filter-container md-card-content {
-  flex: 1;
-  display: flex;
-}
-
-.filter-container md-input-container {
-  margin: 0;
-}
-
-.filter-container .filter-checkbox {
-  width: 33%;
-}
-
-.cols-container {
-  display: flex;
-  flex-wrap: wrap;
-}
-
-.cols-container .cols-elem {
-  width: 33%;
-}
-
 @media print {
   src {
     display: block;

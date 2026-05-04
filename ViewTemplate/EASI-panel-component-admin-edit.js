@@ -281,8 +281,6 @@ testRunner.component('adminEdit', {
     $scope.user = {}
     $scope.showDate = false // don't show date by default
     $scope.profileLoading = true
-    $scope.PaginationToken = null
-    $scope.Filter = null
 
     this.$onInit = function () {
       $scope.refreshUserProfile().then(() => {
@@ -326,16 +324,6 @@ testRunner.component('adminEdit', {
     $scope.updateUserProfile = function () {
       $scope.user.expirationDate = (new Date($scope.user.expirationDate)).toISOString() // Setting expiration date to ISOString for consistancy
       auth.updateUserProfile($scope.user)
-    }
-
-
-    $scope.getTherapists = function () {
-      auth.getTherapists($scope.PaginationToken, $scope.Filter).then((response) => {
-        let espEmails = Object.values(response.CombinedUsers).map((a) => { return a.esp.login })
-        console.log({ espEmails })
-        $scope.PaginationToken = response.PaginationToken
-        $scope.$apply()
-      })
     }
 
     $scope.refreshUserProfile = function () {

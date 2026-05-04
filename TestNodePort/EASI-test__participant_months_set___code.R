@@ -31,4 +31,4 @@ if(is.na(session$participantMonths)) {
   .branch = "no"
 } else { 
   .branch = "yes"
-} 
+}
