@@ -1,7 +1,8 @@
 <src>
 	<div class="print-header">Tested by: <strong>[[getAdminLogin()]]</strong></div>
-	<div class="print-header">Participant <strong>#[[participant.id]], [[participant.initials]], [[participant.dateOfBirth]]</strong></div>
-	
+	<div class="print-header">Participant <strong>#[[participant.id]], [[participant.initials]],
+			[[participant.dateOfBirth]]</strong></div>
+
 	<div layout="row" layout-align="end center" class="actions">
 		<md-button class="md-raised" ng-click="print()"><md-icon>printer</md-icon> Print</md-button>
 		<md-button class="md-raised" ng-click="getScores()"><md-icon>refresh</md-icon> Refresh</md-button>
@@ -15,7 +16,8 @@
 		<md-switch ng-model="query.allTests" ng-true-value="1" ng-false-value="0" ng-change="getScores()">
 			All Tests
 		</md-switch>
-		<md-switch ng-model="query.tests[test.id]" ng-true-value="1" ng-false-value="0" ng-repeat="test in testService.collection" ng-change="getScores()" ng-if="query.allTests === 0">
+		<md-switch ng-model="query.tests[test.id]" ng-true-value="1" ng-false-value="0"
+			ng-repeat="test in testService.collection" ng-change="getScores()" ng-if="query.allTests === 0">
 			[[test.code]]
 		</md-switch>
 	</div>
@@ -38,7 +40,8 @@
 			Results
 		</md-subheader>
 		<div ng-show="expandables.details">
-			<fieldset ng-repeat="test in tests" ng-if="getTestScores(test.code).length > 0" style="align-self: stretch; page-break-inside: avoid;">
+			<fieldset ng-repeat="test in tests" ng-if="getTestScores(test.code).length > 0"
+				style="align-self: stretch; page-break-inside: avoid;">
 				<legend>[[test.title]]</legend>
 
 				<md-list layout="row" layout-wrap layout-align="start start">
@@ -66,6 +69,7 @@
 			</div>
 		</div>
 	</div>
-	
-	<msg type="warning" ng-if="scoresDataSets.length === 0 && summaryDataSets.length === 0">No data to show.</msg>
+
+	<msg type="warning" ng-if="scoresDataSets.length === 0 && summaryDataSets.length === 0">
+		{{'panel_results_no_data'|trans}}</msg>
 </src>

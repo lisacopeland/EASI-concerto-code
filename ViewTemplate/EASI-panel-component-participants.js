@@ -149,5 +149,161 @@ testRunner.component('participants', {
             page: transFilter('page'),
             rowsPerPage: transFilter('page_rows')
         }
+    
+
+    $scope.checkIfSelectionValid = function () {
+      for (let i = $scope.selectedParticipants.length - 1; i >= 0; i--) {
+        if ($scope.participantsCollection.indexOf($scope.selectedParticipants[i]) === -1) $scope.selectedParticipants.splice(i, 1);
+      }
     }
+
+    $scope.getParticipants = function () {
+      $scope.ongoingFetchesNum++;
+      participants.fetch($scope.query, JSON.stringify($scope.filters)).then(response => {
+        $scope.participantsCollection = response.collection;
+        $scope.participantsTotalCount = response.totalCount;
+
+        checkIfSelectionValid();
+        $scope.ongoingFetchesNum--;
+        $scope.$apply();
+      });
+    }
+
+    $scope.adminGetParticipants = function () {
+      $scope.ongoingFetchesNum++;
+      admin = {
+        "id": 30,
+        "login": "dddomin3@gmail.com",
+        "email": "dddomin3@gmail.com",
+        "type": 0,
+        "name": "",
+        "gender": "",
+        "researchGroup": "",
+        "cohort": "",
+        "expirationDate": "",
+        "profession": "",
+        "usergroup": "",
+        "country": "",
+        "highestDegree": null,
+      }
+      participants.adminFetch($scope.query, admin).then(response => {
+        console.log(response, "adminGetParticipants")
+        // $scope.participantsTotalCount = response.totalCount;
+
+        // checkIfSelectionValid();
+        // $scope.ongoingFetchesNum--;
+        // $scope.$apply();
+      });
+    }
+
+    $scope.addSingle = function () {
+      participants.add({}).then(participant => {
+        $scope.edit(participant);
+        notif.toast(transFilter('panel_client_added', {id: participant.customId}));
+      });
+    }
+
+    $scope.batchImport = function () {
+      $location.path('/participant/import');
+    }
+
+    $scope.deleteSelected = function () {
+      let num = $scope.selectedParticipants.length;
+      let confirm = $mdDialog.confirm()
+      .title(transFilter('panel_client_remove_prompt', {num: num}))
+      .textContent(transFilter('panel_client_remove_content'))
+      .ok(transFilter('panel_client_remove_confirm'))
+      .cancel(transFilter('cancel'));
+
+      $mdDialog.show(confirm).then(function () {
+        participants.delete($scope.selectedParticipants).then(() => {
+          notif.toast(transFilter('panel_client_remove_toast', {num: num}));
+        });
+      });
+    }
+
+    $scope.toggleArchiveSelected = function() {
+      let num = $scope.selectedParticipants.length;
+      participants.toggleArchived($scope.selectedParticipants).then(() => {
+        notif.toast(transFilter('panel_client_archived_toggled_toast', {num: num}));
+      });
+    }
+
+    $scope.emailDemographics = function(participant) {
+      participants.sendParentEmail(participant).then(() => {
+        notif.toast(transFilter('panel_demographics_emailed'));
+      });
+    }
+
+    $scope.startDemographics = function(participant) {
+      const url = participants.getDemographicsLink(participant);
+      location.href = url;
+    }
+
+    $scope.goToSessions = function (participant) {
+      $location.path('/participant/' + participant.id + '/sessions');
+    }
+
+    $scope.goToScores = function (participant) {
+      $location.path('/participant/' + participant.id + '/scores');
+    }
+
+    $scope.edit = function (participant) {
+      $location.path('/participant/' + participant.id + '/edit');
+    }
+
+    $scope.addSession = function (participant) {
+      $location.path('/participant/' + participant.id + '/sessions').search({add: true});
+    }
+
+    $scope.isAdmin = function () {
+      return auth.user.type === 1;
+    }
+
+    $scope.downloadDialog = function() {     
+      return new Promise((resolve, reject) => {
+        window.scrollTo(0,0);
+        $mdDialog.show({
+          controller: DialogParticipantDownloadController,
+          resolve: {
+            selectedParticipants: () => { return $scope.selectedParticipants }
+          },
+          templateUrl: '/ViewTemplate/EASI-panel-dialog-participant-download/html',
+          parent: angular.element(document.body),
+          clickOutsideToClose: false,
+          escapeToClose: false
+        });
+      });
+    }
+
+    $scope.selectFilters = function() {
+      return new Promise((resolve, reject) => {
+        window.scrollTo(0,0);
+        $mdDialog.show({
+          controller: DialogParticipantFilterController,
+          resolve: {
+            filters: () => { return $scope.filters }
+          },
+          templateUrl: '/ViewTemplate/EASI-panel-dialog-participant-filter/html',
+          parent: angular.element(document.body),
+          clickOutsideToClose: true,
+          escapeToClose: true
+        });
+      });
+    }
+
+    $scope.paginationLabels = {
+      of: transFilter('page_of'), 
+      page: transFilter('page'), 
+      rowsPerPage: transFilter('page_rows')
+    }
+
+    $scope.fetchAdmins = function() {
+      console.log(admin);
+      admin.fetch().then((response) => {
+        $scope.admins = response;
+        console.log(response);
+      });
+    }
+  }
 });
