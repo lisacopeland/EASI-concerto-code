@@ -839,6 +839,7 @@ getFilterCompDateSql = function(filterName, filters, colName = filterName) {
 }
 
 getFilterSql = function(query) {
+  concerto.log("hi from getFilterSql")
   filters = fromJSON(query$filters)
   comps = 1
 
@@ -905,7 +906,29 @@ getFilterSql = function(query) {
     getFilterCompTextMultiArraySql("researchProjectSelected", filters)
   )
 
+  concerto.log("hi from end of getFilterSql")
   paste0(comps, collapse = " AND ")
+}
+
+getExclusionSql = function(excludedIds, alias = "") {
+  if (length(excludedIds) == 0) {
+    return("")
+  }
+
+  prefix = if (alias == "") "" else paste0(alias, ".")
+
+  excludedIds = paste0(
+    as.numeric(names(excludedIds)),
+    collapse = ","
+  )
+
+  paste0(
+    " AND ",
+    prefix,
+    "id NOT IN (",
+    excludedIds,
+    ")"
+  )
 }
 
 getLimitSql = function(query) {
@@ -961,7 +984,7 @@ adminFetchParticipants = function(query, admin) {
     collectionSql = paste0(
       "
 SELECT p.*, a.login AS adminLogin FROM EASI_participants AS p
-LEFT JOIN EASI_admins AS a ON a.id=p.admin_id
+LEFT JOIN EASI_admins getFAS a ON a.id=p.admin_id
 WHERE ",
       filterSql,
       "
@@ -1055,37 +1078,77 @@ fetchSingleParticipant = function(id) {
   }
 }
 
-deleteParticipants = function(ids) {
+getAdminPermissionSql = function(admin, alias = "") {
+  prefix = if (alias == "") "" else paste0(alias, ".")
+
+  if (admin$type == 1) {
+    return("")
+  }
+
+  if (admin$type == 2) {
+    return(paste0(
+      " AND (",
+      prefix,
+      "admin_id='{{admin_id}}' OR ",
+      prefix,
+      "researchGroup='{{admin_researchGroup}}')"
+    ))
+  }
+
+  if (admin$type == 0) {
+    return(paste0(" AND ", prefix, "admin_id='{{admin_id}}'"))
+  }
+
+  stop("Unknown admin type")
+}
+
+deleteParticipantsInternal = function(selection) {
   admin = c.get("admin", T)
   if (!is.list(admin)) {
     return(NULL)
   }
-
-  ids = paste0(as.numeric(ids), collapse = ",")
+  permissionSql = getAdminPermissionSql(admin, "p")
   params = list(
-    ids = ids,
     admin_id = admin$id,
     admin_researchGroup = admin$researchGroup
   )
-  if (admin$type == 1) {
-    concerto.table.query(
-      "DELETE FROM EASI_participants WHERE id IN ({{ids}})",
-      params
+
+  # for the inclusive case
+  if (selection$mode == "allMatching") {
+    query = list(filters = selection$filters)
+    filterSql = getFilterSql(query)
+    exclusionClause = getExclusionSql(selection$excludedIds, "p")
+
+    query = paste0(
+      "DELETE p FROM EASI_participants p ",
+      "WHERE ",
+      filterSql,
+      exclusionClause,
+      permissionSql
     )
+    concerto.log(paste0("allmatching query = ", query))
+    concerto.table.query(query, params)
+    return(NULL)
   }
-  if (admin$type == 2) {
-    concerto.table.query(
-      "DELETE FROM EASI_participants WHERE id IN ({{ids}}) AND (admin_id='{{admin_id}}' OR researchGroup='{{admin_researchGroup}}')",
-      params
-    )
-  }
-  if (admin$type == 0) {
-    concerto.table.query(
-      "DELETE FROM EASI_participants WHERE id IN ({{ids}}) AND admin_id='{{admin_id}}'",
-      params
-    )
-  }
+
+  # for the exclusive case
+  ids = paste0(
+    as.numeric(names(selection$includedIds)),
+    collapse = ","
+  )
+
+  params$ids = ids
+
+  query = paste0(
+    "DELETE p FROM EASI_participants p ",
+    "WHERE p.id IN ({{ids}})",
+    permissionSql
+  )
+  concerto.log(paste0("exclusive query = ", query))
+  concerto.table.query(query, params)
+  return(NULL)
 }
+
 
 toggleArchivedParticipants = function(ids) {
   admin = c.get("admin", T)
@@ -2477,7 +2540,7 @@ list(
     list(participant = fetchSingleParticipant(response$id))
   },
   deleteParticipants = function(response) {
-    deleteParticipants(response$ids)
+    deleteParticipantsInternal(response$selection)
   },
   toggleArchivedParticipants = function(response) {
     toggleArchivedParticipants(response$ids)
