@@ -724,10 +724,19 @@ testRunner.component('participants', {
 
     $scope.deleteSelected = function () {
       let num = getNumberSelected($scope.selection);
+      let warningMessage = transFilter('panel_client_remove_content');
       let confirm = $mdDialog
         .confirm()
         .title(transFilter('panel_client_remove_prompt', { num: num }))
-        .textContent(getParticipantSelectionDescription($scope.selection))
+        .htmlContent(
+          `
+    <p>${getParticipantSelectionDescription($scope.selection)}</p>
+    <p>
+      <strong>Warning:</strong>
+      ${warningMessage}
+    </p>
+  `,
+        )
         .ok(transFilter('delete_selected'))
         .cancel(transFilter('cancel'));
 
@@ -746,8 +755,8 @@ testRunner.component('participants', {
     };
 
     $scope.toggleArchiveSelected = function () {
-      let num = $scope.selectedParticipants.length;
-      participants.toggleArchived($scope.selectedParticipants).then(() => {
+      let num = getNumberSelected($scope.selection);
+      participants.toggleArchived($scope.selection).then(() => {
         notif.toast(transFilter('panel_client_archived_toggled_toast', { num: num }));
       });
     };

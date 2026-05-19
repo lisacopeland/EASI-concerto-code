@@ -24,16 +24,8 @@ testRunner.service('participants', function (api, $rootScope, $mdDialog, $locati
     });
   };
 
-  this.toggleArchived = function (participants) {
-    let ids = [];
-    if (!Array.isArray(participants)) {
-      ids.push(participants.id);
-    } else {
-      for (let i = 0; i < participants.length; i++) {
-        ids.push(participants[i].id);
-      }
-    }
-    return api.action('toggleArchivedParticipants', { ids: ids }).then((response) => {
+  this.toggleArchived = function (selection) {
+    return api.action('toggleArchivedParticipants', { selection: selection }).then((response) => {
       this.broadcastCollectionChanged();
       return response;
     });

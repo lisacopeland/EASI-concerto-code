@@ -1147,36 +1147,50 @@ deleteParticipantsInternal = function(selection) {
 }
 
 
-toggleArchivedParticipants = function(ids) {
+toggleArchivedParticipants = function(selection) {
   admin = c.get("admin", T)
   if (!is.list(admin)) {
     return(NULL)
   }
 
-  ids = paste0(as.numeric(ids), collapse = ",")
+  permissionSql = getAdminPermissionSql(admin, "p")
   params = list(
-    ids = ids,
     admin_id = admin$id,
     admin_researchGroup = admin$researchGroup
   )
-  if (admin$type == 1) {
-    concerto.table.query(
-      "UPDATE EASI_participants SET archived=ABS(archived-1) WHERE id IN ({{ids}})",
-      params
+
+  # for the inclusive case
+  if (selection$mode == "allMatching") {
+    query = list(filters = selection$filters)
+    filterSql = getFilterSql(query)
+    exclusionClause = getExclusionSql(selection$excludedIds, "p")
+
+    query = paste0(
+      "UPDATE EASI_participants p SET archived=ABS(archived-1) ",
+      "WHERE ",
+      filterSql,
+      exclusionClause,
+      permissionSql
     )
+
+    concerto.table.query(query, params)
+    return(NULL)
   }
-  if (admin$type == 2) {
-    concerto.table.query(
-      "UPDATE EASI_participants SET archived=ABS(archived-1) WHERE id IN ({{ids}}) AND (admin_id='{{admin_id}}' OR researchGroup='{{admin_researchGroup}}')",
-      params
-    )
-  }
-  if (admin$type == 0) {
-    concerto.table.query(
-      "UPDATE EASI_participants SET archived=ABS(archived-1) WHERE id IN ({{ids}}) AND admin_id='{{admin_id}}'",
-      params
-    )
-  }
+
+  # for the exclusive case
+  ids = paste0(
+    as.numeric(names(selection$includedIds)),
+    collapse = ","
+  )
+
+  params$ids = ids
+  query = paste0(
+    "UPDATE EASI_participants p SET archived=ABS(archived-1) ",
+    "WHERE p.id IN ({{ids}})",
+    permissionSql
+  )
+  concerto.table.query(query, params)
+  return(NULL)
 }
 
 generateRandomId = function() {
@@ -2847,7 +2861,7 @@ list(
     deleteParticipantsInternal(response$selection)
   },
   toggleArchivedParticipants = function(response) {
-    toggleArchivedParticipants(response$ids)
+    toggleArchivedParticipants(response$selection)
   },
   queueExportGeneration = function(response) {
     createDownload(response$selection, response$cols)
