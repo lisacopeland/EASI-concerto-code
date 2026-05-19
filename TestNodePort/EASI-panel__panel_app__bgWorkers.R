@@ -839,7 +839,6 @@ getFilterCompDateSql = function(filterName, filters, colName = filterName) {
 }
 
 getFilterSql = function(query) {
-  concerto.log("hi from getFilterSql")
   filters = fromJSON(query$filters)
   comps = 1
 
@@ -906,7 +905,6 @@ getFilterSql = function(query) {
     getFilterCompTextMultiArraySql("researchProjectSelected", filters)
   )
 
-  concerto.log("hi from end of getFilterSql")
   paste0(comps, collapse = " AND ")
 }
 
@@ -932,7 +930,6 @@ getExclusionSql = function(excludedIds, alias = "") {
 }
 
 getLimitSql = function(query) {
-  concerto.log(query)
   if (is.null(query$limit) || query$limit == "") {
     return("")
   }
@@ -1126,7 +1123,7 @@ deleteParticipantsInternal = function(selection) {
       exclusionClause,
       permissionSql
     )
-    concerto.log(paste0("allmatching query = ", query))
+
     concerto.table.query(query, params)
     return(NULL)
   }
@@ -1144,7 +1141,7 @@ deleteParticipantsInternal = function(selection) {
     "WHERE p.id IN ({{ids}})",
     permissionSql
   )
-  concerto.log(paste0("exclusive query = ", query))
+
   concerto.table.query(query, params)
   return(NULL)
 }
@@ -1180,22 +1177,6 @@ toggleArchivedParticipants = function(ids) {
       params
     )
   }
-}
-
-generateRandomId = function() {
-  id = NULL
-  while (T) {
-    id = paste0(sample(c(0:9, letters), 6, replace = T), collapse = "")
-    result = concerto.table.query(
-      "SELECT COUNT(*) FROM EASI_participants WHERE customId='{{id}}'",
-      list(id = id)
-    )
-    if (result[1, 1] == 0) {
-      break
-    }
-  }
-
-  id
 }
 
 generateRandomId = function() {
@@ -2468,8 +2449,335 @@ setAdminLanguage = function(languageCode) {
   )
 }
 
-queueExportGeneration = function(ids, cols) {
-  concerto.log("queueExportGeneration: start")
+getParticipantIdsForSelection = function(selection, admin) {
+  permissionSql = getAdminPermissionSql(admin, "p")
+
+  params = list(
+    admin_id = admin$id,
+    admin_researchGroup = admin$researchGroup
+  )
+
+  if (selection$mode == "explicit") {
+    ids = paste0(
+      as.numeric(names(selection$includedIds)),
+      collapse = ","
+    )
+    params$ids = ids
+    query = paste0(
+      "SELECT p.id ",
+      "FROM EASI_participants p ",
+      "WHERE p.exportExclusion = 0 ",
+      "AND p.id IN ({{ids}})",
+      permissionSql
+    )
+
+    rows = concerto.table.query(query, params)
+    return(rows[, "id"])
+  } else {
+    filterSql = getFilterSql(list(filters = selection$filters))
+    exclusionClause = getExclusionSql(selection$excludedIds, "p")
+    query = paste0(
+      "SELECT p.id ",
+      "FROM EASI_participants p ",
+      "WHERE p.exportExclusion = 0 AND ",
+      filterSql,
+      exclusionClause,
+      permissionSql
+    )
+    rows = concerto.table.query(query, params)
+    return(rows[, "id"])
+  }
+  return(NULL)
+}
+
+createDownload = function(selection, cols) {
+  admin = c.get("admin", T)
+  if (!is.list(admin)) {
+    return(list(
+      success = FALSE,
+      error = "Admin not found"
+    ))
+  }
+
+  # Make the filepath:
+  filename = paste0(format(Sys.time(), "%Y%m%dT%H%M%SZ", tz = "GMT"), ".csv")
+  session = concerto.table.query(
+    "SELECT hash FROM TestSession WHERE id='{{id}}'",
+    list(id = concerto$session$id)
+  )
+  if (nrow(session) == 0) {
+    return(list(
+      success = FALSE,
+      error = "Session not found"
+    ))
+  }
+
+  dirPath = paste0("/data/sessions/", session$hash, "/files")
+  if (!dir.exists(dirPath)) {
+    dir.create(dirPath, recursive = TRUE, showWarnings = FALSE)
+  }
+
+  filePath = paste0(dirPath, "/", filename)
+  # get the participant columns
+  participantCols = NULL
+  validParticipantCols = c(
+    "id",
+    "customId",
+    "dateOfBirth",
+    "countryOfResidence",
+    "gender",
+    "languageCode",
+    "diagnoses",
+    "diagnosesSelected",
+    "initials",
+    "email",
+    "assessmentReason",
+    "clinicalAssessmentReferrer",
+    "researchProjectSelected",
+    "researchGroup"
+  )
+
+  participantCols = intersect(
+    names(cols)[cols == 'true'],
+    validParticipantCols
+  )
+
+  # Get the participant Ids
+  ids = getParticipantIdsForSelection(selection, admin)
+
+  if (length(ids) == 0) {
+    # No valid participant ids returned
+    return(list(
+      success = FALSE,
+      error = "No valid participants found"
+    ))
+  }
+
+  params = list(
+    ids = ids,
+    admin_id = admin$id,
+    admin_researchGroup = admin$researchGroup,
+    participantCols = paste0(participantCols, collapse = ", ")
+  )
+
+  # Get the participants
+  participantsSql = paste0(
+    "SELECT {{participantCols}} ",
+    "FROM EASI_participants p ",
+    "WHERE p.id IN ({{ids}})"
+  )
+
+  participants = concerto.table.query(participantsSql, params)
+
+  # get the testCodes
+  testCodes = concerto.table.query(
+    "SELECT code FROM EASI_tests ORDER BY orderIndex ASC"
+  )[, 1]
+  filteredTestCodes = NULL
+  for (testCode in testCodes) {
+    if (testCode %in% ls(cols) && cols[testCode] == 'true') {
+      filteredTestCodes = c(filteredTestCodes, testCode)
+    }
+  }
+  testCodes = filteredTestCodes
+  if (
+    is.null(testCodes) &&
+      (cols['testAdmin'] == 'true' ||
+        cols['testResponses'] == 'true' ||
+        cols['testScores'] == 'true')
+  ) {
+    return(list(
+      success = FALSE,
+      error = "No test codes specified"
+    ))
+  }
+
+  # Get the scores
+  scores = data.frame()
+  if (cols['testAdmin'] == 'true' || cols['testScores'] == 'true') {
+    scoresSql = paste0(
+      "SELECT '",
+      testCodes,
+      "' COLLATE utf8_bin AS testCode, session_id, s.name COLLATE utf8_bin AS name, value COLLATE utf8_bin AS value, s.participant_id, a.id AS admin_id, a.login AS admin_login
+    FROM ",
+      testCodes,
+      "_scores AS s 
+    LEFT JOIN ",
+      testCodes,
+      "_sessions AS se ON se.id=s.session_id
+    LEFT JOIN EASI_admins AS a ON a.id=se.admin_id
+    WHERE s.participant_id IN ({{ids}}) AND session_id = (SELECT MAX(session_id) FROM ",
+      testCodes,
+      "_scores WHERE participant_id=s.participant_id)"
+    )
+    scoresSql = paste0(
+      "SELECT * FROM (",
+      paste0(scoresSql, collapse = " UNION ALL "),
+      ") t ORDER BY testCode, name"
+    )
+    scores = concerto.table.query(scoresSql, params)
+    if (nrow(scores) == 0) {
+      scores = data.frame()
+    }
+  }
+  # now get responses
+  responses = data.frame()
+  if (cols['testResponses'] == 'true') {
+    responsesSql = paste0(
+      "SELECT '",
+      testCodes,
+      "' COLLATE utf8_bin AS testCode, 
+      r.session_id, 
+      r.item_id, 
+      CASE
+      WHEN r.value COLLATE utf8_bin = i.optionValue1 COLLATE utf8_bin THEN i.optionLabel1 COLLATE utf8_bin
+      WHEN r.value COLLATE utf8_bin = i.optionValue2 COLLATE utf8_bin THEN i.optionLabel2 COLLATE utf8_bin
+      WHEN r.value COLLATE utf8_bin = i.optionValue3 COLLATE utf8_bin THEN i.optionLabel3 COLLATE utf8_bin
+      WHEN r.value COLLATE utf8_bin = i.optionValue4 COLLATE utf8_bin THEN i.optionLabel4 COLLATE utf8_bin
+      WHEN r.value COLLATE utf8_bin = i.optionValue5 COLLATE utf8_bin THEN i.optionLabel5 COLLATE utf8_bin
+      END label,
+      r.score, 
+      r.skipped, 
+      se.participant_id
+      FROM ",
+      testCodes,
+      "_responses AS r 
+      LEFT JOIN ",
+      testCodes,
+      "_sessions AS se ON se.id=r.session_id
+      LEFT JOIN ",
+      testCodes,
+      "_items AS i ON i.id=r.item_id
+      WHERE se.participant_id IN ({{ids}}) AND session_id = (SELECT MAX(session_id) FROM ",
+      testCodes,
+      "_responses LEFT JOIN ",
+      testCodes,
+      "_sessions as ses on ses.id=session_id WHERE ses.participant_id=se.participant_id)"
+    )
+    responsesSql = paste0(
+      "SELECT * FROM (",
+      paste0(responsesSql, collapse = " UNION ALL "),
+      ") t ORDER BY testCode, item_id"
+    )
+    responses = concerto.table.query(responsesSql, params)
+  } else {
+    responses = data.frame()
+  }
+
+  # now do the R stuff
+  dfi = list()
+  for (name in ls(participants)) {
+    dfi[[name]] = participants[[name]]
+  }
+
+  cellDefault = NA
+  colIndex = length(dfi)
+  adminColIndexOffset = 0
+  lastTestCode = ''
+  lastScoreName = ''
+  lastItemId = 0
+
+  if (
+    (cols['testAdmin'] == 'true' || cols['testScores'] == 'true') &&
+      nrow(scores) > 0
+  ) {
+    for (i in seq_len(nrow(scores))) {
+      score = scores[i, ]
+      participantIndex = which(participants$id == score$participant_id)
+
+      if (score$testCode != lastTestCode) {
+        if (cols['testAdmin'] == 'true') {
+          dfi[[paste0(score$testCode, ": admin_id")]] = rep(
+            cellDefault,
+            nrow(participants)
+          )
+          dfi[[paste0(score$testCode, ": admin_login")]] = rep(
+            cellDefault,
+            nrow(participants)
+          )
+
+          colIndex = colIndex + 2
+          adminColIndexOffset = 0
+        }
+
+        lastTestCode = score$testCode
+      }
+
+      if (score$name != lastScoreName) {
+        if (cols['testScores'] == 'true') {
+          dfi[[paste0(score$testCode, ": ", score$name)]] = rep(
+            cellDefault,
+            nrow(participants)
+          )
+
+          colIndex = colIndex + 1
+          adminColIndexOffset = adminColIndexOffset + 1
+        }
+
+        lastScoreName = score$name
+      }
+
+      if (cols['testAdmin'] == 'true') {
+        dfi[[colIndex - adminColIndexOffset - 1]][[
+          participantIndex
+        ]] = score$admin_id
+        dfi[[colIndex - adminColIndexOffset]][[
+          participantIndex
+        ]] = score$admin_login
+      }
+      if (cols['testScores'] == 'true') {
+        dfi[[colIndex]][[participantIndex]] = score$value
+      }
+    }
+  }
+
+  if ((cols['testResponses'] == 'true') && (nrow(responses) > 0)) {
+    for (i in 1:nrow(responses)) {
+      response = responses[i, ]
+      participantIndex = which(participants$id == response$participant_id)
+
+      if (response$testCode != lastTestCode || response$item_id != lastItemId) {
+        dfi[[paste0(
+          response$testCode,
+          ": item #",
+          response$item_id,
+          " response label"
+        )]] = rep(cellDefault, nrow(participants))
+        dfi[[paste0(
+          response$testCode,
+          ": item #",
+          response$item_id,
+          " response score"
+        )]] = rep(cellDefault, nrow(participants))
+        dfi[[paste0(
+          response$testCode,
+          ": item #",
+          response$item_id,
+          " response skipped"
+        )]] = rep(cellDefault, nrow(participants))
+
+        colIndex = colIndex + 3
+        lastTestCode = response$testCode
+        lastItemId = response$item_id
+      }
+
+      dfi[[colIndex - 2]][[participantIndex]] = response$label
+      dfi[[colIndex - 1]][[participantIndex]] = response$score
+      dfi[[colIndex]][[participantIndex]] = response$skipped
+    }
+  }
+
+  result = data.frame(dfi, check.rows = F, check.names = F, fix.empty.names = F)
+
+  write.csv(result, filePath, row.names = F, na = "")
+  return(list(
+    success = TRUE,
+    filename = filename,
+    url = filePath
+  ))
+}
+
+queueExportGenerationVoid = function(selection, cols) {
   admin = c.get("admin", T)
   if (!is.list(admin)) {
     return(NULL)
@@ -2477,7 +2785,6 @@ queueExportGeneration = function(ids, cols) {
 
   filename = paste0(format(Sys.time(), "%Y%m%dT%H%M%SZ", tz = "GMT"), ".csv")
   args = toJSON(list(participants = ids, cols = cols))
-  concerto.log(paste0("queueExportGeneration: inserting filename=", filename))
   concerto.table.query(
     "INSERT INTO EASI_export_queue SET
     session_id='{{p_session_id}}',
@@ -2494,9 +2801,6 @@ queueExportGeneration = function(ids, cols) {
     )
   )
   insertId = concerto.table.lastInsertId()
-  concerto.log(paste0("queueExportGeneration: insert complete, id=", insertId))
-
-  concerto.log("queueExportGeneration: returning result")
   list(
     status = 0,
     id = concerto.table.lastInsertId()
@@ -2546,7 +2850,7 @@ list(
     toggleArchivedParticipants(response$ids)
   },
   queueExportGeneration = function(response) {
-    queueExportGeneration(response$ids, response$cols)
+    createDownload(response$selection, response$cols)
   },
   checkExportGeneration = function(response) {
     checkExportGeneration(response$id)

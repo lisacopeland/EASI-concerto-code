@@ -39,18 +39,12 @@ testRunner.service('participants', function (api, $rootScope, $mdDialog, $locati
     });
   };
 
-  this.queueExportGeneration = function (participants, cols) {
-    let ids = [];
-    if (!Array.isArray(participants)) {
-      ids.push(participants.id);
-    } else {
-      for (let i = 0; i < participants.length; i++) {
-        ids.push(participants[i].id);
-      }
-    }
-    return api.action('queueExportGeneration', { ids: ids, cols: cols }).then((response) => {
-      return response;
-    });
+  this.queueExportGeneration = function (selection, cols) {
+    return api
+      .action('queueExportGeneration', { selection: selection, cols: cols })
+      .then((response) => {
+        return response;
+      });
   };
 
   this.checkExportGeneration = function (id) {

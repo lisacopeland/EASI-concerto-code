@@ -789,8 +789,8 @@ testRunner.component('participants', {
         $mdDialog.show({
           controller: DialogParticipantDownloadController,
           resolve: {
-            selectedParticipants: () => {
-              return $scope.selectedParticipants;
+            selection: () => {
+              return $scope.selection;
             },
           },
           templateUrl: '/ViewTemplate/EASI-panel-dialog-participant-download/html',
