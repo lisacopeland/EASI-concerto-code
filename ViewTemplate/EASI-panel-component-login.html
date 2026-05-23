@@ -20,7 +20,7 @@
 				</md-card-content>
 				<md-card-actions layout="row" layout-align="end">
 					<md-button class="md-primary md-raised" ng-click="logIn()" ng-disabled="api.isBlocked()"><md-icon>login</md-icon> {{'panel_login_login_button'|trans}}</md-button>
-					<md-button class="md-accent md-raised" href="https://login.easitests.com/forgotPassword?client_id=6bbto14uknbbc4p2va7uvih8ac&response_type=code&scope=aws.cognito.signin.user.admin+email+openid+phone+profile&redirect_uri=https%3A%2F%2Fwww.easitests.com%2Ftest%2Fpanel">{{'panel_login_forgot_password_button'|trans}}</md-button>
+					<md-button style="margin-left: 8px;" class="md-accent md-raised" href="https://login.easitests.com/forgotPassword?client_id=6bbto14uknbbc4p2va7uvih8ac&response_type=code&scope=aws.cognito.signin.user.admin+email+openid+phone+profile&redirect_uri=https%3A%2F%2Fwww.easitests.com%2Ftest%2Fpanel">{{'panel_login_forgot_password_button'|trans}}</md-button>
 				</md-card-actions>
 				<md-progress-linear md-mode="indeterminate" ng-if="api.isBlocked()"></md-progress-linear>
 			</md-card>

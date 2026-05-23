@@ -530,79 +530,79 @@ testRunner.component('participants', {
 
     $scope.initFilters = function () {
       $scope.filters = {
-        admin: {
-          enabled: false,
-          value: [],
-        },
-        archived: {
-          enabled: true,
-          value: [0],
-        },
-        assessmentReason: {
-          enabled: false,
-          value: [],
-        },
-        clinicalAssessmentReferrer: {
-          enabled: false,
-          value: [],
-        },
-        countryOfResidence: {
-          enabled: false,
-          value: [],
-        },
-        customId: {
-          enabled: false,
-          value: '',
-        },
-        dateOfBirth: {
-          enabled: false,
-          operator: 'equal',
-          value1: new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getDate())),
-          value2: new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getDate())),
-        },
-        diagnoses: {
-          enabled: false,
-          value: [],
-        },
-        diagnosesSelected: {
-          enabled: false,
-          value: [],
-        },
-        email: {
-          enabled: false,
-          value: '',
-        },
-        exportExclusion: {
-          enabled: false,
-          value: [],
-        },
-        gender: {
-          enabled: false,
-          value: [],
-        },
-        id: {
-          enabled: false,
-          value: '',
-        },
-        initials: {
-          enabled: false,
-          value: '',
-        },
-        lastAssessment: {
-          enabled: false,
-          operator: 'equal',
-          value1: new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getDate())),
-          value2: new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getDate())),
-        },
-        primaryLanguage: {
-          enabled: false,
-          value: [],
-        },
-        researchProjectSelected: {
-          enabled: false,
-          value: [],
-        },
-      };
+            admin: {
+              enabled: false,
+              value: [],
+            },
+            archived: {
+              enabled: true,
+              value: [0],
+            },
+            assessmentReason: {
+              enabled: false,
+              value: [],
+            },
+            clinicalAssessmentReferrer: {
+              enabled: false,
+              value: [],
+            },
+            countryOfResidence: {
+              enabled: false,
+              value: [],
+            },
+            customId: {
+              enabled: false,
+              value: '',
+            },
+            dateOfBirth: {
+              enabled: false,
+              operator: 'equal',
+              value1: new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getDate())),
+              value2: new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getDate())),
+            },
+            diagnoses: {
+              enabled: false,
+              value: [],
+            },
+            diagnosesSelected: {
+              enabled: false,
+              value: [],
+            },
+            email: {
+              enabled: false,
+              value: '',
+            },
+            exportExclusion: {
+              enabled: false,
+              value: [],
+            },
+            gender: {
+              enabled: false,
+              value: [],
+            },
+            id: {
+              enabled: false,
+              value: '',
+            },
+            initials: {
+              enabled: false,
+              value: '',
+            },
+            lastAssessment: {
+              enabled: false,
+              operator: 'equal',
+              value1: new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getDate())),
+              value2: new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getDate())),
+            },
+            primaryLanguage: {
+              enabled: false,
+              value: [],
+            },
+            researchProjectSelected: {
+              enabled: false,
+              value: [],
+            },
+          };
     };
 
     $scope.clearFilters = function () {
@@ -661,7 +661,7 @@ testRunner.component('participants', {
       $scope.getParticipants();
       $scope.$on('participants:collectionChanged', (event) => {
         console.log('participants collection changed! Going to get participants!');
-        $scope.getParticipants();
+        $scope.getParticipants() 
       });
     };
 
@@ -680,8 +680,8 @@ testRunner.component('participants', {
         $scope.$apply();
       });
     };
-
-    $scope.onReorder = function (order) {
+    
+    $scope.onReorder = function(order) {
       $scope.query.order = order;
       $scope.query.page = 1;
       $scope.getParticipants();

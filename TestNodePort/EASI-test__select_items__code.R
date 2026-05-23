@@ -69,7 +69,7 @@ if(page > maxPages) {
         settings=settings,
         direction=direction,
         page=page,
-        itemStartIndex=itemStartIndex,
+        itemStartIndex=itemsStartIndex,
         itemEndIndex=itemEndIndex
       ))
 

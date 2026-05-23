@@ -78,7 +78,7 @@ function DialogParticipantDownloadController(
         //     error = "error string"
         if (!response || !response.success) {
           $scope.status = -1;
-          $scope.errorMessage = response.error ? response.error : 'error message';
+          $scope.errorMessage = (response.error) ? response.error : 'error message';
           $scope.$applyAsync();
           return;
         }
