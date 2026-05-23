@@ -13,14 +13,16 @@
 			<div layout="row" layout-align="start center" layout-wrap style="gap: 0.5em;">
 				<md-button class="md-raised" ng-click="selectFilters()"><md-icon>search</md-icon>
 					{{'select_filters'|trans}}</md-button>
+				<md-button class="md-raised" ng-click="clearFilters()">
+					{{'clear_filters'|trans}}</md-button>
 			</div>
 			<div layout="row" layout-align="end center" layout-wrap>
 				<md-button class="md-raised" ng-click="addSingle()"><md-icon>add</md-icon>
 					{{'panel_clients_add'|trans}}</md-button>
 				<md-button class="md-raised" ng-click="batchImport()"><md-icon>playlist_add</md-icon>
 					{{'panel_clients_batch_import'|trans}}</md-button>
-				<md-button class="md-raised" ng-click="getParticipants()"><md-icon>refresh</md-icon>
-					{{'refresh'|trans}}</md-button>
+				<!-- <md-button class="md-raised" ng-click="getParticipants()"><md-icon>refresh</md-icon>
+					{{'refresh'|trans}}</md-button> -->
 				<md-button class="md-raised" ng-click="downloadDialog()"
 					ng-show="selectedParticipants.length > 0"><md-icon>download</md-icon>
 					{{'download_selected'|trans}}</md-button>
@@ -278,7 +280,7 @@
 			</div>
 			<md-table-container>
 				<table md-table md-row-select multiple ng-model="selectedParticipants">
-					<thead md-head md-order="query.order">
+					<thead md-head md-order="query.order" md-on-reorder="onReorder">
 						<tr md-row>
 							<th md-column md-order-by="customId">{{'panel_client_custom_id'|trans}}</th>
 							<th md-column md-order-by="initials">{{'panel_client_initials'|trans}}</th>
@@ -294,7 +296,7 @@
 					</thead>
 					<tbody md-body>
 						<tr md-row md-select="participant" md-select-id="id" md-on-select="onParticipantSelect"
-							ng-repeat="participant in participantsCollection | orderBy: query.order"
+							ng-repeat="participant in participantsCollection"
 							ng-class="{'archived': participant.archived == 1}">
 							<td md-cell>
 								<span ng-if="!participant.valid">
@@ -343,7 +345,7 @@
 					</tbody>
 				</table>
 			</md-table-container>
-			<md-table-pagination md-limit="query.limit" md-limit-options="[10, 50, 100, 250]" md-page="query.page"
+			<md-table-pagination md-limit="query.limit" md-limit-options="[50, 100, 250]" md-page="query.page"
 				md-total="[[participantsTotalCount]]" md-on-paginate="getParticipants" md-page-select
 				md-label="paginationLabels"></md-table-pagination>
 		</div>

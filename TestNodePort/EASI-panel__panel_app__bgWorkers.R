@@ -7,9 +7,9 @@ getEnvOrFail <- function(name) {
 }
 
 UserPoolId = getEnvOrFail("USER_POOL_ID")
-SecretAccessKey = getEnvOrFail("AWS_SECRET_ACCESS_KEY")
-AccessKeyId = getEnvOrFail("AWS_ACCESS_KEY_ID")
-Region = getEnvOrFail("AWS_REGION")
+# SecretAccessKey = getEnvOrFail("AWS_SECRET_ACCESS_KEY")
+# AccessKeyId = getEnvOrFail("AWS_ACCESS_KEY_ID")
+# Region = getEnvOrFail("AWS_REGION")
 cognitoClientId = getEnvOrFail("COGNITO_CLIENT_ID")
 
 getAdmin = function(login, password) {
@@ -495,7 +495,7 @@ updateUserProfile = function(user, token) {
 }
 
 cognitoLogInUserPassword = function(user, password) {
-  library(httr)
+  #  library(httr)
   library(openssl)
   library(caTools)
 
@@ -1024,6 +1024,7 @@ ORDER BY {{orderSql}} {{limitSql}}"
       ") AND admin_id='{{admin_id}}'"
     )
   }
+  concerto.log(collectionSql, " collection sql ")
 
   tryCatch(
     {
@@ -1046,27 +1047,20 @@ fetchSingleParticipant = function(id) {
   if (!is.list(admin)) {
     return(NULL)
   }
-
-  if (admin$type == 1) {
-    sql = paste0("SELECT * FROM EASI_participants WHERE id='{{id}}'")
-  }
-  if (admin$type == 2) {
-    sql = paste0(
-      "SELECT * FROM EASI_participants WHERE id='{{id}}' AND (admin_id='{{admin_id}}' OR researchGroup='{{admin_researchGroup}}')"
-    )
-  }
-  if (admin$type == 0) {
-    sql = paste0(
-      "SELECT * FROM EASI_participants WHERE id='{{id}}' AND admin_id='{{admin_id}}'"
-    )
-  }
+  permissionSql = getAdminPermissionSql(admin, "p")
+  params = list(
+    id = id,
+    admin_id = admin$id,
+    admin_researchGroup = admin$researchGroup
+  )
+  query = paste0(
+    "SELECT * FROM EASI_participants p ",
+    "WHERE id='{{id}}'",
+    permissionSql
+  )
   participant = concerto.table.query(
-    sql,
-    list(
-      id = id,
-      admin_id = admin$id,
-      admin_researchGroup = admin$researchGroup
-    )
+    query,
+    params
   )
   if (nrow(participant) == 1) {
     as.list(participant)
@@ -1099,11 +1093,107 @@ getAdminPermissionSql = function(admin, alias = "") {
   stop("Unknown admin type")
 }
 
+deleteParticipantsTransactions = function(selection) {
+  admin = c.get("admin", T)
+  if (!is.list(admin)) {
+    return(NULL)
+  }
+  permissionSql = getAdminPermissionSql(admin, "p")
+  participantIds = getParticipantIdsForSelection(selection, admin)
+  if (length(participantIds) == 0) {
+    return(NULL)
+  }
+  participantIdsSql = paste0(as.numeric(participantIds), collapse = ",")
+  testCodes = concerto.table.query("SELECT code FROM EASI_tests")
+
+  tryCatch(
+    {
+      id1 = concerto.table.query("SELECT CONNECTION_ID() AS id")
+      concerto.table.query("START TRANSACTION")
+      for (testCode in testCodes$code) {
+        if (is.na(testCode) || testCode == "") {
+          next
+        }
+        sessionTable = paste0(testCode, "_sessions")
+        responseTable = paste0(testCode, "_responses")
+        scoreTable = paste0(testCode, "_scores")
+
+        # get sessions for these participants
+        sessions = concerto.table.query(
+          paste0(
+            "SELECT id FROM ",
+            sessionTable,
+            " WHERE participant_id IN (",
+            participantIdsSql,
+            ")"
+          )
+        )
+
+        if (nrow(sessions) > 0) {
+          sessionIdsSql = paste0(sessions$id, collapse = ",")
+          concerto.table.query(
+            paste0(
+              "DELETE FROM ",
+              responseTable,
+              " WHERE session_id IN (",
+              sessionIdsSql,
+              ")"
+            )
+          )
+          concerto.table.query(
+            paste0(
+              "DELETE FROM ",
+              scoreTable,
+              " WHERE session_id IN (",
+              sessionIdsSql,
+              ")"
+            )
+          )
+
+          concerto.table.query(
+            paste0(
+              "DELETE FROM ",
+              sessionTable,
+              " WHERE id IN (",
+              sessionIdsSql,
+              ")"
+            )
+          )
+        } # end of if sessions > 0
+      } # end of loop thru tests
+
+      params = list(
+        admin_id = admin$id,
+        admin_researchGroup = admin$researchGroup,
+        ids = participantIdsSql
+      )
+      query = paste0(
+        "DELETE p FROM EASI_participants p ",
+        "WHERE p.id IN ({{ids}})",
+        permissionSql
+      )
+      concerto.table.query(query, params)
+      id2 = concerto.table.query("SELECT CONNECTION_ID() AS id")
+      if (id1$id[1] != id2$id[1]) {
+        concerto.log("SQL connection changed!")
+      }
+      concerto.table.query("COMMIT")
+    },
+    error = function(e) {
+      concerto.table.query("ROLLBACK")
+      concerto.log(e, "deleteParticipants failed")
+      stop(e)
+    }
+  )
+  return(NULL)
+}
+
 deleteParticipantsInternal = function(selection) {
   admin = c.get("admin", T)
   if (!is.list(admin)) {
     return(NULL)
   }
+
   permissionSql = getAdminPermissionSql(admin, "p")
   params = list(
     admin_id = admin$id,
@@ -1144,6 +1234,9 @@ deleteParticipantsInternal = function(selection) {
 
   concerto.table.query(query, params)
   return(NULL)
+
+  # Now build the deletes before the try-catch
+  #
 }
 
 
@@ -1229,10 +1322,9 @@ researchProjectSelected='[]'
 ",
     params
   )
-
   as.list(concerto.table.query(
-    "SELECT * FROM EASI_participants WHERE id='{{id}}'",
-    list(id = concerto.table.lastInsertId())
+    "SELECT * FROM EASI_participants WHERE customId='{{customId}}'",
+    list(customId = params$customId)
   ))
 }
 
@@ -1390,7 +1482,7 @@ fetchAllTests = function() {
 SELECT
 *,
 IFNULL({{titleTransCol}}, title) title_trans
-FROM EASI_tests ORDER BY code ASC",
+FROM EASI_tests ORDER BY orderIndex ASC",
     list(titleTransCol = titleTransCol)
   )
   tests
@@ -2297,23 +2389,32 @@ FROM EASI_admins WHERE id='{{id}}'",
   }
 }
 
-getTherapists = function(MaginationToken, Filter) {
-  library("paws")
-  getEnvOrFail("AWS_ACCESS_KEY_ID")
-  getEnvOrFail("AWS_SECRET_ACCESS_KEY")
-  getEnvOrFail("AWS_REGION")
-  AuthString <- paste(SecretAccessKey, AccessKeyId, sep = ":")
+getTherapists = function(PaginationToken, Filter) {
+  # library("paws")
+  # library("paws.security.identity")
+  #getEnvOrFail("AWS_ACCESS_KEY_ID")
+  #getEnvOrFail("AWS_SECRET_ACCESS_KEY")
+  #getEnvOrFail("AWS_REGION")
+  #AuthString <- paste(SecretAccessKey, AccessKeyId, sep = ":")
 
   # Sys.setenv(
   #  AWS_ACCESS_KEY_ID = AccessKeyId,
   #  AWS_SECRET_ACCESS_KEY = SecretAccessKey,
   #  AWS_REGION = Region
   # )
+
   CognitoPaginateLoop = TRUE
   CombinedUsers = list()
   PaginationToken = NULL
+  counter = 0
+  maxcounter = 7
   while (CognitoPaginateLoop) {
-    cognitoidentityprovider <- paws::cognitoidentityprovider()
+    counter = counter + 1
+
+    if (counter > maxcounter) {
+      stop("Cognito pagination exceeded maxPages")
+    }
+    cognitoidentityprovider <- paws.security.identity::cognitoidentityprovider()
     list_users <- cognitoidentityprovider$list_users(
       UserPoolId = UserPoolId,
       # AttributesToGet,
@@ -2321,10 +2422,14 @@ getTherapists = function(MaginationToken, Filter) {
       PaginationToken = PaginationToken,
       Filter = Filter
     )
+    userCount = if (is.null(list_users$Users)) 0 else length(list_users$Users)
     PaginationToken = list_users$PaginationToken
     CognitoPaginateLoop = is.character(PaginationToken) &&
       length(PaginationToken) == 1 &&
       nchar(list_users$PaginationToken) > 0
+    if (is.null(list_users$Users) || length(list_users$Users) == 0) {
+      break
+    }
     for (i in 1:length(list_users$Users)) {
       user = list_users$Users[[i]]
       CombinedUser = list(
@@ -2612,7 +2717,9 @@ createDownload = function(selection, cols) {
     scoresSql = paste0(
       "SELECT '",
       testCodes,
-      "' COLLATE utf8_bin AS testCode, session_id, s.name COLLATE utf8_bin AS name, value COLLATE utf8_bin AS value, s.participant_id, a.id AS admin_id, a.login AS admin_login
+      "' COLLATE utf8_bin AS testCode, 
+      session_id, s.name COLLATE utf8_bin AS name, 
+      value COLLATE utf8_bin AS value, s.participant_id, a.id AS admin_id, a.login AS admin_login, se.dateAssessment as dateAssessment
     FROM ",
       testCodes,
       "_scores AS s 
@@ -2651,6 +2758,7 @@ createDownload = function(selection, cols) {
       WHEN r.value COLLATE utf8_bin = i.optionValue5 COLLATE utf8_bin THEN i.optionLabel5 COLLATE utf8_bin
       END label,
       r.score, 
+      r.value COLLATE utf8_bin AS value,
       r.skipped, 
       se.participant_id
       FROM ",
@@ -2691,11 +2799,13 @@ createDownload = function(selection, cols) {
   lastScoreName = ''
   lastItemId = 0
 
+  concerto.log("working on scores ")
   if (
     (cols['testAdmin'] == 'true' || cols['testScores'] == 'true') &&
       nrow(scores) > 0
   ) {
     for (i in seq_len(nrow(scores))) {
+      concerto.log(i, " on index")
       score = scores[i, ]
       participantIndex = which(participants$id == score$participant_id)
 
@@ -2709,8 +2819,12 @@ createDownload = function(selection, cols) {
             cellDefault,
             nrow(participants)
           )
+          dfi[[paste0(score$testCode, ": dateAssessment")]] = rep(
+            cellDefault,
+            nrow(participants)
+          )
 
-          colIndex = colIndex + 2
+          colIndex = colIndex + 3
           adminColIndexOffset = 0
         }
 
@@ -2738,6 +2852,9 @@ createDownload = function(selection, cols) {
         dfi[[colIndex - adminColIndexOffset]][[
           participantIndex
         ]] = score$admin_login
+        dfi[[paste0(score$testCode, ": dateAssessment")]][[
+          participantIndex
+        ]] = score$dateAssessment
       }
       if (cols['testScores'] == 'true') {
         dfi[[colIndex]][[participantIndex]] = score$value
@@ -2755,8 +2872,9 @@ createDownload = function(selection, cols) {
           response$testCode,
           ": item #",
           response$item_id,
-          " response label"
+          " response value"
         )]] = rep(cellDefault, nrow(participants))
+
         dfi[[paste0(
           response$testCode,
           ": item #",
@@ -2775,7 +2893,7 @@ createDownload = function(selection, cols) {
         lastItemId = response$item_id
       }
 
-      dfi[[colIndex - 2]][[participantIndex]] = response$label
+      dfi[[colIndex - 2]][[participantIndex]] = response$value
       dfi[[colIndex - 1]][[participantIndex]] = response$score
       dfi[[colIndex]][[participantIndex]] = response$skipped
     }
@@ -2943,9 +3061,9 @@ list(
       error = profileOutput$error
     )
   },
-  getTherapists = function(response) {
-    getTherapists(response$PaginationToken, response$Filter)
-  },
+  # getTherapists = function(response) {
+  #  getTherapists(response$PaginationToken, response$Filter)
+  #},
   fetchDictionary = function(response) {
     fetchDictionary()
   },

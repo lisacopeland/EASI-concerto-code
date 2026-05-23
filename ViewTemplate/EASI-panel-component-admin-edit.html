@@ -1,98 +1,111 @@
 <src>
-	<md-subheader class="md-primary md-dense">
-		<md-button class="md-fab md-raised md-mini" ng-click="goBack()">
-			<md-tooltip>go back</md-tooltip>
-			<md-icon>arrow_back</md-icon>
-		</md-button>
-		<span>Profile</span>
-	</md-subheader>
-	
-	<md-content class="layout-padding">
-		<form name="userProfile">
-			<div layout="row" layout-align="end center">
-				<md-button class="md-raised md-primary" ng-click="updateUserProfile()" ng-disabled="userProfile.$invalid"><md-icon>save</md-icon> Save</md-button>
-				<md-button class="md-raised md-primary" ng-click="getTherapists()" ng-disabled="userProfile.$invalid"><md-icon>save</md-icon> GetTherapists</md-button>
-			</div>
-			<fieldset class="md-dense">
-				<legend>User profile</legend>
-				<div layout="row" layout-align="space-between center" ng-if="profileLoading">
-					<md-input-container>
-					  <p> Loading profile, please wait... </p>
-					</md-input-container>
-				</div>
-				<div layout="row" layout-align="center center" ng-if="!profileLoading">
-					<md-input-container>
-						<label>Full name</label>
-						<input ng-model="user.name" name="name" md-placeholder="Enter Full name" required type="text">
-						<div ng-messages="userProfile.name.$error" multiple md-auto-hide="false">
-							<div ng-message="required">Full name is required</div>
-						</div>
-					</md-input-container>
-					<md-input-container>
-						<label>Gender</label>
-						<md-select ng-model="user.gender" name="gender">
-							<md-option value=""><em>Not selected</em></md-option>
-							<md-option ng-repeat="gender in genders" ng-value="gender.value">
-								[[gender.label]]
-							</md-option>
-						</md-select>
-					</md-input-container>
-					<md-input-container>
-						<label>Highest Degree</label>
-						<md-select ng-model="user.highestDegree" name="highestDegree">
-							<md-option value=""><em>Not selected</em></md-option>
-							<md-option ng-repeat="highest_degree in highest_degrees" ng-value="highest_degree.value">
-								[[highest_degree.label]]
-							</md-option>
-						</md-select>
-					</md-input-container>
-					<md-input-container>
-						<label>Profession</label>
-						<md-select ng-model="user.profession" name="profession">
-							<md-option value=""><em>Not selected</em></md-option>
-							<md-option ng-repeat="profession in professions" ng-value="profession.value">
-								[[profession.label]]
-							</md-option>
-						</md-select>
-					</md-input-container>
-				</div>
-				<div layout="row" layout-align="center center" ng-if="!profileLoading">
-					<md-input-container>
-					    <label>Country</label>
-                        <md-select ng-model="user.country" name="countryOfResidence">
-                            <md-option value=""><em>Not selected</em></md-option>
-                            <md-option ng-repeat="country in countries" ng-value="country.name">
-                                [[country.name]]
-                            </md-option>
-                        </md-select>
-                    </md-input-container>
-					<md-input-container ng-if="user.researchGroup">
-						<label>Research group</label>
-						<input ng-model="user.researchGroup" name="researchGroup" md-placeholder="Ask an admin to update research group" type="text" disabled>
-					</md-input-container>
-					<md-input-container ng-if="user.cohort">
-						<label>CLASI M3 Cohort</label>
-						<input ng-model="user.cohort" name="cohort" md-placeholder="None" type="text" ng-if="user.cohort" disabled>
-					</md-input-container>
-				</div>
-			</fieldset>
-			<fieldset class="md-dense" >
-				<legend>Subscription details</legend>
-				<div layout="row" layout-align="start center" ng-if="!profileLoading">
-					<msg type="warning" ng-if="showStripeLink">{{'admin_edit_subscription_notice'|trans}}</msg>
-				</div>
+  <md-subheader class="md-primary md-dense">
+    <md-button class="md-fab md-raised md-mini" ng-click="goBack()">
+      <md-tooltip>go back</md-tooltip>
+      <md-icon>arrow_back</md-icon>
+    </md-button>
+    <span>Profile</span>
+  </md-subheader>
 
-				<div layout="row" layout-align="space-around center" ng-if="!profileLoading">
-					<md-input-container ng-if="showDate">
-						<label>Account Expiration Date</label>
-						<input ng-model="user.expirationDate" name="expirationDate" md-placeholder="None" ng-if="showDate" disabled>
-					</md-input-container>
+  <md-content class="layout-padding">
+    <form name="userProfile">
 
-					<div>
-						<md-button name="stripe-link" ng-href="https://buy.stripe.com/fZeaHlbAK8i0gEg145?prefilled_email={{user.email}}" class="md-raised md-success" md-placeholder="None">{{'admin_edit_subscription_button'|trans}}</md-button>
-					</div>
-				</div>
-			</fieldset>
-		</form>
-	</md-content>
+
+      <div layout="row" layout-align="end center">
+        <md-button class="md-raised md-primary" ng-click="updateUserProfile()"
+          ng-disabled="userProfile.$invalid"><md-icon>save</md-icon> Save</md-button>
+      </div>
+
+
+      <fieldset class="md-dense">
+        <legend>User profile</legend>
+
+
+        <div layout="row" layout-align="space-between center" ng-if="profileLoading">
+          <md-input-container>
+            <p> Loading profile, please wait... </p>
+          </md-input-container>
+        </div>
+
+
+        <div layout="row" layout-align="start start" layout-wrap ng-if="!profileLoading">
+          <md-input-container flex>
+            <label>Full name</label>
+            <input ng-model="user.name" name="name" md-placeholder="Enter Full name" required type="text">
+            <div ng-messages="userProfile.name.$error" multiple md-auto-hide="false">
+              <div ng-message="required">Full name is required</div>
+            </div>
+          </md-input-container>
+          <md-input-container flex>
+            <label>Gender</label>
+            <md-select ng-model="user.gender" name="gender">
+              <md-option value=""><em>Not selected</em></md-option>
+              <md-option ng-repeat="gender in genders" ng-value="gender.value">
+                [[gender.label]]
+              </md-option>
+            </md-select>
+          </md-input-container>
+          <md-input-container flex>
+            <label>Highest Degree</label>
+            <md-select ng-model="user.highestDegree" name="highestDegree">
+              <md-option value=""><em>Not selected</em></md-option>
+              <md-option ng-repeat="highest_degree in highest_degrees" ng-value="highest_degree.value">
+                [[highest_degree.label]]
+              </md-option>
+            </md-select>
+          </md-input-container>
+          <md-input-container flex>
+            <label>Profession</label>
+            <md-select ng-model="user.profession" name="profession">
+              <md-option value=""><em>Not selected</em></md-option>
+              <md-option ng-repeat="profession in professions" ng-value="profession.value">
+                [[profession.label]]
+              </md-option>
+            </md-select>
+          </md-input-container>
+        </div>
+
+
+        <div layout="row" layout-align="start center" ng-if="!profileLoading">
+          <md-input-container flex="30">
+            <label>Country</label>
+            <md-select ng-model="user.country" name="countryOfResidence">
+              <md-option value=""><em>Not selected</em></md-option>
+              <md-option ng-repeat="country in countries" ng-value="country.name">
+                [[country.name]]
+              </md-option>
+            </md-select>
+          </md-input-container>
+          <md-input-container ng-if="user.researchGroup">
+            <label>Research group</label>
+            <input ng-model="user.researchGroup" name="researchGroup"
+              md-placeholder="Ask an admin to update research group" type="text" disabled>
+          </md-input-container>
+          <md-input-container flex ng-if="user.cohort">
+            <label>CLASI M3 Cohort</label>
+            <input ng-model="user.cohort" name="cohort" md-placeholder="None" type="text" ng-if="user.cohort" disabled>
+          </md-input-container>
+        </div>
+      </fieldset>
+      <fieldset class="md-dense">
+        <legend>Subscription details</legend>
+        <div layout="row" layout-align="start center" ng-if="!profileLoading">
+          <msg type="warning" ng-if="showStripeLink">{{'admin_edit_subscription_notice'|trans}}</msg>
+        </div>
+
+        <div layout="row" layout-align="space-between center" ng-if="!profileLoading">
+          <md-input-container flex="40" ng-if="showDate">
+            <label>Account Expiration Date</label>
+            <input ng-model="user.expirationDate" name="expirationDate" md-placeholder="None" ng-if="showDate" disabled>
+          </md-input-container>
+
+          <div>
+            <md-button name="stripe-link"
+              ng-href="https://buy.stripe.com/fZeaHlbAK8i0gEg145?prefilled_email={{user.email}}"
+              class="md-raised md-success" md-placeholder="None">{{'admin_edit_subscription_button'|trans}}</md-button>
+          </div>
+        </div>
+      </fieldset>
+    </form>
+  </md-content>
 </src>
