@@ -6,7 +6,7 @@ getEnvOrFail <- function(name) {
   value
 }
 
-UserPoolId = getEnvOrFail("USER_POOL_ID")
+# UserPoolId = getEnvOrFail("USER_POOL_ID")
 # SecretAccessKey = getEnvOrFail("AWS_SECRET_ACCESS_KEY")
 # AccessKeyId = getEnvOrFail("AWS_ACCESS_KEY_ID")
 # Region = getEnvOrFail("AWS_REGION")
@@ -1055,11 +1055,11 @@ fetchSingleParticipant = function(id) {
   )
   query = paste0(
     "SELECT * FROM EASI_participants p ",
-      "WHERE id='{{id}}'",
-      permissionSql
-    )
+    "WHERE id='{{id}}'",
+    permissionSql
+  )
   participant = concerto.table.query(
-    query, 
+    query,
     params
   )
   if (nrow(participant) == 1) {
@@ -1094,7 +1094,6 @@ getAdminPermissionSql = function(admin, alias = "") {
 }
 
 deleteParticipantsTransactions = function(selection) {
-
   admin = c.get("admin", T)
   if (!is.list(admin)) {
     return(NULL)
@@ -1105,75 +1104,87 @@ deleteParticipantsTransactions = function(selection) {
     return(NULL)
   }
   participantIdsSql = paste0(as.numeric(participantIds), collapse = ",")
-  testCodes = concerto.table.query("SELECT code FROM EASI_tests")  
+  testCodes = concerto.table.query("SELECT code FROM EASI_tests")
 
-  tryCatch({
-    id1 = concerto.table.query("SELECT CONNECTION_ID() AS id")
-    concerto.table.query("START TRANSACTION")
-    for (testCode in testCodes$code) {
+  tryCatch(
+    {
+      id1 = concerto.table.query("SELECT CONNECTION_ID() AS id")
+      concerto.table.query("START TRANSACTION")
+      for (testCode in testCodes$code) {
+        if (is.na(testCode) || testCode == "") {
+          next
+        }
+        sessionTable = paste0(testCode, "_sessions")
+        responseTable = paste0(testCode, "_responses")
+        scoreTable = paste0(testCode, "_scores")
 
-	  if (is.na(testCode) || testCode == "") {
-	    next
-	  }
-      sessionTable  = paste0(testCode, "_sessions")
-      responseTable = paste0(testCode, "_responses")
-      scoreTable    = paste0(testCode, "_scores")
-
-      # get sessions for these participants
-      sessions = concerto.table.query(
-        paste0(
-          "SELECT id FROM ", sessionTable,
-          " WHERE participant_id IN (", participantIdsSql, ")"
+        # get sessions for these participants
+        sessions = concerto.table.query(
+          paste0(
+            "SELECT id FROM ",
+            sessionTable,
+            " WHERE participant_id IN (",
+            participantIdsSql,
+            ")"
+          )
         )
+
+        if (nrow(sessions) > 0) {
+          sessionIdsSql = paste0(sessions$id, collapse = ",")
+          concerto.table.query(
+            paste0(
+              "DELETE FROM ",
+              responseTable,
+              " WHERE session_id IN (",
+              sessionIdsSql,
+              ")"
+            )
+          )
+          concerto.table.query(
+            paste0(
+              "DELETE FROM ",
+              scoreTable,
+              " WHERE session_id IN (",
+              sessionIdsSql,
+              ")"
+            )
+          )
+
+          concerto.table.query(
+            paste0(
+              "DELETE FROM ",
+              sessionTable,
+              " WHERE id IN (",
+              sessionIdsSql,
+              ")"
+            )
+          )
+        } # end of if sessions > 0
+      } # end of loop thru tests
+
+      params = list(
+        admin_id = admin$id,
+        admin_researchGroup = admin$researchGroup,
+        ids = participantIdsSql
       )
-
-      if (nrow(sessions) > 0) {
-        sessionIdsSql = paste0(sessions$id, collapse = ",")
-        concerto.table.query(
-          paste0(
-            "DELETE FROM ", responseTable,
-            " WHERE session_id IN (", sessionIdsSql, ")"
-          )
-        )
-        concerto.table.query(
-          paste0(
-            "DELETE FROM ", scoreTable,
-            " WHERE session_id IN (", sessionIdsSql, ")"
-          )
-        )
-
-        concerto.table.query(
-          paste0(
-            "DELETE FROM ", sessionTable,
-            " WHERE id IN (", sessionIdsSql, ")"
-          )
-        )
-    
-      } # end of if sessions > 0
-    } # end of loop thru tests
-
-    params = list(
-      admin_id = admin$id,
-      admin_researchGroup = admin$researchGroup,
-      ids = participantIdsSql
-    )
-    query = paste0(
-      "DELETE p FROM EASI_participants p ",
-      "WHERE p.id IN ({{ids}})",
-      permissionSql
-    )
-    concerto.table.query(query, params)
-    id2 = concerto.table.query("SELECT CONNECTION_ID() AS id")
-if (id1$id[1] != id2$id[1]) {
-  concerto.log("SQL connection changed!")
-}
-    concerto.table.query("COMMIT")
-      
-  }, error = function(e) {
-    concerto.table.query("ROLLBACK")
-    concerto.log(e, "deleteParticipants failed")
-    stop(e)
-  })
+      query = paste0(
+        "DELETE p FROM EASI_participants p ",
+        "WHERE p.id IN ({{ids}})",
+        permissionSql
+      )
+      concerto.table.query(query, params)
+      id2 = concerto.table.query("SELECT CONNECTION_ID() AS id")
+      if (id1$id[1] != id2$id[1]) {
+        concerto.log("SQL connection changed!")
+      }
+      concerto.table.query("COMMIT")
+    },
+    error = function(e) {
+      concerto.table.query("ROLLBACK")
+      concerto.log(e, "deleteParticipants failed")
+      stop(e)
+    }
+  )
   return(NULL)
 }
 
@@ -1182,7 +1193,6 @@ deleteParticipantsInternal = function(selection) {
   if (!is.list(admin)) {
     return(NULL)
   }
-  
 
   permissionSql = getAdminPermissionSql(admin, "p")
   params = list(
@@ -1224,10 +1234,9 @@ deleteParticipantsInternal = function(selection) {
 
   concerto.table.query(query, params)
   return(NULL)
-  
+
   # Now build the deletes before the try-catch
-  # 
-  
+  #
 }
 
 
@@ -1236,7 +1245,7 @@ toggleArchivedParticipants = function(selection) {
   if (!is.list(admin)) {
     return(NULL)
   }
-  
+
   permissionSql = getAdminPermissionSql(admin, "p")
   params = list(
     admin_id = admin$id,
@@ -1274,8 +1283,7 @@ toggleArchivedParticipants = function(selection) {
     permissionSql
   )
   concerto.table.query(query, params)
-    return(NULL)
-
+  return(NULL)
 }
 
 generateRandomId = function() {
@@ -1303,7 +1311,7 @@ addParticipant = function(participant) {
   params = participant
   params$admin_id = admin$id
   params$customId = generateRandomId()
-  
+
   concerto.table.query(
     "
 INSERT INTO EASI_participants SET
@@ -1316,8 +1324,8 @@ researchProjectSelected='[]'
   )
   as.list(concerto.table.query(
     "SELECT * FROM EASI_participants WHERE customId='{{customId}}'",
-    list(customId = params$customId))
-  )
+    list(customId = params$customId)
+  ))
 }
 
 saveParticipant = function(newParticipant) {
@@ -2394,19 +2402,18 @@ getTherapists = function(PaginationToken, Filter) {
   #  AWS_SECRET_ACCESS_KEY = SecretAccessKey,
   #  AWS_REGION = Region
   # )
-  
-  
+
   CognitoPaginateLoop = TRUE
   CombinedUsers = list()
   PaginationToken = NULL
   counter = 0
   maxcounter = 7
   while (CognitoPaginateLoop) {
-  counter = counter + 1
-  
+    counter = counter + 1
+
     if (counter > maxcounter) {
-    stop("Cognito pagination exceeded maxPages")
-  }
+      stop("Cognito pagination exceeded maxPages")
+    }
     cognitoidentityprovider <- paws.security.identity::cognitoidentityprovider()
     list_users <- cognitoidentityprovider$list_users(
       UserPoolId = UserPoolId,
@@ -2420,9 +2427,9 @@ getTherapists = function(PaginationToken, Filter) {
     CognitoPaginateLoop = is.character(PaginationToken) &&
       length(PaginationToken) == 1 &&
       nchar(list_users$PaginationToken) > 0
-  if (is.null(list_users$Users) || length(list_users$Users) == 0) {
-    break
-  }
+    if (is.null(list_users$Users) || length(list_users$Users) == 0) {
+      break
+    }
     for (i in 1:length(list_users$Users)) {
       user = list_users$Users[[i]]
       CombinedUser = list(
@@ -2798,12 +2805,11 @@ createDownload = function(selection, cols) {
       nrow(scores) > 0
   ) {
     for (i in seq_len(nrow(scores))) {
-      concerto.log(i, " on index");
+      concerto.log(i, " on index")
       score = scores[i, ]
       participantIndex = which(participants$id == score$participant_id)
 
       if (score$testCode != lastTestCode) {
-      
         if (cols['testAdmin'] == 'true') {
           dfi[[paste0(score$testCode, ": admin_id")]] = rep(
             cellDefault,
@@ -2848,7 +2854,7 @@ createDownload = function(selection, cols) {
         ]] = score$admin_login
         dfi[[paste0(score$testCode, ": dateAssessment")]][[
           participantIndex
-          ]] = score$dateAssessment
+        ]] = score$dateAssessment
       }
       if (cols['testScores'] == 'true') {
         dfi[[colIndex]][[participantIndex]] = score$value
@@ -2868,7 +2874,7 @@ createDownload = function(selection, cols) {
           response$item_id,
           " response value"
         )]] = rep(cellDefault, nrow(participants))
-      
+
         dfi[[paste0(
           response$testCode,
           ": item #",
@@ -2886,7 +2892,7 @@ createDownload = function(selection, cols) {
         lastTestCode = response$testCode
         lastItemId = response$item_id
       }
-      
+
       dfi[[colIndex - 2]][[participantIndex]] = response$value
       dfi[[colIndex - 1]][[participantIndex]] = response$score
       dfi[[colIndex]][[participantIndex]] = response$skipped
