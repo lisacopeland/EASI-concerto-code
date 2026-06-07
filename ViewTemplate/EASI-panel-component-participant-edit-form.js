@@ -1,12 +1,12 @@
-// templates/42
-testRunner.component('participantDetailEdit', {
-  templateUrl: '/ViewTemplate/EASI-panel-component-participant-detail-edit/html',
+testRunner.component('participantDetailEditForm', {
+  templateUrl: '/ViewTemplate/EASI-panel-component-participant-detail-edit-form/html',
   bindings: {
     participant: '=',
     onSave: '&',
     onCancel: '&',
   },
   controller: function controller($scope, auth, transFilter, $mdDialog, constants) {
+    var $ctrl = this;
     $scope.genders = constants.genders;
     $scope.countries = constants.countries;
     $scope.languages = testRunner.R.collections.languages;
@@ -23,7 +23,6 @@ testRunner.component('participantDetailEdit', {
     $scope.admin = auth.user;
     $scope.isAdmin = auth.user.type === 1;
     $scope.addingNew = false;
-    $scope.suppressDateOfBirthWatch = false;
 
     this.$onInit = function () {
       $scope.participant = this.participant;
@@ -57,37 +56,33 @@ testRunner.component('participantDetailEdit', {
       }
     };
 
-    $scope.$watch('dateOfBirth', function (newValue, oldValue) {
-      if (suppressDateOfBirthWatch) {
-        suppressDateOfBirthWatch = false;
-        return;
-      }
-
-      if (newValue === oldValue) return;
-
-      console.log('date of birth changed');
-      // if you are not adding new - confirm the birthdate and inform the user that
-      // the scores will be recalculated
-      let confirmText = addingNew ? 'confirm_birthdate_text' : 'confirm_new_birthdate_warn';
+    $scope.checkDate = function () {
+      const formattedDate = $scope.dateOfBirth.toLocaleDateString('en-US', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+      });
+      const confirmText = $scope.addingNew
+        ? transFilter('confirm_birthdate_text', { date: formattedDate })
+        : transFilter('confirm_new_birthdate_warn', { date: formattedDate });
       let confirm = $mdDialog
         .confirm()
         .title(transFilter('confirm_birthdate_title'))
-        .textContent(transFilter(confirmText))
+        .textContent(confirmText)
         .ok(transFilter('confirm'))
         .cancel(transFilter('cancel'));
 
       $mdDialog
         .show(confirm)
         .then(function () {
-          // User is confirming that the birthdate is correct - dont do anything
-          $scope.originalDateOfBirth = newValue;
+          $scope.save();
         })
         .catch((error) => {
           // User is saying that the birthdate is incorrect - put it back to what it was
-          suppressDateOfBirthWatch = true;
-          !$scope.addingNew ? ($scope.dateOfBirth = $scope.originalDateOfBirth) : null;
+          $scope.dateOfBirth = $scope.originalDateOfBirth;
         });
-    });
+    };
 
     $scope.save = function () {
       let participant = Object.assign($scope.participant, {
@@ -99,22 +94,29 @@ testRunner.component('participantDetailEdit', {
           $scope.dateOfBirth.getDate().toString().padStart(2, '0'),
         diagnosesSelected: JSON.stringify($scope.diagnosesSelected),
         researchProjectSelected: JSON.stringify($scope.researchProjectSelected),
+        valid: true,
       });
       $ctrl.onSave({
         participant: participant,
       });
-      /*       participants.save(participant).then(participant => {
-        $scope.participant.valid = participant.valid;
-        notif.toast(transFilter('panel_client_saved', { id: participant.customId }));
-      }); */
+    };
+
+    $scope.onSave = function () {
+      //If the date of birth has changed, confirm
+      if ($scope.dateOfBirth !== $scope.originalDateOfBirth) {
+        $scope.checkDate();
+      } else {
+        $scope.save();
+      }
     };
 
     $scope.onCancel = function () {
       $ctrl.onCancel();
     };
-
-    $scope.onDobInputKeyPressed = function (event) {
-      event.preventDefault();
-    };
   },
 });
+
+// confirm_birthdate_new
+// confirm_birthdate_change
+// confirm_birthdate_title
+// birthdate_change_warning

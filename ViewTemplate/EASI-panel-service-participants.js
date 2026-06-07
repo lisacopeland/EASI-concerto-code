@@ -45,8 +45,8 @@ testRunner.service('participants', function (api, $rootScope, $mdDialog, $locati
     });
   };
 
-  this.add = function (participant) {
-    return api.action('addParticipant', { participant: participant }).then((response) => {
+  this.create = function (participant) {
+    return api.action('createParticipant', { participant: participant }).then((response) => {
       this.broadcastCollectionChanged();
       return response.participant;
     });

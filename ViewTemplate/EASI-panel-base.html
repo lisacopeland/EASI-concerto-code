@@ -1,110 +1,137 @@
 <src>
 	<!DOCTYPE html>
 	<html>
-		<head>
-			<meta charset="UTF-8"/>
-			<meta name="robots" content="noindex"/>
-			<meta name="viewport" content="initial-scale=1, maximum-scale=1, user-scalable=no" />
-			<title>EASI Scoring Program</title>
-			<link rel="stylesheet" href="{{url}}/bundles/concertotest/css/test.css"/>
-			<link rel="stylesheet" href="{{url}}/bundles/concertotest/angularjs/bower_components/jquery-ui/themes/base/jquery-ui.min.css"/>
-			<script type="text/javascript" src="{{url}}/bundles/concertotest/angularjs/bower_components/jquery/dist/jquery.min.js"></script>
-			<script type="text/javascript" src="{{url}}/bundles/concertotest/angularjs/bower_components/jquery-ui/jquery-ui.min.js"></script>
-			<script type="text/javascript" src="{{url}}/bundles/concertotest/angularjs/bower_components/angular/angular.min.js"></script>
-			<script type="text/javascript" src="{{url}}/bundles/concertotest/angularjs/bower_components/angular-sanitize/angular-sanitize.min.js"></script>
-			<script type="text/javascript" src="{{url}}/bundles/concertotest/angularjs/bower_components/angular-cookies/angular-cookies.min.js"></script>
-			<script type="text/javascript" src="{{url}}/bundles/concertotest/angularjs/app/js/app.js"></script>
-			<script type="text/javascript" src="{{url}}/bundles/concertotest/angularjs/app/js/controllers/test_runner_controller.js"></script>
-			<script type="text/javascript" src="{{url}}/bundles/concertotest/angularjs/app/js/directives/concerto_test_directive.js"></script>
-			<script type="text/javascript" src="{{url}}/bundles/concertopanel/angularjs/app/concerto_panel/js/directives/ng-html.js"></script>
-			<script type="text/javascript" src="{{url}}/bundles/concertotest/angularjs/bower_components/angular-file-upload/dist/angular-file-upload.min.js"></script>
-			<script type="text/javascript" src="{{url}}/bundles/concertotest/js/customevent-polyfill.js"></script>
-			<link rel="icon" type="image/x-icon" href="{{url}}/favicon.ico"/>
 
-			<script src="/bundles/concertotest/angularjs/bower_components/angular-aria/angular-aria.js" type="text/javascript"></script>
-			<script src="/bundles/concertotest/angularjs/bower_components/angular-animate/angular-animate.js" type="text/javascript"></script>
-			<script src="/bundles/concertotest/angularjs/bower_components/angular-messages/angular-messages.js" type="text/javascript"></script>
-			<script src="/bundles/concertotest/angularjs/bower_components/angular-material/angular-material.js" type="text/javascript"></script>
-			<script src="/bundles/concertotest/angularjs/bower_components/angular-route/angular-route.js" type="text/javascript"></script>
-			<script src="/bundles/concertotest/angularjs/bower_components/angular-material-data-table/dist/md-data-table.min.js" type="text/javascript"></script>
-			<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.6.0/chart.min.js" integrity="sha512-GMGzUEevhWh8Tc/njS0bDpwgxdCJLQBWG3Z2Ct+JGOpVnEmjvNx6ts4v6A2XJf1HOrtOsfhv3hBKpK9kE5z8AQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-			<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="robots" content="noindex" />
+		<meta name="viewport" content="initial-scale=1, maximum-scale=1, user-scalable=no" />
+		<title>EASI Scoring Program</title>
+		<link rel="stylesheet" href="{{url}}/bundles/concertotest/css/test.css" />
+		<link rel="stylesheet"
+			href="{{url}}/bundles/concertotest/angularjs/bower_components/jquery-ui/themes/base/jquery-ui.min.css" />
+		<script type="text/javascript"
+			src="{{url}}/bundles/concertotest/angularjs/bower_components/jquery/dist/jquery.min.js"></script>
+		<script type="text/javascript"
+			src="{{url}}/bundles/concertotest/angularjs/bower_components/jquery-ui/jquery-ui.min.js"></script>
+		<script type="text/javascript"
+			src="{{url}}/bundles/concertotest/angularjs/bower_components/angular/angular.min.js"></script>
+		<script type="text/javascript"
+			src="{{url}}/bundles/concertotest/angularjs/bower_components/angular-sanitize/angular-sanitize.min.js"></script>
+		<script type="text/javascript"
+			src="{{url}}/bundles/concertotest/angularjs/bower_components/angular-cookies/angular-cookies.min.js"></script>
+		<script type="text/javascript" src="{{url}}/bundles/concertotest/angularjs/app/js/app.js"></script>
+		<script type="text/javascript"
+			src="{{url}}/bundles/concertotest/angularjs/app/js/controllers/test_runner_controller.js"></script>
+		<script type="text/javascript"
+			src="{{url}}/bundles/concertotest/angularjs/app/js/directives/concerto_test_directive.js"></script>
+		<script type="text/javascript"
+			src="{{url}}/bundles/concertopanel/angularjs/app/concerto_panel/js/directives/ng-html.js"></script>
+		<script type="text/javascript"
+			src="{{url}}/bundles/concertotest/angularjs/bower_components/angular-file-upload/dist/angular-file-upload.min.js"></script>
+		<script type="text/javascript" src="{{url}}/bundles/concertotest/js/customevent-polyfill.js"></script>
+		<link rel="icon" type="image/x-icon" href="{{url}}/favicon.ico" />
 
-			<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700,400italic">
-			<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+		<script src="/bundles/concertotest/angularjs/bower_components/angular-aria/angular-aria.js"
+			type="text/javascript"></script>
+		<script src="/bundles/concertotest/angularjs/bower_components/angular-animate/angular-animate.js"
+			type="text/javascript"></script>
+		<script src="/bundles/concertotest/angularjs/bower_components/angular-messages/angular-messages.js"
+			type="text/javascript"></script>
+		<script src="/bundles/concertotest/angularjs/bower_components/angular-material/angular-material.js"
+			type="text/javascript"></script>
+		<script src="/bundles/concertotest/angularjs/bower_components/angular-route/angular-route.js"
+			type="text/javascript"></script>
+		<script
+			src="/bundles/concertotest/angularjs/bower_components/angular-material-data-table/dist/md-data-table.min.js"
+			type="text/javascript"></script>
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.6.0/chart.min.js"
+			integrity="sha512-GMGzUEevhWh8Tc/njS0bDpwgxdCJLQBWG3Z2Ct+JGOpVnEmjvNx6ts4v6A2XJf1HOrtOsfhv3hBKpK9kE5z8AQ=="
+			crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+		<script
+			src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
 
-			<link rel="stylesheet" type="text/css" href="/bundles/concertotest/angularjs/bower_components/angular-material/angular-material.css">
-			<link rel="stylesheet" type="text/css" href="/bundles/concertotest/angularjs/bower_components/angular-material-data-table/dist/md-data-table.min.css"/>
-			<link rel="stylesheet" type="text/css" href="/ViewTemplate/EASI-css/css"/>
-			<link rel="stylesheet" type="text/css" href="/ViewTemplate/EASI-panel-css/css"/>
-			
-			<script type="text/javascript" src="/ViewTemplate/EASI-filter-trans/js"></script>
-			
-			<script type="text/javascript" src="/ViewTemplate/EASI-panel-service-notif/js"></script>
-			<script type="text/javascript" src="/ViewTemplate/EASI-panel-service-api/js"></script>
-			<script type="text/javascript" src="/ViewTemplate/EASI-panel-service-auth/js"></script>
-			<script type="text/javascript" src="/ViewTemplate/EASI-panel-service-participants/js"></script>
-			<script type="text/javascript" src="/ViewTemplate/EASI-panel-service-sessions/js"></script>
-			<script type="text/javascript" src="/ViewTemplate/EASI-panel-service-tests/js"></script>
-			<script type="text/javascript" src="/ViewTemplate/EASI-panel-service-scores/js"></script>
-			<script type="text/javascript" src="/ViewTemplate/EASI-panel-service-demographics/js"></script>
-			<script type="text/javascript" src="/ViewTemplate/EASI-panel-service-admin/js"></script>
+		<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700,400italic">
+		<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
 
-			<script type="text/javascript" src="/ViewTemplate/EASI-panel-component-login/js"></script>
-			<script type="text/javascript" src="/ViewTemplate/EASI-panel-component-panel/js"></script>
-			<script type="text/javascript" src="/ViewTemplate/EASI-panel-component-participants/js"></script>
-			<script type="text/javascript" src="/ViewTemplate/EASI-panel-component-participant-import/js"></script>
-			<script type="text/javascript" src="/ViewTemplate/EASI-panel-component-participant-detail/js"></script>
-			<script type="text/javascript" src="/ViewTemplate/EASI-panel-component-participant-detail-edit/js"></script>
-			<script type="text/javascript" src="/ViewTemplate/EASI-panel-component-participant-detail-demographics/js"></script>
-			<script type="text/javascript" src="/ViewTemplate/EASI-panel-component-participant-detail-sessions/js"></script>
-			<script type="text/javascript" src="/ViewTemplate/EASI-panel-component-participant-detail-scores/js"></script>
-			<script type="text/javascript" src="/ViewTemplate/EASI-panel-component-participant-detail-audit/js"></script>
-			<script type="text/javascript" src="/ViewTemplate/EASI-component-msg/js"></script>
-			<script type="text/javascript" src="/ViewTemplate/EASI-panel-component-footer/js"></script>
-			<script type="text/javascript" src="/ViewTemplate/EASI-panel-component-about/js"></script>
-			<script type="text/javascript" src="/ViewTemplate/EASI-panel-component-faq/js"></script>
-			<script type="text/javascript" src="/ViewTemplate/EASI-panel-component-scoring-info/js"></script>
-			<script type="text/javascript" src="/ViewTemplate/EASI-panel-component-admin-edit/js"></script>
-			<script type="text/javascript" src="/ViewTemplate/EASI-panel-component-other/js"></script>
-			<script type="text/javascript" src="/ViewTemplate/EASI-panel-component-instructional-videos/js"></script>
+		<link rel="stylesheet" type="text/css"
+			href="/bundles/concertotest/angularjs/bower_components/angular-material/angular-material.css">
+		<link rel="stylesheet" type="text/css"
+			href="/bundles/concertotest/angularjs/bower_components/angular-material-data-table/dist/md-data-table.min.css" />
+		<link rel="stylesheet" type="text/css" href="/ViewTemplate/EASI-css/css" />
+		<link rel="stylesheet" type="text/css" href="/ViewTemplate/EASI-panel-css/css" />
 
-			<link rel="stylesheet" type="text/css" href="/ViewTemplate/EASI-panel-component-footer/css"/>
-			<link rel="stylesheet" type="text/css" href="/ViewTemplate/EASI-panel-component-participant-detail-edit/css"/>
+		<script type="text/javascript" src="/ViewTemplate/EASI-filter-trans/js"></script>
 
-			<script type="text/javascript" src="/ViewTemplate/EASI-panel-directive-session-status/js"></script>
+		<script type="text/javascript" src="/ViewTemplate/EASI-panel-service-notif/js"></script>
+		<script type="text/javascript" src="/ViewTemplate/EASI-panel-service-api/js"></script>
+		<script type="text/javascript" src="/ViewTemplate/EASI-panel-service-auth/js"></script>
+		<script type="text/javascript" src="/ViewTemplate/EASI-panel-service-participants/js"></script>
+		<script type="text/javascript" src="/ViewTemplate/EASI-panel-service-sessions/js"></script>
+		<script type="text/javascript" src="/ViewTemplate/EASI-panel-service-tests/js"></script>
+		<script type="text/javascript" src="/ViewTemplate/EASI-panel-service-scores/js"></script>
+		<script type="text/javascript" src="/ViewTemplate/EASI-panel-service-demographics/js"></script>
+		<script type="text/javascript" src="/ViewTemplate/EASI-panel-service-admin/js"></script>
 
-			<script type="text/javascript" src="/ViewTemplate/EASI-panel-dialog-participant-add/js"></script>
-			<script type="text/javascript" src="/ViewTemplate/EASI-panel-dialog-participant-download/js"></script>
-			<script type="text/javascript" src="/ViewTemplate/EASI-panel-dialog-participant-filter/js"></script>
-			<script type="text/javascript" src="/ViewTemplate/EASI-panel-dialog-session-add/js"></script>
+		<script type="text/javascript" src="/ViewTemplate/EASI-panel-component-login/js"></script>
+		<script type="text/javascript" src="/ViewTemplate/EASI-panel-component-panel/js"></script>
+		<script type="text/javascript" src="/ViewTemplate/EASI-panel-component-participants/js"></script>
+		<script type="text/javascript" src="/ViewTemplate/EASI-panel-component-participant-import/js"></script>
+		<script type="text/javascript" src="/ViewTemplate/EASI-panel-component-participant-detail/js"></script>
+		<script type="text/javascript" src="/ViewTemplate/EASI-panel-component-participant-detail-edit/js"></script>
+		<script type="text/javascript" src="/ViewTemplate/EASI-panel-component-participant-edit-form/js"></script>
+		<script type="text/javascript" src="/ViewTemplate/EASI-panel-component-participant-add/js"></script>
 
-			<script type="text/javascript">
-				testRunner.requires.push('ngMaterial');
-				testRunner.requires.push('ngMessages');
-				testRunner.requires.push('md.data.table');
-				testRunner.requires.push('ngRoute');
+		<script type="text/javascript"
+			src="/ViewTemplate/EASI-panel-component-participant-detail-demographics/js"></script>
+		<script type="text/javascript" src="/ViewTemplate/EASI-panel-component-participant-detail-sessions/js"></script>
+		<script type="text/javascript" src="/ViewTemplate/EASI-panel-component-participant-detail-scores/js"></script>
+		<script type="text/javascript" src="/ViewTemplate/EASI-panel-component-participant-detail-audit/js"></script>
+		<script type="text/javascript" src="/ViewTemplate/EASI-component-msg/js"></script>
+		<script type="text/javascript" src="/ViewTemplate/EASI-panel-component-footer/js"></script>
+		<script type="text/javascript" src="/ViewTemplate/EASI-panel-component-about/js"></script>
+		<script type="text/javascript" src="/ViewTemplate/EASI-panel-component-faq/js"></script>
+		<script type="text/javascript" src="/ViewTemplate/EASI-panel-component-scoring-info/js"></script>
+		<script type="text/javascript" src="/ViewTemplate/EASI-panel-component-admin-edit/js"></script>
+		<script type="text/javascript" src="/ViewTemplate/EASI-panel-component-other/js"></script>
+		<script type="text/javascript" src="/ViewTemplate/EASI-panel-component-instructional-videos/js"></script>
 
-				testRunner.config(function($mdThemingProvider) {
-					$mdThemingProvider.theme('default').accentPalette('deep-purple');
-				});
+		<link rel="stylesheet" type="text/css" href="/ViewTemplate/EASI-panel-component-footer/css" />
+		<link rel="stylesheet" type="text/css" href="/ViewTemplate/EASI-panel-component-participant-detail-edit/css" />
 
-				testRunner.config(function($mdDateLocaleProvider) {
-					$mdDateLocaleProvider.formatDate = function(date) {
-						return date ? date.toDateString() : '';
-					};
+		<script type="text/javascript" src="/ViewTemplate/EASI-panel-directive-session-status/js"></script>
 
-					$mdDateLocaleProvider.parseDate = function(dateString) {
-						return dateString ? new Date(dateString) : new Date(NaN);
-					};
+		<script type="text/javascript" src="/ViewTemplate/EASI-panel-dialog-participant-add/js"></script>
+		<script type="text/javascript" src="/ViewTemplate/EASI-panel-dialog-participant-download/js"></script>
+		<script type="text/javascript" src="/ViewTemplate/EASI-panel-dialog-participant-filter/js"></script>
+		<script type="text/javascript" src="/ViewTemplate/EASI-panel-dialog-session-add/js"></script>
 
-					$mdDateLocaleProvider.isDateComplete = function(dateString) {
-						return true;
-					};
-				});
+		<script type="text/javascript">
+			testRunner.requires.push('ngMaterial');
+			testRunner.requires.push('ngMessages');
+			testRunner.requires.push('md.data.table');
+			testRunner.requires.push('ngRoute');
 
-				testRunner.config(['$routeProvider', function config($routeProvider) {
-					$routeProvider.
+			testRunner.config(function ($mdThemingProvider) {
+				$mdThemingProvider.theme('default').accentPalette('deep-purple');
+			});
+
+			testRunner.config(function ($mdDateLocaleProvider) {
+				$mdDateLocaleProvider.formatDate = function (date) {
+					return date ? date.toDateString() : '';
+				};
+
+				$mdDateLocaleProvider.parseDate = function (dateString) {
+					return dateString ? new Date(dateString) : new Date(NaN);
+				};
+
+				$mdDateLocaleProvider.isDateComplete = function (dateString) {
+					return true;
+				};
+			});
+
+			testRunner.config(['$routeProvider', function config($routeProvider) {
+				$routeProvider.
 					when('/about', {
 						name: 'about',
 						template: '<about></about>'
@@ -137,6 +164,9 @@
 						name: 'participant',
 						template: '<participant-import></participant-import>'
 					}).
+					when('/participant/add', {
+						template: '<participant-add></participant-add>'
+					}).
 					when('/participant/:id', {
 						redirectTo: '/participant/:id/edit'
 					}).
@@ -151,13 +181,15 @@
 						reloadOnSearch: false
 					}).
 					otherwise('/participant');
-				}]);
-				
-				testRunner.settings.loaderHtml = "";
-			</script>
-		</head>
-		<body ng-app="testRunner" ng-cloak>
-			{{content}}
-		</body>
+			}]);
+
+			testRunner.settings.loaderHtml = "";
+		</script>
+	</head>
+
+	<body ng-app="testRunner" ng-cloak>
+		{{content}}
+	</body>
+
 	</html>
 </src>
