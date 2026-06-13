@@ -19,7 +19,6 @@ addScores = function(responses, scores, trait=NULL) {
                     sum = sum(responses$score, na.rm=T),
                     mean = mean(responses$score, na.rm=T),
                     sum(responses$score, na.rm=T))
-  concerto.log(rawScoreMethod, "rawScoreMethod")
 
   scores[[rawScoreProp]] = rawScore
   scores[[zScoreProp]] = (scores[[rawScoreProp]] - as.numeric(settings[[meanProp]])) / as.numeric(settings[[sdProp]])

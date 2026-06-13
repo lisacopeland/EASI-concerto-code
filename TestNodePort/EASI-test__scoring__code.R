@@ -1,3 +1,5 @@
+concerto.log("hi from EASI-test__scoring__code.R")
+
 if(!is.na(settings$scoringalgo)) {
   scoringModuleName = paste0("EASI-scoring-", settings$scoringalgo)
   scores = concerto.test.run(scoringModuleName, list(
@@ -19,7 +21,7 @@ scoresTable = paste0(test$code, "_scores")
 concerto.table.query("DELETE FROM {{scoresTable}} WHERE session_id='{{session_id}}'", list(scoresTable=scoresTable, session_id=session$id))
 
 #adding latest scores
-concerto.log(scores, "SCORES")
+
 if(is.list(scores) && length(scores) > 0) {
   insertSql = concerto.table.insertParams("INSERT INTO {{scoresTable}} (session_id, name, value, timeCreated, participant_id) VALUES ", list(scoresTable=scoresTable))
   scoreValuesSqlArray = NULL

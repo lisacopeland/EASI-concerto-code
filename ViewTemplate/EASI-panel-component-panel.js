@@ -31,10 +31,7 @@ testRunner.component('panel', {
     }
     
     $scope.addClient = function() {
-      participants.add({}).then(participant => {
-        $location.path('/participant/'+participant.id+'/edit');
-        notif.toast(transFilter('panel_client_added', {id: participant.customId}));
-      });
+        $location.path('/participant/add');
     }
     
     $scope.viewClients = function() {

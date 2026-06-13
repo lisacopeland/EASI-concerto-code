@@ -1,5 +1,3 @@
-concerto.log(assessmentDate, "date")
-
 getParticipantMonths = function(participant, assessmentDate) {
   days = as.numeric(difftime(as.POSIXct(assessmentDate, tz="UTC"), as.POSIXct(participant$dateOfBirth, tz="UTC")))
   round(days / 30.4375)

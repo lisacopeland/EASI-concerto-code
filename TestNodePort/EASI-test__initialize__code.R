@@ -1,3 +1,4 @@
+concerto.log("hi from initialize!")
 concerto.table.query("UPDATE EASI_participants SET lastAssessmentDate=NOW() WHERE id='{{id}}'", list(id=participant$id))
 
 #responses

@@ -1,3 +1,5 @@
+concerto.log("Hi from response processing")
+
 getItemResponseLabel = function(item, itemResponse) {
   if(is.na(item$scoreMapType)) { return(getDefaultMapLabel(item, itemResponse)) }
 
@@ -48,7 +50,6 @@ getSubtractSerializableValue = function(item, itemResponse) {
 }
 
 getItemScore = function(item, itemResponse) {
-  concerto.log(itemResponse$skipped, "skipped")
   if(is.na(itemResponse) || item$excludeFromScoring == 1 || itemResponse$skipped == 1) { return(NA) }
   if(is.na(item$scoreMapType)) { return(getDefaultMapScore(item, itemResponse)) }
 
@@ -84,7 +85,6 @@ getRangeTypeScore = function(item, itemResponse) {
     responseValue = as.numeric(responseValue)
   }
 
-  concerto.log(responseValue, "RESPONSE VALUE")
   if(!is.null(responseValue)) {
     for(i in 1:5) {
       valueProp =  paste0("optionValue", i)
@@ -131,8 +131,6 @@ for(i in 1:nrow(selectedItems)) {
 
   score = getItemScore(item, itemResponse)  
   label = getItemResponseLabel(item, itemResponse)
-
-  concerto.log(itemResponse);
 
   responseSql = "('{{session_id}}', '{{item_id}}', IF('{{label}}'='', NULL, '{{label}}'), IF('{{value}}'='', NULL, '{{value}}'), IF('{{score}}'='', NULL, '{{score}}'), '{{timeTaken}}', '{{trait}}', NOW(), '{{submitted}}', '{{skipped}}')"
   responseSql = concerto.table.insertParams(responseSql, list(

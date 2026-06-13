@@ -4,7 +4,7 @@ testRunner.service('participants', function (api, $rootScope, $mdDialog, $locati
   };
 
   this.fetch = function (query = {}, filters = '{}') {
-    return api.action('fetchParticipants', { ...query, filters: filters }, false);
+    return api.action('fetchParticipants', { query: query, filters: filters }, false);
   };
 
   this.adminFetch = function (query = {}, admin) {
@@ -31,22 +31,16 @@ testRunner.service('participants', function (api, $rootScope, $mdDialog, $locati
     });
   };
 
-  this.queueExportGeneration = function (selection, cols) {
+  this.createDownload = function (selection, cols) {
     return api
-      .action('queueExportGeneration', { selection: selection, cols: cols })
+      .action('createDownload', { selection: selection, cols: cols })
       .then((response) => {
         return response;
       });
   };
 
-  this.checkExportGeneration = function (id) {
-    return api.action('checkExportGeneration', { id: id }).then((response) => {
-      return response;
-    });
-  };
-
-  this.add = function (participant) {
-    return api.action('addParticipant', { participant: participant }).then((response) => {
+  this.create = function (participant) {
+    return api.action('createParticipant', { participant: participant }).then((response) => {
       this.broadcastCollectionChanged();
       return response.participant;
     });

@@ -6,7 +6,7 @@ getEnvOrFail <- function(name) {
   value
 }
 
-# UserPoolId = getEnvOrFail("USER_POOL_ID")
+UserPoolId = getEnvOrFail("USER_POOL_ID")
 # SecretAccessKey = getEnvOrFail("AWS_SECRET_ACCESS_KEY")
 # AccessKeyId = getEnvOrFail("AWS_ACCESS_KEY_ID")
 # Region = getEnvOrFail("AWS_REGION")
@@ -694,15 +694,17 @@ decodeJwt = function(rawJwt) {
 
 getOrderSql = function(order, validColumns) {
   orderDir = "ASC"
-  orderSign = substr(order, 1, 1)
-  if (length(orderSign) > 0 && orderSign == "-") {
+
+  if (substr(order, 1, 1) == "-") {
     orderDir = "DESC"
     order = substring(order, 2)
   }
-  if (!order %in% validColumns) {
-    order = validColumns[1]
+
+  if (!order %in% names(validColumns)) {
+    order = names(validColumns)[1]
   }
-  paste0(order, " ", orderDir)
+
+  paste0(validColumns[[order]], " ", orderDir)
 }
 
 getFilterCompNumericSql = function(filterName, filters, colName = filterName) {
@@ -771,14 +773,16 @@ getFilterCompTextMultiArraySql = function(
 getFilterCompTextSingleSql = function(
   filterName,
   filters,
-  colName = filterName
+  colName = filterName,
+  alias = "p"
 ) {
+  prefix = if (alias == "") "" else paste0(alias, ".")
   if (
     filters[[filterName]]$enabled &&
       length(filters[[filterName]]$value) > 0 &&
       filters[[filterName]]$value != ''
   ) {
-    sql = paste0("p.", colName, " REGEXP '{{value}}'")
+    sql = paste0(prefix, colName, " REGEXP '{{value}}'")
     return(concerto.table.insertParams(
       sql,
       list(value = filters[[filterName]]$value)
@@ -838,12 +842,15 @@ getFilterCompDateSql = function(filterName, filters, colName = filterName) {
   NULL
 }
 
-getFilterSql = function(query) {
-  filters = fromJSON(query$filters)
+getFilterSql = function(filters) {
+  if (is.character(filters)) {
+    filters = jsonlite::fromJSON(filters, simplifyVector = FALSE)
+  }
+
   comps = 1
 
   #admin
-  comps = c(comps, getFilterCompTextSingleSql("admin", filters, "email"))
+  comps = c(comps, getFilterCompTextSingleSql("admin", filters, "login", "a"))
 
   #archived
   comps = c(comps, getFilterCompNumericSql("archived", filters))
@@ -908,7 +915,7 @@ getFilterSql = function(query) {
   paste0(comps, collapse = " AND ")
 }
 
-getExclusionSql = function(excludedIds, alias = "") {
+getExcludedIdsSql = function(excludedIds, alias = "") {
   if (length(excludedIds) == 0) {
     return("")
   }
@@ -949,26 +956,23 @@ fetchAdmins = function(query) {
   concerto.table.query("SELECT id, login FROM EASI_admins ORDER BY login ASC")
 }
 
-fetchParticipants = function(query) {
+fetchParticipantsInternal = function(query, filters) {
   admin = c.get("admin", T)
-  adminFetchParticipants(query, admin)
-}
-
-adminFetchParticipants = function(query, admin) {
   if (!is.list(admin)) {
     return(NULL)
   }
 
-  columns = c(
-    "customId",
-    "initials",
-    "dateOfBirth",
-    "p.gender"
+  validColumns = c(
+    id = "p.id",
+    initials = "p.initials",
+    dateOfBirth = "p.dateOfBirth",
+    gender = "p.gender"
   )
-  orderSql = getOrderSql(query$order, columns)
-  searchColumns = columns
-  filterSql = getFilterSql(query)
+
+  orderSql = getOrderSql(query$order, validColumns)
+  filterSql = getFilterSql(filters)
   limitSql = getLimitSql(query)
+  permissionSql = getAdminPermissionSql(admin, "p")
 
   params = list(
     admin_id = admin$id,
@@ -977,64 +981,38 @@ adminFetchParticipants = function(query, admin) {
     limitSql = limitSql
   )
 
-  if (admin$type == 1) {
-    collectionSql = paste0(
-      "
-SELECT p.*, a.login AS adminLogin FROM EASI_participants AS p
-LEFT JOIN EASI_admins getFAS a ON a.id=p.admin_id
-WHERE ",
-      filterSql,
-      "
-ORDER BY {{orderSql}} {{limitSql}}"
-    )
-    totalCountSql = paste0(
-      "SELECT COUNT(*) FROM EASI_participants AS p WHERE ",
-      filterSql
-    )
-  }
-  if (admin$type == 2) {
-    collectionSql = paste0(
-      "
-SELECT p.*, a.login AS adminLogin FROM EASI_participants AS p
-LEFT JOIN EASI_admins AS a ON a.id=p.admin_id
-WHERE (",
-      filterSql,
-      ") AND (admin_id='{{admin_id}}' OR p.researchGroup='{{admin_researchGroup}}')
-ORDER BY {{orderSql}} {{limitSql}}"
-    )
-    totalCountSql = paste0(
-      "SELECT COUNT(*) FROM EASI_participants AS p WHERE (",
-      filterSql,
-      ") AND (admin_id='{{admin_id}}' OR researchGroup='{{admin_researchGroup}}')"
-    )
-  }
-  if (admin$type == 0) {
-    collectionSql = paste0(
-      "
-SELECT p.*, a.login AS adminLogin FROM EASI_participants AS p
-LEFT JOIN EASI_admins AS a ON a.id=p.admin_id
-WHERE (",
-      filterSql,
-      ") AND admin_id='{{admin_id}}'
-ORDER BY {{orderSql}} {{limitSql}}"
-    )
-    totalCountSql = paste0(
-      "SELECT COUNT(*) FROM EASI_participants AS p WHERE (",
-      filterSql,
-      ") AND admin_id='{{admin_id}}'"
-    )
-  }
-  concerto.log(collectionSql, " collection sql ")
+  collectionSql = paste0(
+    "SELECT p.*, a.login AS adminLogin FROM EASI_participants AS p
+     LEFT JOIN EASI_admins as a ON a.id=p.admin_id
+     WHERE ",
+    filterSql,
+    permissionSql,
+    " ORDER BY {{orderSql}} {{limitSql}}"
+  )
+  totalCountSql = paste0(
+    "SELECT COUNT(*) FROM EASI_participants AS p 
+      LEFT JOIN EASI_admins as a ON a.id=p.admin_id
+      WHERE ",
+    filterSql,
+    permissionSql
+  )
 
   tryCatch(
     {
+      collection = concerto.table.query(collectionSql, params)
+      totalCountResult = concerto.table.query(totalCountSql, params)
+
       list(
-        collection = concerto.table.query(collectionSql, params),
-        totalCount = concerto.table.query(totalCountSql, params)[1, 1]
+        success = TRUE,
+        collection = collection,
+        totalCount = totalCountResult[1, 1]
       )
     },
     error = function(err) {
+      concerto.log(paste("FetchParticipants error:", err$message))
       list(
+        success = FALSE,
+        error = err$message,
         collection = list(),
         totalCount = 0
       )
@@ -1072,11 +1050,8 @@ fetchSingleParticipant = function(id) {
 getAdminPermissionSql = function(admin, alias = "") {
   prefix = if (alias == "") "" else paste0(alias, ".")
 
-  if (admin$type == 1) {
-    return("")
-  }
-
   if (admin$type == 2) {
+    # group admin: own records OR same research group
     return(paste0(
       " AND (",
       prefix,
@@ -1086,7 +1061,13 @@ getAdminPermissionSql = function(admin, alias = "") {
     ))
   }
 
+  if (admin$type == 1) {
+    # super user: no restriction
+    return("")
+  }
+
   if (admin$type == 0) {
+    # regular admin: only own records
     return(paste0(" AND ", prefix, "admin_id='{{admin_id}}'"))
   }
 
@@ -1174,9 +1155,7 @@ deleteParticipantsTransactions = function(selection) {
       )
       concerto.table.query(query, params)
       id2 = concerto.table.query("SELECT CONNECTION_ID() AS id")
-      if (id1$id[1] != id2$id[1]) {
-        concerto.log("SQL connection changed!")
-      }
+
       concerto.table.query("COMMIT")
     },
     error = function(e) {
@@ -1188,55 +1167,170 @@ deleteParticipantsTransactions = function(selection) {
   return(NULL)
 }
 
-deleteParticipantsInternal = function(selection) {
-  admin = c.get("admin", T)
-  if (!is.list(admin)) {
-    return(NULL)
-  }
+getParticipantMonths = function(dateOfBirth, assessmentDate) {
+  days = as.numeric(difftime(
+    as.POSIXct(assessmentDate, tz = "UTC"),
+    as.POSIXct(dateOfBirth, tz = "UTC")
+  ))
+  round(days / 30.4375)
+}
 
-  permissionSql = getAdminPermissionSql(admin, "p")
-  params = list(
-    admin_id = admin$id,
-    admin_researchGroup = admin$researchGroup
+getTestSettings = function(test, numberOfMonths) {
+  settingsTable = paste0(test$code, "_settings")
+
+  extraSettings = concerto.table.query(
+    "
+    SELECT * 
+    FROM {{settingsTable}} 
+    WHERE 
+      (minParticipantMonths<='{{months}}' OR minParticipantMonths IS NULL) 
+      AND
+      (maxParticipantMonths>='{{months}}' OR maxParticipantMonths IS NULL)
+    ",
+    list(
+      settingsTable = settingsTable,
+      months = numberOfMonths
+    )
+  )
+  settings = list()
+  settings$scoringalgo = test$scoringAlgo
+
+  if (nrow(extraSettings) > 0) {
+    for (i in 1:nrow(extraSettings)) {
+      extraSetting = as.list(extraSettings[i, ])
+      settings[[tolower(extraSetting$name)]] = extraSetting$value
+    }
+  }
+  settings
+}
+
+saveScores = function(testCode, session, scores) {
+  scoresTable = paste0(testCode, "_scores")
+
+  concerto.table.query(
+    "DELETE FROM {{scoresTable}} WHERE session_id='{{session_id}}'",
+    list(
+      scoresTable = scoresTable,
+      session_id = session$id
+    )
   )
 
-  # for the inclusive case
-  if (selection$mode == "allMatching") {
-    query = list(filters = selection$filters)
-    filterSql = getFilterSql(query)
-    exclusionClause = getExclusionSql(selection$excludedIds, "p")
-
-    query = paste0(
-      "DELETE p FROM EASI_participants p ",
-      "WHERE ",
-      filterSql,
-      exclusionClause,
-      permissionSql
+  if (is.list(scores) && length(scores) > 0) {
+    insertSql = concerto.table.insertParams(
+      "INSERT INTO {{scoresTable}} (session_id, name, value, timeCreated, participant_id) VALUES ",
+      list(scoresTable = scoresTable)
     )
 
-    concerto.table.query(query, params)
-    return(NULL)
+    scoreValuesSqlArray = NULL
+
+    for (scoreName in names(scores)) {
+      scoreValuesSql = concerto.table.insertParams(
+        "('{{session_id}}', '{{name}}', IF('{{value}}'='', NULL, '{{value}}'), NOW(), '{{participant_id}}')",
+        list(
+          session_id = session$id,
+          name = scoreName,
+          value = scores[[scoreName]],
+          participant_id = session$participant_id
+        )
+      )
+
+      scoreValuesSqlArray = c(scoreValuesSqlArray, scoreValuesSql)
+    }
+
+    insertSql = paste0(insertSql, paste0(scoreValuesSqlArray, collapse = ","))
+    concerto.table.query(insertSql)
   }
+}
 
-  # for the exclusive case
-  ids = paste0(
-    as.numeric(names(selection$includedIds)),
-    collapse = ","
+recalculateScores = function(participantId) {
+  tests = concerto.table.query(
+    "SELECT * FROM EASI_tests"
   )
+  participant = fetchSingleParticipant(participantId)
 
-  params$ids = ids
+  tryCatch(
+    {
+      concerto.table.query("START TRANSACTION")
+      for (i in seq_len(nrow(tests))) {
+        test = tests[i, ]
+        testCode = test$code
+        scoringAlgo = test$scoringAlgo
+        if (is.na(testCode) || testCode == "") {
+          next
+        }
+        sessionTable = paste0(testCode, "_sessions")
+        responseTable = paste0(testCode, "_responses")
+        scoreTable = paste0(testCode, "_scores")
+        settingsTable = paste0(testCode, "_settings")
 
-  query = paste0(
-    "DELETE p FROM EASI_participants p ",
-    "WHERE p.id IN ({{ids}})",
-    permissionSql
+        # get sessions for these participants
+        sessions = concerto.table.query(
+          paste0(
+            "SELECT * FROM ",
+            sessionTable,
+            " WHERE participant_id='{{id}}'"
+          ),
+          list(id = participant$id)
+        )
+
+        for (i in seq_len(nrow(sessions))) {
+          session = sessions[i, ]
+
+          if (session$status == 2) {
+            # test has been administered, update this one
+            participantMonths = getParticipantMonths(
+              participant$dateOfBirth,
+              session$dateAssessment
+            )
+            params = list(
+              sessionId = session$id
+            )
+            responses = concerto.table.query(
+              paste0(
+                "SELECT * FROM ",
+                responseTable,
+                " WHERE session_id = {{sessionId}}"
+              ),
+              params
+            )
+            settings = getTestSettings(test, participantMonths)
+            scores = list()
+            if (
+              !is.null(settings$scoringalgo) &&
+                !is.na(settings$scoringalgo) &&
+                trimws(settings$scoringalgo) != ""
+            ) {
+              scoringModuleName = paste0("EASI-scoring-", settings$scoringalgo)
+              scores = concerto.test.run(
+                scoringModuleName,
+                list(
+                  items = NULL,
+                  responses = responses,
+                  settings = settings,
+                  scores = scores,
+                  session = session,
+                  test = test
+                )
+              )$scores
+            } else {
+              scores = list(
+                "raw score" = sum(responses$score, na.rm = TRUE)
+              )
+            }
+
+            # now save them
+            saveScores(testCode, session, scores)
+          }
+        }
+      }
+      concerto.table.query("COMMIT")
+    },
+    error = function(e) {
+      concerto.table.query("ROLLBACK")
+      concerto.log(e, "recalculate Scores failed")
+      stop(e)
+    }
   )
-
-  concerto.table.query(query, params)
-  return(NULL)
-
-  # Now build the deletes before the try-catch
-  #
 }
 
 
@@ -1256,7 +1350,7 @@ toggleArchivedParticipants = function(selection) {
   if (selection$mode == "allMatching") {
     query = list(filters = selection$filters)
     filterSql = getFilterSql(query)
-    exclusionClause = getExclusionSql(selection$excludedIds, "p")
+    exclusionClause = getExcludedIdsSql(selection$excludedIds, "p")
 
     query = paste0(
       "UPDATE EASI_participants p SET archived=ABS(archived-1) ",
@@ -1328,6 +1422,85 @@ researchProjectSelected='[]'
   ))
 }
 
+createParticipant = function(participant) {
+  admin = c.get("admin", T)
+  if (!is.list(admin)) {
+    return(NULL)
+  }
+
+  #concerto.log(
+  #  jsonlite::toJSON(participant, pretty = TRUE, auto_unbox = TRUE)
+  #)
+
+  customId = generateRandomId()
+  demographicsToken = generateRandomId()
+  params = list(
+    customId = customId,
+    dateOfBirth = participant$dateOfBirth,
+    countryOfResidence = participant$countryOfResidence,
+    admin_id = admin$id,
+    gender = participant$gender,
+    languageCode = participant$languageCode,
+    diagnoses = participant$diagnoses,
+    diagnosesSelected = participant$diagnosesSelected,
+    valid = as.numeric(participant$valid == "true"),
+    demographicsStatus = participant$demographicsStatus,
+    demographicsToken = demographicsToken,
+    initials = participant$initials,
+    email = participant$email,
+    assessmentReason = participant$assessmentReason,
+    clinicalAssessmentReferrer = participant$clinicalAssessmentReferrer,
+    researchProjectSelected = participant$researchProjectSelected,
+    researchGroup = participant$researchGroup,
+    # lastAssessmentDate = participant$lastAssessmentDate,
+    archived = as.numeric(participant$archived == "true"),
+    exportExclusion = as.numeric(participant$exportExclusion == "true")
+  )
+  concerto.table.query(
+    "
+INSERT INTO EASI_participants
+SET
+  customId='{{customId}}',
+  dateOfBirth='{{dateOfBirth}}',
+  countryOfResidence='{{countryOfResidence}}',
+  admin_id='{{admin_id}}',
+  gender='{{gender}}',
+  languageCode='{{languageCode}}',
+  diagnoses='{{diagnoses}}',
+  diagnosesSelected='{{diagnosesSelected}}',
+  valid='{{valid}}',
+  demographicsStatus='{{demographicsStatus}}',
+  demographicsToken='{{demographicsToken}}',
+  initials='{{initials}}',
+  email='{{email}}',
+  assessmentReason='{{assessmentReason}}',
+  clinicalAssessmentReferrer='{{clinicalAssessmentReferrer}}',
+  researchProjectSelected='{{researchProjectSelected}}',
+  researchGroup='{{researchGroup}}',
+  lastAssessmentDate=NULL,
+  archived='{{archived}}',
+  exportExclusion='{{exportExclusion}}'
+",
+    params
+  )
+
+  idResult = concerto.table.query(
+    "SELECT LAST_INSERT_ID() AS id"
+  )
+
+  id = idResult$id
+
+  newParticipant = concerto.table.query(
+    "SELECT * FROM EASI_participants WHERE id='{{id}}'",
+    list(id = id)
+  )
+  newParticipant = as.list(newParticipant[1, ])
+
+  autoNominate(newParticipant)
+  sendParentEmail(newParticipant)
+  return(newParticipant)
+}
+
 saveParticipant = function(newParticipant) {
   admin = c.get("admin", T)
   if (!is.list(admin)) {
@@ -1356,11 +1529,6 @@ saveParticipant = function(newParticipant) {
   }
 
   params = newParticipant
-  if (is.na(currentParticipant$demographicsToken)) {
-    params$demographicsToken = generateRandomId()
-  } else {
-    params$demographicsToken = currentParticipant$demographicsToken
-  }
 
   #only admin can change exportExclusion
   if (admin$type != 1) {
@@ -1388,33 +1556,23 @@ WHERE id='{{id}}'",
     params
   )
 
+  # if the participants bdate changes, recalc scores
+  if (currentParticipant$dateOfBirth != newParticipant$dateOfBirth) {
+    recalculateScores(currentParticipant$id)
+  }
+
   newParticipant = as.list(concerto.table.query(
     "SELECT * FROM EASI_participants WHERE id='{{id}}'",
     list(id = newParticipant$id)
   ))
 
-  #send demographics invitation
-  if (currentParticipant$valid == 0) {
-    autoNominate(newParticipant)
-
-    concerto.log(params$autoDemographicsInvite, "autoDemographicsInvite")
-    if (
-      !is.null(params$autoDemographicsInvite) &&
-        params$autoDemographicsInvite == 1
-    ) {
-      sendParentEmail(newParticipant)
-    }
-  }
-
   newParticipant
 }
 
 autoNominate = function(participants) {
-  concerto.log(participants, "PARTICIPANTS PRE")
   if (is.list(participants)) {
     participants = data.frame(participants, stringsAsFactors = F)
   }
-  concerto.log(participants, "PARTICIPANTS POST")
 
   tests = concerto.table.query("SELECT * FROM EASI_tests WHERE autoNominate=1")
   if (nrow(tests) > 0) {
@@ -1432,11 +1590,12 @@ autoNominate = function(participants) {
             collapse = ""
           )
           concerto.table.query(
-            "INSERT INTO {{testCode}}_sessions SET participant_id='{{participant_id}}', timeCreated=NOW(), token='{{token}}'",
+            "INSERT INTO {{testCode}}_sessions SET participant_id='{{participant_id}}', timeCreated=NOW(), token='{{token}}', admin_id='{{admin_id}}'",
             list(
               testCode = test$code,
               participant_id = participant$id,
-              token = token
+              token = token,
+              admin_id = participant$admin_id
             )
           )
 
@@ -1495,12 +1654,12 @@ fetchSessions = function(query) {
   }
 
   columns = c(
-    "fullId",
-    "testTitle",
-    "dateAssessment",
-    "timeStarted",
-    "timeFinished",
-    "status"
+    fullId = "fullId",
+    testTitle = "testTitle",
+    dateAssessment = "dateAssessment",
+    timeStarted = "timeStarted",
+    timeFinished = "timeFinished",
+    status = "status"
   )
   orderSql = getOrderSql(query$order, columns)
   limitSql = getLimitSql(query)
@@ -1687,11 +1846,12 @@ addSession = function(session) {
   token = paste0(sample(c(letters, LETTERS, 0:9), replace = T), collapse = "")
 
   concerto.table.query(
-    "INSERT INTO {{testCode}}_sessions SET participant_id='{{participant_id}}', timeCreated=NOW(), token='{{token}}'",
+    "INSERT INTO {{testCode}}_sessions SET participant_id='{{participant_id}}', timeCreated=NOW(), token='{{token}}', admin_id='{{admin_id}}'",
     list(
       testCode = session$testCode,
       participant_id = session$participant_id,
-      token = token
+      token = token,
+      admin_id = admin$id
     )
   )
   session = as.list(concerto.table.query(
@@ -1825,25 +1985,38 @@ ORDER BY orderIndex ASC, title ASC",
 
     sql = "
 (
-SELECT score.id, name COLLATE utf8_bin AS name, value, '{{testCode}}' AS testCode, '{{testTitle}}' AS testTitle, '{{testTitle_trans}}' AS testTitle_trans,  score.timeCreated,
-session_id, session.participantMonths,
-feedback.feedback,
-IFNULL({{feedbackTransCol}}, feedback.feedback) feedback_trans
+SELECT
+  score.id,
+  score.name COLLATE utf8_bin AS name,
+  score.value,
+  '{{testCode}}' AS testCode,
+  '{{testTitle}}' AS testTitle,
+  '{{testTitle_trans}}' AS testTitle_trans,
+  score.timeCreated,
+  score.session_id,
+  session.participantMonths,
+  IFNULL(admin.login, 'Unknown') AS admin_login,
+  feedback.feedback,
+  IFNULL({{feedbackTransCol}}, feedback.feedback) AS feedback_trans
 FROM {{scoresTable}} AS score
-LEFT JOIN {{sessionsTable}} AS session ON session.id=score.session_id
-LEFT JOIN {{feedbackTable}} AS feedback ON name REGEXP feedback.namePattern COLLATE utf8_bin AND
-(feedback.minParticipantMonths IS NULL OR feedback.minParticipantMonths <= session.participantMonths) AND (feedback.maxParticipantMonths IS NULL OR feedback.maxParticipantMonths > session.participantMonths) AND
-(feedback.minRange IS NULL OR feedback.minRange <= value) AND (feedback.maxRange IS NULL OR feedback.maxRange > value)
-WHERE score.id IN
-(
-SELECT MAX(score.id)
-FROM {{scoresTable}} AS score
-LEFT JOIN {{sessionsTable}} AS session ON session.id=score.session_id
-LEFT JOIN EASI_participants AS participant ON participant.id=score.participant_id
-WHERE ('{{adminType}}'=1 OR participant.admin_id='{{admin_id}}' OR ('{{adminType}}'=2 AND participant.researchGroup='{{admin_researchGroup}}')) AND
-score.participant_id='{{participant_id}}' AND session.status=2
-GROUP BY name
-HAVING ('{{hiddenScores}}'='' OR !JSON_CONTAINS('{{hiddenScores}}',JSON_QUOTE(name)))
+LEFT JOIN {{sessionsTable}} AS session ON session.id = score.session_id
+LEFT JOIN EASI_admins AS admin ON session.admin_id = admin.id
+LEFT JOIN {{feedbackTable}} AS feedback
+  ON score.name REGEXP feedback.namePattern COLLATE utf8_bin
+  AND (feedback.minParticipantMonths IS NULL OR feedback.minParticipantMonths <= session.participantMonths)
+  AND (feedback.maxParticipantMonths IS NULL OR feedback.maxParticipantMonths > session.participantMonths)
+  AND (feedback.minRange IS NULL OR feedback.minRange <= score.value)
+  AND (feedback.maxRange IS NULL OR feedback.maxRange > score.value)
+WHERE score.id IN (
+  SELECT MAX(score.id)
+  FROM {{scoresTable}} AS score
+  LEFT JOIN {{sessionsTable}} AS session ON session.id = score.session_id
+  LEFT JOIN EASI_participants AS participant ON participant.id = score.participant_id
+  WHERE ('{{adminType}}'=1 OR participant.admin_id='{{admin_id}}' OR ('{{adminType}}'=2 AND participant.researchGroup='{{admin_researchGroup}}'))
+    AND score.participant_id='{{participant_id}}'
+    AND session.status=2
+  GROUP BY score.name
+  HAVING ('{{hiddenScores}}'='' OR !JSON_CONTAINS('{{hiddenScores}}', JSON_QUOTE(score.name)))
 )
 )
 "
@@ -2331,6 +2504,7 @@ sendParentEmail = function(participants) {
 }
 
 createLoginToken = function(admin, token) {
+  expiryTime = NULL
   if (!is.na(admin)) {
     #create new token
     repeat {
@@ -2345,28 +2519,38 @@ createLoginToken = function(admin, token) {
         break
       }
     }
+    expiryTime = Sys.time() + (3 * 3600)
+    expiryTimeDb = format(expiryTime, "%Y-%m-%d %H:%M:%S")
+    expiryTimeIso = format(expiryTime, "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
     concerto.table.query(
-      "INSERT INTO EASI_admin_tokens SET admin_id='{{id}}', token='{{token}}', expiryTime=DATE_ADD(NOW(), INTERVAL 3 HOUR)",
-      list(id = admin$id, token = token)
+      "INSERT INTO EASI_admin_tokens SET admin_id='{{id}}', token='{{token}}', expiryTime='{{expiryTime}}'",
+      list(id = admin$id, token = token, expiryTime = expiryTimeDb)
     )
   }
-  token
+  list(token = token, expiryTime = expiryTimeIso)
 }
 
 getAdminFromToken = function(token) {
   # TODO: login to cognito with refresh token, validate it's validity
+
   result = concerto.table.query(
     "SELECT * FROM EASI_admin_tokens WHERE token='{{token}}' AND expiryTime > NOW()",
     list(token = token)
   )
   if (nrow(result) == 0) {
-    NA
+    concerto.log("dont have an unexpired token!")
+    list(admin = NULL, token = NULL, expiryTime = NULL)
   } else {
+    concerto.log("have an unexpired token")
+    expiryTime = Sys.time() + (3 * 3600)
+    expiryTimeDb = format(expiryTime, "%Y-%m-%d %H:%M:%S")
+    expiryTimeIso = format(expiryTime, "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
+    expiryTimeFormatted = format(expiryTime, "%Y-%m-%d %H:%M:%S")
     concerto.table.query(
-      "UPDATE EASI_admin_tokens SET expiryTime=DATE_ADD(NOW(), INTERVAL 3 HOUR) WHERE id='{{id}}'",
-      list(id = result$id)
+      "UPDATE EASI_admin_tokens SET expiryTime='{{expiryTime}}' WHERE id='{{id}}'",
+      list(id = result$id, expiryTime = expiryTimeDb)
     )
-    as.list(concerto.table.query(
+    admin = as.list(concerto.table.query(
       "
 SELECT
 id,
@@ -2386,6 +2570,8 @@ languageCode
 FROM EASI_admins WHERE id='{{id}}'",
       list(id = result$admin_id)
     ))
+
+    list(admin = admin, token = token, expiryTime = expiryTimeIso)
   }
 }
 
@@ -2534,26 +2720,34 @@ logIn = function(login, password, token) {
     # error_state
     c.set("admin", NA, T) # log user out
     c.set("token", NA, T)
-    return(list(user = NA, token = NA, error = admin))
+    return(list(user = NA, token = NA, expiryTime = NA, error = admin))
   }
-  concerto.log(admin, "admin")
+
   if (is.null(getElement(admin, "refreshToken"))) {
-    token = createLoginToken(admin, NULL)
+    newToken = createLoginToken(admin, NULL)
   } else {
     token = admin$refreshToken
-    token = createLoginToken(admin, token)
+    newToken = createLoginToken(admin, token)
   }
-  concerto.log(token, "token")
+
   c.set("admin", admin, T)
-  c.set("token", token, T)
-  list(user = admin, token = token)
+  c.set("token", newToken$token, T)
+  list(user = admin, token = newToken$token, expiryTime = newToken$expiryTime)
 }
 
 logInWithToken = function(token) {
-  admin = getAdminFromToken(token)
-  c.set("admin", admin, T)
-  c.set("token", token, T)
-  list(user = admin, token = token)
+  adminResult = getAdminFromToken(token)
+  if (!is.null(adminResult$token)) {
+    c.set("admin", adminResult$admin, T)
+    c.set("token", token, T)
+    list(
+      user = adminResult$admin,
+      token = token,
+      expiryTime = adminResult$expiryTime
+    )
+  } else {
+    list(user = NULL, token = NULL, expiryTime = NULL)
+  }
 }
 
 setAdminLanguage = function(languageCode) {
@@ -2568,7 +2762,13 @@ setAdminLanguage = function(languageCode) {
   )
 }
 
-getParticipantIdsForSelection = function(selection, admin) {
+getParticipantIdsForSelection = function(
+  selection,
+  admin,
+  exportExclusionFlag = FALSE
+) {
+  # If you are using this to get participants for the export, make sure you exclude those with
+  # the exportExclusion flag = true
   permissionSql = getAdminPermissionSql(admin, "p")
 
   params = list(
@@ -2576,6 +2776,11 @@ getParticipantIdsForSelection = function(selection, admin) {
     admin_researchGroup = admin$researchGroup
   )
 
+  exportExclusionSql = ""
+
+  if (exportExclusionFlag == TRUE) {
+    exportExclusionSql = " AND p.exportExclusion = 0 "
+  }
   if (selection$mode == "explicit") {
     ids = paste0(
       as.numeric(names(selection$includedIds)),
@@ -2584,9 +2789,10 @@ getParticipantIdsForSelection = function(selection, admin) {
     params$ids = ids
     query = paste0(
       "SELECT p.id ",
-      "FROM EASI_participants p ",
-      "WHERE p.exportExclusion = 0 ",
-      "AND p.id IN ({{ids}})",
+      "FROM EASI_participants p LEFT JOIN EASI_admins a ON a.id = p.admin_id",
+      " WHERE",
+      " p.id IN ({{ids}})",
+      exportExclusionSql,
       permissionSql
     )
 
@@ -2594,14 +2800,15 @@ getParticipantIdsForSelection = function(selection, admin) {
     return(rows[, "id"])
   } else {
     filterSql = getFilterSql(list(filters = selection$filters))
-    exclusionClause = getExclusionSql(selection$excludedIds, "p")
+    exclusionClauseSql = getExcludedIdsSql(selection$excludedIds, "p")
     query = paste0(
       "SELECT p.id ",
-      "FROM EASI_participants p ",
-      "WHERE p.exportExclusion = 0 AND ",
+      "FROM EASI_participants p LEFT JOIN EASI_admins a ON a.id = p.admin_id",
+      " WHERE ",
       filterSql,
-      exclusionClause,
-      permissionSql
+      exclusionClauseSql,
+      permissionSql,
+      exportExclusionSql
     )
     rows = concerto.table.query(query, params)
     return(rows[, "id"])
@@ -2661,8 +2868,8 @@ createDownload = function(selection, cols) {
     validParticipantCols
   )
 
-  # Get the participant Ids
-  ids = getParticipantIdsForSelection(selection, admin)
+  # Get the participant Ids, exclude those with ExportExclusion true
+  ids = getParticipantIdsForSelection(selection, admin, TRUE)
 
   if (length(ids) == 0) {
     # No valid participant ids returned
@@ -2799,13 +3006,11 @@ createDownload = function(selection, cols) {
   lastScoreName = ''
   lastItemId = 0
 
-  concerto.log("working on scores ")
   if (
     (cols['testAdmin'] == 'true' || cols['testScores'] == 'true') &&
       nrow(scores) > 0
   ) {
     for (i in seq_len(nrow(scores))) {
-      concerto.log(i, " on index")
       score = scores[i, ]
       participantIndex = which(participants$id == score$participant_id)
 
@@ -2846,18 +3051,18 @@ createDownload = function(selection, cols) {
       }
 
       if (cols['testAdmin'] == 'true') {
-        dfi[[colIndex - adminColIndexOffset - 1]][[
-          participantIndex
-        ]] = score$admin_id
-        dfi[[colIndex - adminColIndexOffset]][[
-          participantIndex
-        ]] = score$admin_login
-        dfi[[paste0(score$testCode, ": dateAssessment")]][[
-          participantIndex
-        ]] = score$dateAssessment
+        dfi[[paste0(score$testCode, ": admin_id")]][[participantIndex]] =
+          score$admin_id
+
+        dfi[[paste0(score$testCode, ": admin_login")]][[participantIndex]] =
+          score$admin_login
+
+        dfi[[paste0(score$testCode, ": dateAssessment")]][[participantIndex]] =
+          score$dateAssessment
       }
       if (cols['testScores'] == 'true') {
-        dfi[[colIndex]][[participantIndex]] = score$value
+        dfi[[paste0(score$testCode, ": ", score$name)]][[participantIndex]] =
+          score$value
       }
     }
   }
@@ -2868,6 +3073,12 @@ createDownload = function(selection, cols) {
       participantIndex = which(participants$id == response$participant_id)
 
       if (response$testCode != lastTestCode || response$item_id != lastItemId) {
+        dfi[[paste0(
+          response$testCode,
+          ": item #",
+          response$item_id,
+          " response label"
+        )]] = rep(cellDefault, nrow(participants))
         dfi[[paste0(
           response$testCode,
           ": item #",
@@ -2888,11 +3099,12 @@ createDownload = function(selection, cols) {
           " response skipped"
         )]] = rep(cellDefault, nrow(participants))
 
-        colIndex = colIndex + 3
+        colIndex = colIndex + 4
         lastTestCode = response$testCode
         lastItemId = response$item_id
       }
 
+      dfi[[colIndex - 3]][[participantIndex]] = response$label
       dfi[[colIndex - 2]][[participantIndex]] = response$value
       dfi[[colIndex - 1]][[participantIndex]] = response$score
       dfi[[colIndex]][[participantIndex]] = response$skipped
@@ -2906,46 +3118,6 @@ createDownload = function(selection, cols) {
     success = TRUE,
     filename = filename,
     url = filePath
-  ))
-}
-
-queueExportGenerationVoid = function(selection, cols) {
-  admin = c.get("admin", T)
-  if (!is.list(admin)) {
-    return(NULL)
-  }
-
-  filename = paste0(format(Sys.time(), "%Y%m%dT%H%M%SZ", tz = "GMT"), ".csv")
-  args = toJSON(list(participants = ids, cols = cols))
-  concerto.table.query(
-    "INSERT INTO EASI_export_queue SET
-    session_id='{{p_session_id}}',
-    timestamp=CURRENT_TIMESTAMP,
-    args='{{p_args}}',
-    status=0,
-    filename='{{p_filename}}',
-    admin_id='{{p_admin_id}}'",
-    list(
-      p_session_id = concerto$session$id,
-      p_args = args,
-      p_filename = filename,
-      p_admin_id = admin$id
-    )
-  )
-  insertId = concerto.table.lastInsertId()
-  list(
-    status = 0,
-    id = concerto.table.lastInsertId()
-  )
-}
-
-checkExportGeneration = function(id) {
-  as.list(concerto.table.query(
-    "SELECT id, status, filename FROM EASI_export_queue WHERE id='{{p_id}}' AND session_id='{{p_session_id}}'",
-    list(
-      p_id = id,
-      p_session_id = concerto$session$id
-    )
   ))
 }
 
@@ -2967,28 +3139,32 @@ list(
     fetchAdmins(response)
   },
   fetchParticipants = function(response) {
-    fetchParticipants(response)
-  },
-  adminFetchParticipants = function(response) {
-    adminFetchParticipants(response$query, response$admin)
+    query = response$query
+    filters = response$filters
+
+    if (is.character(filters)) {
+      filters = jsonlite::fromJSON(filters, simplifyVector = FALSE)
+    }
+    fetchParticipantsInternal(query, filters)
   },
   fetchSingleParticipant = function(response) {
     list(participant = fetchSingleParticipant(response$id))
   },
   deleteParticipants = function(response) {
-    deleteParticipantsInternal(response$selection)
+    deleteParticipantsTransactions(response$selection)
   },
   toggleArchivedParticipants = function(response) {
     toggleArchivedParticipants(response$selection)
   },
-  queueExportGeneration = function(response) {
+  createDownload = function(response) {
     createDownload(response$selection, response$cols)
-  },
-  checkExportGeneration = function(response) {
-    checkExportGeneration(response$id)
   },
   addParticipant = function(response) {
     result = addParticipant(response$participant)
+    list(participant = result)
+  },
+  createParticipant = function(response) {
+    result = createParticipant(response$participant)
     list(participant = result)
   },
   saveParticipant = function(response) {
@@ -3061,9 +3237,7 @@ list(
       error = profileOutput$error
     )
   },
-  # getTherapists = function(response) {
-  #  getTherapists(response$PaginationToken, response$Filter)
-  #},
+
   fetchDictionary = function(response) {
     fetchDictionary()
   },

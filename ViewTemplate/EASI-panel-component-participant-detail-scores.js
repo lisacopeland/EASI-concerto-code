@@ -7,9 +7,8 @@ testRunner.component('participantDetailScores', {
   bindings: {
     participant: "="
   },
-  controller: function controller($scope, tests, sessions, scores, $window, auth) {
+  controller: function controller($scope, sessions, scores, $window, auth) {
     $scope.participant = null;
-    $scope.testService = tests;
 
     $scope.scoresCollection = [];
     $scope.scoresDataSets = [];
@@ -36,7 +35,6 @@ testRunner.component('participantDetailScores', {
     this.$onInit = function() {
       $scope.participant = this.participant;
       $scope.query.participantId = this.participant.id;
-      tests.fetchAll();
       $scope.getScores();
     }
 
@@ -193,6 +191,7 @@ testRunner.component('participantDetailScores', {
     }
 
     $scope.getTestScores = function(testCode, withFeedbackOnly = false) {
+    // Return from scoresCollection all rows where the testcode is testcode params and (not withfeedbackonly or e.feedback)
       return $scope.scoresCollection.filter(e => e.testCode === testCode && (!withFeedbackOnly || e.feedback));
     }
 
@@ -218,16 +217,13 @@ testRunner.component('participantDetailScores', {
     }
     
     $scope.getAdminName = function() {
-      	if (typeof auth.user.name !='undefined' && auth.user.name) {
-        	return auth.user.name; 
+        if ($scope.scoresCollection && $scope.scoresCollection.length > 0) {
+          return $scope.scoresCollection[0].admin_login;
         } else {
-        	return auth.user.login; 
+          return ' '; 
         }
     }
     
-    $scope.getAdminLogin = function() {
-      console.log("auth login " + auth.user.login); 
-      return auth.user.login;
-    }
+
   }
 });

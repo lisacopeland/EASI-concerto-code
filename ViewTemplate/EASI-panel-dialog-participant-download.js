@@ -69,7 +69,7 @@ function DialogParticipantDownloadController(
     $scope.status = 1; // in progress
 
     participants
-      .queueExportGeneration($scope.selection, $scope.cols)
+      .createDownload($scope.selection, $scope.cols)
       .then((response) => {
         // this looks like
         //     success = TRUE | false,

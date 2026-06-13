@@ -59,7 +59,7 @@
 				<md-subheader>{{'panel_profile'|trans}}</md-subheader> 
 				<md-list-item> 
 					<md-icon>language</md-icon>
-					<md-select ng-model="language" ng-change="onLanguageChanged()">
+					<md-select aria-label="language" ng-model="language" ng-change="onLanguageChanged()">
 						<md-option ng-repeat="languageOption in languages" ng-value="languageOption.code">[[languageOption.label]]</md-option>
 					</md-select>
 				</md-list-item>

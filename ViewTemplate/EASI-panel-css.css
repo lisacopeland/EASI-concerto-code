@@ -5,14 +5,14 @@ fieldset {
 }
 
 .progress-container {
-  background-color: rgb(63,81,181);
-  min-height: 5px; 
-  position: sticky; 
+  background-color: rgb(63, 81, 181);
+  min-height: 5px;
+  position: sticky;
   top: 0;
   z-index: 1;
 }
 
-input[type="file"] {
+input[type='file'] {
   position: absolute;
   top: 0;
   left: 0;
@@ -35,7 +35,7 @@ input[type="file"] {
 }
 
 .chart-container {
-  max-width: 1200px; 
+  max-width: 1200px;
   width: 100%;
 }
 
@@ -60,8 +60,8 @@ md-sidenav {
 }
 
 src {
-  display: flex; 
-  flex-direction: column; 
+  display: flex;
+  flex-direction: column;
   height: 100%;
 }
 
@@ -74,7 +74,8 @@ md-sidenav {
   width: 100%;
 }
 
-th, td {
+th,
+td {
   padding: 0 !important;
 }
 
@@ -86,9 +87,88 @@ md-checkbox {
   opacity: 0.5;
 }
 
+.filter-panel-header {
+  cursor: pointer;
+  padding: 8px 0;
+}
+
+.filter-panel-content {
+display: flex;
+flex-direction: column;
+  padding: 8px 0 16px 0;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.12);
+}
+
+.filter-panel md-chips .md-chips,
+.filter-panel md-chips.md-default-theme .md-chips {
+  box-shadow: none !important;
+}
+
+.filter-panel-chips {
+display: flex;
+flex-direction: row-wrap;
+}
+
+.filter-caption-row {
+  display: flex;
+  flex-direction: row;
+}
+
+.rotate-icon {
+  transform: rotate(180deg);
+  transition: transform 0.3s ease;
+}
+md-icon {
+  transition: transform 0.3s ease;
+}
+
+.filter-index {
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.filter-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 16px;
+  text-decoration: none;
+  cursor: pointer;
+  color: rgba(0, 0, 0, 0.75);
+}
+
+.filter-link:hover,
+.filter-link.active {
+  background: rgba(0, 0, 0, 0.08);
+}
+
+.filter-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #ccc;
+}
+
+.filter-dot.selected {
+  background: #4caf50;
+}
+
+.filter-editor-card {
+  margin-top: 8px;
+    flex: 0 0 auto;
+    width: fit-content;
+    min-width: 300px;
+    max-width: 100%;
+}
+
 .filter-container {
   display: flex;
   flex-wrap: wrap;
+}
+
+.date-filter-picker {
+  margin-top: 22px;
 }
 
 .filter-container md-card {
@@ -130,7 +210,12 @@ md-checkbox {
     display: block;
   }
 
-  md-toolbar, .progress-container, .md-subheader, md-nav-bar, .actions, md-sidenav {
+  md-toolbar,
+  .progress-container,
+  .md-subheader,
+  md-nav-bar,
+  .actions,
+  md-sidenav {
     display: none !important;
   }
 

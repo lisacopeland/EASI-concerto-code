@@ -41,6 +41,7 @@
 			<script type="text/javascript" src="/ViewTemplate/EASI-filter-trans/js"></script>
 			
 			<script type="text/javascript" src="/ViewTemplate/EASI-panel-service-notif/js"></script>
+			<script type="text/javascript" src="/ViewTemplate/EASI-panel-service-constants/js"></script>
 			<script type="text/javascript" src="/ViewTemplate/EASI-panel-service-api/js"></script>
 			<script type="text/javascript" src="/ViewTemplate/EASI-panel-service-auth/js"></script>
 			<script type="text/javascript" src="/ViewTemplate/EASI-panel-service-participants/js"></script>
@@ -56,6 +57,8 @@
 			<script type="text/javascript" src="/ViewTemplate/EASI-panel-component-participant-import/js"></script>
 			<script type="text/javascript" src="/ViewTemplate/EASI-panel-component-participant-detail/js"></script>
 			<script type="text/javascript" src="/ViewTemplate/EASI-panel-component-participant-detail-edit/js"></script>
+			<script type="text/javascript" src="/ViewTemplate/EASI-panel-component-participant-detail-edit-form/js"></script>
+     		<script type="text/javascript" src="/ViewTemplate/EASI-panel-component-participant-add/js"></script>
 			<script type="text/javascript" src="/ViewTemplate/EASI-panel-component-participant-detail-demographics/js"></script>
 			<script type="text/javascript" src="/ViewTemplate/EASI-panel-component-participant-detail-sessions/js"></script>
 			<script type="text/javascript" src="/ViewTemplate/EASI-panel-component-participant-detail-scores/js"></script>
@@ -74,7 +77,6 @@
 
 			<script type="text/javascript" src="/ViewTemplate/EASI-panel-directive-session-status/js"></script>
 
-			<script type="text/javascript" src="/ViewTemplate/EASI-panel-dialog-participant-add/js"></script>
 			<script type="text/javascript" src="/ViewTemplate/EASI-panel-dialog-participant-download/js"></script>
 			<script type="text/javascript" src="/ViewTemplate/EASI-panel-dialog-participant-filter/js"></script>
 			<script type="text/javascript" src="/ViewTemplate/EASI-panel-dialog-session-add/js"></script>
@@ -136,6 +138,9 @@
 					when('/participant/import', {
 						name: 'participant',
 						template: '<participant-import></participant-import>'
+					}).
+					when('/participant/add', {
+					    template: '<participant-add></participant-add>'
 					}).
 					when('/participant/:id', {
 						redirectTo: '/participant/:id/edit'

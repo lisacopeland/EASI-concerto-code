@@ -1,0 +1,14 @@
+<src>
+	<md-subheader class="md-primary md-dense">
+		<md-button class="md-fab md-raised md-mini" ng-click="onCancel()">
+			<md-tooltip>go back</md-tooltip>
+			<md-icon>arrow_back</md-icon>
+		</md-button>
+		<span>Add Client</span>
+	</md-subheader>
+
+	<div class="layout-padding">
+    <participant-detail-edit-form participant="participant" on-save="onSave(participant)"
+    on-cancel="onCancel()"></participant-detail-edit-form>
+    </div>
+ </src>

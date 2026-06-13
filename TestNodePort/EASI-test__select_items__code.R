@@ -34,8 +34,6 @@ if(is.na(page)) {
 
 .branch = "iteration"
 if(page > maxPages) {
-  concerto.log(page, "page")
-  concerto.log(maxPages, "maxPages")
   .branch = "end"
   endReason = "all items administered"
 } else {

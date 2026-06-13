@@ -1,7 +1,7 @@
+concerto.log("hi from EASI-scoring-aggr")
 testCodes = trimws(unlist(strsplit(settings$aggrtestcodes, ",")))
-concerto.log(testCodes, "test codes")
+
 traits = trimws(unlist(strsplit(settings$aggrtraits, ",")))
-concerto.log(traits, "traits")
 
 responses = responses[, c("score", "trait")]
 for(trait in traits) {
@@ -22,10 +22,8 @@ WHERE s.participant_id='{{participant_id}}' AND r.trait='{{trait}}'
   }
 
   newResponses = concerto.table.query(paste0("SELECT ROUND(AVG(score)) AS score, trait FROM (", paste0(union, collapse=" UNION "), ") AS t1 GROUP BY trait"))
-  concerto.log(newResponses, "NEW RESPONSES")
   responses = rbind(responses, newResponses)
 }
-concerto.log(responses, "RESPONSES")
 
 scores = concerto.test.run("EASI-scoring-norm", list(
   items=items,

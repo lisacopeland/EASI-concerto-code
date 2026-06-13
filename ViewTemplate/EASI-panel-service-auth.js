@@ -2,6 +2,7 @@ testRunner.service('auth', function (api, $cookies, $rootScope) {
     this.user = null;
     this.token = null;
     this.isExpired = null;
+    this.isLoading = false;
     // Private Functions
     this._checkExpiration = function (user, token) {
         let todayDate = new Date();
@@ -20,9 +21,6 @@ testRunner.service('auth', function (api, $cookies, $rootScope) {
         else if (user.expirationDate < todayDate) { // expirationDate lessthan (before) today, so flag it
             isExpired = true;
         }
-
-        console.log("expiration date", user.expirationDate);
-        console.log("isExpired", { isExpired });
         return {
             user,
             token,
@@ -45,17 +43,18 @@ testRunner.service('auth', function (api, $cookies, $rootScope) {
 
                 if (self.isExpired) { self._expireUser(); }
                 else {
-                    self.createTokenCookie();
+                    self.createTokenCookie(response.expiryTime);
                     $rootScope.$apply();
                     /* @TODO commented out as it kept logging out admin */
                     self.refreshUserProfile(self.user).then(() => {
+                    this.isLoading = false;
                         $rootScope.$apply()
                     })
                     if (!testRunner.R.languageQuery && self.user.languageCode !== null && self.user.languageCode !== testRunner.R.language) {
                         self.changeLanguage(self.user.languageCode);
                     }
                 }
-            }
+            }this.isLoading = false;
             return response;
         }
     }
@@ -72,10 +71,10 @@ testRunner.service('auth', function (api, $cookies, $rootScope) {
         return token ? token : null;
     }
 
-    this.createTokenCookie = function () {
-        let expiryDate = new Date();
-        expiryDate.setHours(expiryDate.getHours() + 22);
-        $cookies.put("easiToken", this.token, { expires: expiryDate }); // TODO: Maybe use cognito token, i dunno.
+    this.createTokenCookie = function (expiryTime) {
+        // let expiryDate = new Date();
+        // expiryDate.setHours(expiryDate.getHours() + 22);
+        $cookies.put("easiToken", this.token, { expires: new Date(expiryTime) }); // TODO: Maybe use cognito token, i dunno.
     };
 
     this.removeTokenCookie = function () {
@@ -87,6 +86,7 @@ testRunner.service('auth', function (api, $cookies, $rootScope) {
     };
 
     this.logIn = function (login, password) {
+    
         return api.action('logIn', {
             login: login,
             password: password
@@ -133,9 +133,13 @@ testRunner.service('auth', function (api, $cookies, $rootScope) {
             return response;
         });
     };
+    
+    var auth = this;
 
-    this.token = this.getTokenCookie();
+    auth.token = auth.getTokenCookie();
+    this.isLoading = false; 
     if (this.token !== null && this.user === null) {
+        this.isLoading = true;
         this.logInWithToken(this.token);
     }
 });

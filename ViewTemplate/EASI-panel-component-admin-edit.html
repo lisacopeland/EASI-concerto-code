@@ -40,8 +40,8 @@
 						<label>Gender</label>
 						<md-select ng-model="user.gender" name="gender">
 							<md-option value=""><em>Not selected</em></md-option>
-							<md-option ng-repeat="gender in genders" ng-value="gender.value">
-								[[gender.label]]
+							<md-option ng-repeat="gender in genders" ng-value="gender">
+								[[gender|trans]]
 							</md-option>
 						</md-select>
 					</md-input-container>
@@ -49,7 +49,7 @@
 						<label>Highest Degree</label>
 						<md-select ng-model="user.highestDegree" name="highestDegree">
 							<md-option value=""><em>Not selected</em></md-option>
-							<md-option ng-repeat="highest_degree in highest_degrees" ng-value="highest_degree.value">
+							<md-option ng-repeat="highest_degree in highestDegrees" ng-value="highest_degree.value">
 								[[highest_degree.label]]
 							</md-option>
 						</md-select>
