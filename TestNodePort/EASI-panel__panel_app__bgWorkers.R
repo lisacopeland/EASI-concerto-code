@@ -1163,19 +1163,26 @@ getParticipantMonths = function(dateOfBirth, assessmentDate) {
   round(days / 30.4375)
 }
 
-getTestSettings = function(testCode, numberOfMonths) {
-  settingsTable = paste0(testCode, "_settings")
+getTestSettings = function(test, numberOfMonths) {
+  settingsTable = paste0(test$code, "_settings")
 
   extraSettings = concerto.table.query(
     "
-    SELECT * FROM {{settingsTable}} 
-    WHERE (minParticipantMonths<='{{months}}' OR minParticipantMonths IS NULL) AND
-    (maxParticipantMonths>='{{months}}' OR maxParticipantMonths IS NULL)",
-    list(settingsTable = settingsTable, months = numberOfMonths)
+    SELECT * 
+    FROM {{settingsTable}} 
+    WHERE 
+      (minParticipantMonths<='{{months}}' OR minParticipantMonths IS NULL) 
+      AND
+      (maxParticipantMonths>='{{months}}' OR maxParticipantMonths IS NULL)
+    ",
+    list(
+      settingsTable = settingsTable,
+      months = numberOfMonths
+    )
   )
-  settings = list(
-    scoringalgo = test$scoringAlgo
-  )
+  settings = list()
+  settings$scoringalgo = test$scoringAlgo
+
   if (nrow(extraSettings) > 0) {
     for (i in 1:nrow(extraSettings)) {
       extraSetting = as.list(extraSettings[i, ])
@@ -1223,79 +1230,105 @@ saveScores = function(testCode, session, scores) {
   }
 }
 
-
 recalculateScores = function(participantId) {
-  testCodes = concerto.table.query("SELECT code FROM EASI_tests")
+  concerto.log("****hi from recalc scores**********")
+  tests = concerto.table.query(
+    "SELECT * FROM EASI_tests"
+  )
   participant = fetchSingleParticipant(participantId)
 
-  for (testCode in testCodes$code) {
-    if (is.na(testCode) || testCode == "") {
-      next
-    }
-    sessionTable = paste0(testCode, "_sessions")
-    responseTable = paste0(testCode, "_responses")
-    scoreTable = paste0(testCode, "_scores")
-    settingsTable = paste0(testCode, "_settings")
+  tryCatch(
+    {
+      concerto.table.query("START TRANSACTION")
+      for (i in seq_len(nrow(tests))) {
+        test = tests[i, ]
+        testCode = test$code
+        scoringAlgo = test$scoringAlgo
+        if (is.na(testCode) || testCode == "") {
+          next
+        }
+        sessionTable = paste0(testCode, "_sessions")
+        responseTable = paste0(testCode, "_responses")
+        scoreTable = paste0(testCode, "_scores")
+        settingsTable = paste0(testCode, "_settings")
 
-    # get sessions for these participants
-    sessions = concerto.table.query(
-      paste0(
-        "SELECT * FROM ",
-        sessionTable,
-        " WHERE participant_id IN (",
-        participantIdsSql,
-        ")"
-      )
-    )
-
-    for (i in seq_len(nrow(sessions))) {
-      session = sessions[i, ]
-
-      if (session$status == 2) {
-        # test has been administered, update this one
-        participantMonths = getParticipantMonths(
-          participant$dateOfBirth,
-          session$dateAssessment
-        )
-        params = list(
-          sessionId = session$id
-        )
-        responses = concerto.table.query(
+        # get sessions for these participants
+        sessions = concerto.table.query(
           paste0(
             "SELECT * FROM ",
-            responsesTable,
-            " WHERE session_id = {{sessionId}}"
+            sessionTable,
+            " WHERE participant_id='{{id}}'"
           ),
-          params
+          list(id = participant$id)
         )
-        settings = getTestSettings(testCode, participantMonths)
-        scores = list()
 
-        if (hasValue(settings$scoringalgo)) {
-          scoringModuleName = paste0("EASI-scoring-", settings$scoringalgo)
+        for (i in seq_len(nrow(sessions))) {
+          session = sessions[i, ]
 
-          scores = concerto.test.run(
-            scoringModuleName,
-            list(
-              items = NULL,
-              responses = responses,
-              settings = settings,
-              scores = scores,
-              session = session,
-              test = test
+          if (session$status == 2) {
+            # test has been administered, update this one
+            participantMonths = getParticipantMonths(
+              participant$dateOfBirth,
+              session$dateAssessment
             )
-          )$scores
-        } else {
-          scores = list(
-            "raw score" = sum(responses$score, na.rm = TRUE)
-          )
+            params = list(
+              sessionId = session$id
+            )
+            responses = concerto.table.query(
+              paste0(
+                "SELECT * FROM ",
+                responseTable,
+                " WHERE session_id = {{sessionId}}"
+              ),
+              params
+            )
+            settings = getTestSettings(test, participantMonths)
+            concerto.log(
+              jsonlite::toJSON(settings, pretty = TRUE, auto_unbox = TRUE)
+            )
+            scores = list()
+            if (
+              !is.null(settings$scoringalgo) &&
+                !is.na(settings$scoringalgo) &&
+                trimws(settings$scoringalgo) != ""
+            ) {
+              scoringModuleName = paste0("EASI-scoring-", settings$scoringalgo)
+              concerto.log(scoringModuleName, "Running scoring module")
+              scores = concerto.test.run(
+                scoringModuleName,
+                list(
+                  items = NULL,
+                  responses = responses,
+                  settings = settings,
+                  scores = scores,
+                  session = session,
+                  test = test
+                )
+              )$scores
+            } else {
+              scores = list(
+                "raw score" = sum(responses$score, na.rm = TRUE)
+              )
+            }
+            concerto.log(
+              jsonlite::toJSON(scores, pretty = TRUE, auto_unbox = TRUE)
+            )
+
+            # now save them
+            saveScores(testCode, session, scores)
+          }
         }
-        # now save them
-        saveScores(testCode, session, scores)
       }
+      concerto.table.query("COMMIT")
+    },
+    error = function(e) {
+      concerto.table.query("ROLLBACK")
+      concerto.log(e, "recalculate Scores failed")
+      stop(e)
     }
-  }
+  )
 }
+
 
 toggleArchivedParticipants = function(selection) {
   admin = c.get("admin", T)
@@ -1518,6 +1551,11 @@ valid=1
 WHERE id='{{id}}'",
     params
   )
+
+  # if the participants bdate changes, recalc scores
+  if (currentParticipant$dateOfBirth != newParticipant$dateOfBirth) {
+    recalculateScores(currentParticipant$id)
+  }
 
   newParticipant = as.list(concerto.table.query(
     "SELECT * FROM EASI_participants WHERE id='{{id}}'",

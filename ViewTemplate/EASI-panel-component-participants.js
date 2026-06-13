@@ -12,11 +12,18 @@ testRunner.component('participants', {
     notif,
     $location,
     transFilter,
+    constants,
   ) {
     let syncingVisibleSelections = false;
     let fetchingParticipants = false;
 
+    $scope.genders = constants.genders;
+    $scope.countries = constants.countries;
     $scope.languages = testRunner.R.collections.languages;
+    $scope.assessmentReasons = constants.assessmentReasons;
+    $scope.clinicalAssessmentReferrers = constants.clinicalAssessmentReferrers;
+    $scope.diagnoses = testRunner.R.collections.diagnoses;
+    $scope.researchProjects = testRunner.R.collections.researchProjects;
     $scope.selection = {
       mode: 'explicit', // or allmatching
       includedIds: {}, // if explicit, only delete these ids
@@ -26,16 +33,69 @@ testRunner.component('participants', {
     };
     const now = new Date();
     $scope.filters = {};
+    $scope.isOpen = false;
+    $scope.activeFilters = [];
+
+    $scope.isToday = function (date) {
+      const now = new Date();
+      return (
+        date.getUTCFullYear() === now.getUTCFullYear() &&
+        date.getUTCMonth() === now.getUTCMonth() &&
+        date.getUTCDate() === now.getUTCDate()
+      );
+    };
 
     $scope.$watch(
-      'filters',
+      function () {
+        return {
+          admin: $scope.filters.admin.value,
+          archived: $scope.filters.archived.value,
+          assessmentReason: $scope.filters.assessmentReason.value,
+          clinicalAssessmentReferrer: $scope.filters.clinicalAssessmentReferrer.value,
+          countryOfResidence: $scope.filters.countryOfResidence.value,
+          customId: $scope.filters.customId.value,
+          dateOfBirthOperator: $scope.filters.dateOfBirth.operator,
+          dateOfBirthValue1: $scope.filters.dateOfBirth.value1,
+          dateOfBirthValue2: $scope.filters.dateOfBirth.value2,
+          diagnoses: $scope.filters.diagnoses.value,
+          diagnosesSelected: $scope.filters.diagnosesSelected.value,
+          email: $scope.filters.email.value,
+          exportExclusion: $scope.filters.exportExclusion.value,
+          gender: $scope.filters.gender.value,
+          id: $scope.filters.id.value,
+          initials: $scope.filters.initials.value,
+          lastAssessmentOperator: $scope.filters.lastAssessment.operator,
+          lastAssessmentValue1: $scope.filters.lastAssessment.value1,
+          lastAssessmentValue2: $scope.filters.lastAssessment.value2,
+          primaryLanguage: $scope.filters.primaryLanguage.value,
+          researchProjectSelected: $scope.filters.researchProjectSelected.value,
+        };
+      },
       function (newVal, oldVal) {
+        $scope.updateEnabledFilters();
+        $scope.updateActiveFilters();
         $scope.getParticipants();
         participants.filters = $scope.filters;
         $scope.selection.filters = JSON.stringify($scope.filters);
       },
       true,
     );
+
+    $scope.updateEnabledFilters = function () {
+      angular.forEach($scope.filters, function (filter, key) {
+        if (Array.isArray(filter.value)) {
+          filter.enabled = filter.value.length > 0;
+        } else if (key === 'dateOfBirth' || key === 'lastAssessment') {
+          filter.enabled =
+            filter.operator !== 'equal' ||
+            !$scope.isToday(filter.value1) ||
+            !$scope.isToday(filter.value2);
+        } else {
+          filter.enabled =
+            filter.value !== null && filter.value !== undefined && filter.value !== '';
+        }
+      });
+    };
 
     $scope.$watchCollection('selectedParticipants', function (newVal, oldVal) {
       if (syncingVisibleSelections || syncingVisibleSelections) {
@@ -68,11 +128,76 @@ testRunner.component('participants', {
       });
     });
 
+    $scope.filterList = [
+      { key: 'admin', label: 'panel_client_administrator' },
+      { key: 'archived', label: 'panel_archived_label' },
+      { key: 'assessmentReason', label: 'panel_client_assessment_reason' },
+      { key: 'clinicalAssessmentReferrer', label: 'panel_client_clinical_assessment_referrer' },
+      { key: 'countryOfResidence', label: 'panel_client_country_of_residence' },
+      { key: 'customId', label: 'panel_client_custom_id' },
+      { key: 'dateOfBirth', label: 'panel_client_date_of_birth' },
+      { key: 'diagnoses', label: 'panel_client_diagnoses' },
+      { key: 'diagnosesSelected', label: 'panel_client_select_diagnoses' },
+      { key: 'email', label: 'panel_client_email' },
+      { key: 'exportExclusion', label: 'panel_client_export_exclusion' },
+      { key: 'gender', label: 'panel_client_gender' },
+      { key: 'id', label: 'id' },
+      { key: 'initials', label: 'panel_client_initials' },
+      { key: 'lastAssessment', label: 'panel_client_last_assessment' },
+      { key: 'primaryLanguage', label: 'panel_client_primary_language' },
+      { key: 'researchProjectSelected', label: 'Research project' },
+    ];
+
+    $scope.filterUi = {
+      activeFilter: null,
+    };
+
+    $scope.toggleFilterDrawer = function () {
+      $scope.isOpen = !$scope.isOpen;
+      if (!$scope.isOpen) {
+        $scope.filterUi = {
+          activeFilter: null,
+        };
+      }
+    };
+
+    $scope.hasFilterValue = function (key) {
+      const filter = $scope.filters[key];
+      return filter.enabled === true;
+    };
+
+    $scope.getFilterLabel = function (key) {
+      const item = $scope.filterList.find((x) => x.key === key);
+      return item !== undefined ? item.label : '';
+    };
+
+    // Used by the list to show the active filters when the filter window is closed
+    $scope.updateActiveFilters = function () {
+      $scope.activeFilters = [];
+
+      angular.forEach($scope.filters, function (filter, key) {
+        if (filter.enabled) {
+          if (Array.isArray(filter.value)) {
+            $scope.activeFilters.push({
+              key: key,
+              count: filter.value.length,
+            });
+          } else {
+            $scope.activeFilters.push({
+              key: key,
+              count: 1,
+            });
+          }
+        }
+      });
+    };
+
     $scope.initFilters = function () {
+      const now = new Date();
       $scope.filters = {
         admin: {
           enabled: false,
-          value: [],
+          value: '',
         },
         archived: {
           enabled: true,
@@ -97,8 +222,8 @@ testRunner.component('participants', {
         dateOfBirth: {
           enabled: false,
           operator: 'equal',
-          value1: new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getDate())),
-          value2: new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getDate())),
+          value1: new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())),
+          value2: new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())),
         },
         diagnoses: {
           enabled: false,
@@ -131,8 +256,8 @@ testRunner.component('participants', {
         lastAssessment: {
           enabled: false,
           operator: 'equal',
-          value1: new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getDate())),
-          value2: new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getDate())),
+          value1: new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())),
+          value2: new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())),
         },
         primaryLanguage: {
           enabled: false,
@@ -143,6 +268,7 @@ testRunner.component('participants', {
           value: [],
         },
       };
+      $scope.updateActiveFilters();
     };
 
     $scope.clearFilters = function () {
@@ -200,7 +326,6 @@ testRunner.component('participants', {
       $scope.clearFilters();
       $scope.getParticipants();
       $scope.$on('participants:collectionChanged', (event) => {
-        console.log('participants collection changed! Going to get participants!');
         $scope.getParticipants();
       });
     };
@@ -219,6 +344,10 @@ testRunner.component('participants', {
         $scope.ongoingFetchesNum--;
         $scope.$apply();
       });
+    };
+
+    $scope.onPaginate = function () {
+      $scope.getParticipants();
     };
 
     $scope.onReorder = function (order) {
