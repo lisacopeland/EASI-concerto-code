@@ -31,10 +31,59 @@ testRunner.component('participants', {
       excludedIds: {}, // if allmatching, only exclude these ids
       filters: {}, // filters passed from the $scope.filters
     };
-    const now = new Date();
+
     $scope.filters = {};
     $scope.isOpen = false;
     $scope.activeFilters = [];
+    $scope.filterList = [
+      { key: 'admin', label: 'panel_client_administrator' },
+      { key: 'archived', label: 'panel_archived_label' },
+      { key: 'assessmentReason', label: 'panel_client_assessment_reason' },
+      { key: 'clinicalAssessmentReferrer', label: 'panel_client_clinical_assessment_referrer' },
+      { key: 'countryOfResidence', label: 'panel_client_country_of_residence' },
+      { key: 'customId', label: 'panel_client_custom_id' },
+      { key: 'dateOfBirth', label: 'panel_client_date_of_birth' },
+      { key: 'diagnosis', label: 'panel_client_diagnosis_label' },
+      // { key: 'diagnosesSelected', label: 'panel_client_select_diagnoses' },
+      { key: 'email', label: 'panel_client_email' },
+      { key: 'exportExclusion', label: 'panel_client_export_exclusion' },
+      { key: 'gender', label: 'panel_client_gender' },
+      { key: 'id', label: 'id' },
+      { key: 'initials', label: 'panel_client_initials' },
+      { key: 'lastAssessment', label: 'panel_client_last_assessment' },
+      { key: 'primaryLanguage', label: 'panel_client_primary_language' },
+      { key: 'researchProjectSelected', label: 'Research project' },
+    ];
+    $scope.dictionary = testRunner.R.dictionary;
+    $scope.participantsCollection = [];
+    $scope.participantsTotalCount = 0;
+    $scope.selectedParticipants = [];
+    $scope.ongoingFetchesNum = 0;
+    $scope.query = {
+      order: 'id',
+      limit: 100,
+      archived: 0,
+      page: 1,
+    };
+
+    $scope.filterUi = {
+      activeFilter: null,
+    };
+
+    $scope.archivedOptions = [
+      { value: [0], label: 'Active' },
+      { value: [0, 1], label: 'All' },
+      { value: [1], label: 'Archived' },
+    ];
+
+    $scope.selectedArchivedValue = $scope.archivedOptions[0];
+
+    $scope.changeArchiveFilter = function (option) {
+      if (option !== $scope.selectedArchivedValue) {
+        $scope.selectedArchivedValue = option;
+        $scope.filters.archived.value = option.value;
+      }
+    };
 
     $scope.isToday = function (date) {
       const now = new Date();
@@ -81,22 +130,6 @@ testRunner.component('participants', {
       true,
     );
 
-    $scope.updateEnabledFilters = function () {
-      angular.forEach($scope.filters, function (filter, key) {
-        if (Array.isArray(filter.value)) {
-          filter.enabled = filter.value.length > 0;
-        } else if (key === 'dateOfBirth' || key === 'lastAssessment') {
-          filter.enabled =
-            filter.operator !== 'equal' ||
-            !$scope.isToday(filter.value1) ||
-            !$scope.isToday(filter.value2);
-        } else {
-          filter.enabled =
-            filter.value !== null && filter.value !== undefined && filter.value !== '';
-        }
-      });
-    };
-
     $scope.$watchCollection('selectedParticipants', function (newVal, oldVal) {
       if (syncingVisibleSelections || syncingVisibleSelections) {
         return;
@@ -128,28 +161,35 @@ testRunner.component('participants', {
       });
     });
 
-    $scope.filterList = [
-      { key: 'admin', label: 'panel_client_administrator' },
-      { key: 'archived', label: 'panel_archived_label' },
-      { key: 'assessmentReason', label: 'panel_client_assessment_reason' },
-      { key: 'clinicalAssessmentReferrer', label: 'panel_client_clinical_assessment_referrer' },
-      { key: 'countryOfResidence', label: 'panel_client_country_of_residence' },
-      { key: 'customId', label: 'panel_client_custom_id' },
-      { key: 'dateOfBirth', label: 'panel_client_date_of_birth' },
-      { key: 'diagnoses', label: 'panel_client_diagnoses' },
-      { key: 'diagnosesSelected', label: 'panel_client_select_diagnoses' },
-      { key: 'email', label: 'panel_client_email' },
-      { key: 'exportExclusion', label: 'panel_client_export_exclusion' },
-      { key: 'gender', label: 'panel_client_gender' },
-      { key: 'id', label: 'id' },
-      { key: 'initials', label: 'panel_client_initials' },
-      { key: 'lastAssessment', label: 'panel_client_last_assessment' },
-      { key: 'primaryLanguage', label: 'panel_client_primary_language' },
-      { key: 'researchProjectSelected', label: 'Research project' },
-    ];
+    $scope.updateEnabledFilters = function () {
+      angular.forEach($scope.filters, function (filter, key) {
+        if (Array.isArray(filter.value)) {
+          if (key === 'diagnosesSelected') {
+            filter.enabled = $scope.filters.diagnoses.value.includes('1');
+            if (filter.enabled === false) {
+              filter.value = [];
+            }
+          } else filter.enabled = filter.value.length > 0;
+        } else if (key === 'dateOfBirth' || key === 'lastAssessment') {
+          filter.enabled =
+            filter.operator !== 'equal' ||
+            !$scope.isToday(filter.value1) ||
+            !$scope.isToday(filter.value2);
+        } else {
+          filter.enabled =
+            filter.value !== null && filter.value !== undefined && filter.value !== '';
+        }
+      });
+    };
 
-    $scope.filterUi = {
-      activeFilter: null,
+    $scope.isAdmin = function () {
+      return auth.user.type === 1;
+    };
+
+    $scope.paginationLabels = {
+      of: transFilter('page_of'),
+      page: transFilter('page'),
+      rowsPerPage: transFilter('page_rows'),
     };
 
     $scope.toggleFilterDrawer = function () {
@@ -164,6 +204,14 @@ testRunner.component('participants', {
     $scope.hasFilterValue = function (key) {
       const filter = $scope.filters[key];
       return filter.enabled === true;
+    };
+
+    $scope.hasDiagnoses = function () {
+      const diagnosesValue = $scope.filters['diagnoses'].value;
+      if (diagnosesValue.length) {
+        return diagnosesValue.find((x) => x === '1') !== undefined;
+      }
+      return false;
     };
 
     $scope.getFilterLabel = function (key) {
@@ -194,6 +242,7 @@ testRunner.component('participants', {
 
     $scope.initFilters = function () {
       const now = new Date();
+      $scope.selectedArchivedValue = $scope.archivedOptions[0];
       $scope.filters = {
         admin: {
           enabled: false,
@@ -309,19 +358,6 @@ testRunner.component('participants', {
       }, 0);
     }
 
-    $scope.dictionary = testRunner.R.dictionary;
-    $scope.participantsCollection = [];
-    $scope.participantsTotalCount = 0;
-    $scope.selectedParticipants = [];
-    $scope.ongoingFetchesNum = 0;
-    $scope.query = {
-      order: 'id',
-      limit: 100,
-      archived: 0,
-      page: 1,
-    };
-    $scope.admins = [];
-
     this.$onInit = function () {
       $scope.clearFilters();
       $scope.getParticipants();
@@ -335,7 +371,7 @@ testRunner.component('participants', {
       fetchingParticipants = true;
       participants.fetch($scope.query, JSON.stringify($scope.filters)).then((response) => {
         if (response.success === false) {
-        console.error('FETCH PARTICIPANTS FAILED');
+          console.error('FETCH PARTICIPANTS FAILED');
         }
         $scope.participantsCollection = response.collection;
         $scope.participantsTotalCount = response.totalCount;
@@ -474,10 +510,6 @@ testRunner.component('participants', {
       $location.path('/participant/' + participant.id + '/sessions').search({ add: true });
     };
 
-    $scope.isAdmin = function () {
-      return auth.user.type === 1;
-    };
-
     $scope.downloadDialog = function () {
       return new Promise((resolve, reject) => {
         window.scrollTo(0, 0);
@@ -493,38 +525,6 @@ testRunner.component('participants', {
           clickOutsideToClose: false,
           escapeToClose: false,
         });
-      });
-    };
-
-    $scope.selectFilters = function () {
-      return new Promise((resolve, reject) => {
-        window.scrollTo(0, 0);
-        $mdDialog.show({
-          controller: DialogParticipantFilterController,
-          resolve: {
-            filters: () => {
-              return $scope.filters;
-            },
-          },
-          templateUrl: '/ViewTemplate/EASI-panel-dialog-participant-filter/html',
-          parent: angular.element(document.body),
-          clickOutsideToClose: true,
-          escapeToClose: true,
-        });
-      });
-    };
-
-    $scope.paginationLabels = {
-      of: transFilter('page_of'),
-      page: transFilter('page'),
-      rowsPerPage: transFilter('page_rows'),
-    };
-
-    $scope.fetchAdmins = function () {
-      console.log(admin);
-      admin.fetch().then((response) => {
-        $scope.admins = response;
-        console.log(response);
       });
     };
   },

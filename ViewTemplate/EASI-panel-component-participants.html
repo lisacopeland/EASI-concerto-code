@@ -11,10 +11,16 @@
 	<md-content class="layout-padding">
 		<div layout="row" layout-align="space-between center" class="md-dense">
 			<div layout="row" layout-align="start center" layout-wrap style="gap: 0.5em;">
-				<!-- <md-button class="md-raised" ng-click="selectFilters()"><md-icon>search</md-icon>
-					{{'select_filters'|trans}}</md-button> -->
+				<!-- clear all filters excepts archived-->
 				<md-button class="md-raised" ng-click="clearFilters()">
 					{{'clear_filters'|trans}}</md-button>
+				<div class="select-button-group">
+					<!-- the archived toggle -->
+					<md-button ng-repeat="option in archivedOptions" ng-click="changeArchiveFilter(option)"
+						ng-class="{ selected: selectedArchivedValue === option }">
+						{{ option.label }}
+					</md-button>
+				</div>
 			</div>
 			<div layout="row" layout-align="end center" layout-wrap>
 				<md-button class="md-raised" ng-click="addSingle()"><md-icon>add</md-icon>
@@ -138,22 +144,29 @@
 										ng-model-options="{timezone: 'UTC'}"></md-datepicker>
 								</md-input-container>
 							</div>
-							<div ng-switch-when="diagnoses">
+							<div ng-switch-when="diagnosis">
+								<span class="md-headline">
+									{{'panel_client_diagnoses' | trans }}
+								</span>
 								<md-input-container>
 									<md-select multiple ng-model="filters.diagnoses.value" placeholder="Select value">
 										<md-option value="1">{{'yes'|trans}}</md-option>
 										<md-option value="0">{{'no'|trans}}</md-option>
 									</md-select>
 								</md-input-container>
-							</div>
-							<div ng-switch-when="diagnosesSelected">
-								<md-input-container>
-									<md-select multiple ng-model="filters.diagnosesSelected.value"
-										placeholder="Select value" class="md-ellipsis" style="max-width: 300px;">
-										<md-option ng-value="diagnose.label"
-											ng-repeat="diagnose in diagnoses">[[diagnose.label]]</md-option>
-									</md-select>
-								</md-input-container>
+								<div ng-if="filters.diagnoses.value.includes('1')">
+									<span class="md-headline">
+										{{getFilterLabel('diagnosesSelected') | trans }}
+									</span>
+									<md-input-container>
+										<md-select multiple ng-model="filters.diagnosesSelected.value"
+											placeholder="Select value" class="md-ellipsis" style="max-width: 300px;">
+											<md-option ng-value="diagnose.label"
+												ng-repeat="diagnose in diagnoses">[[diagnose.label]]</md-option>
+										</md-select>
+									</md-input-container>
+								</div>
+
 							</div>
 							<div ng-switch-when="email">
 								<md-input-container md-no-float="">
