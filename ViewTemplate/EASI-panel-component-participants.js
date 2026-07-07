@@ -31,13 +31,12 @@ testRunner.component('participants', {
       excludedIds: {}, // if allmatching, only exclude these ids
       filters: {}, // filters passed from the $scope.filters
     };
-
     $scope.filters = {};
     $scope.isOpen = false;
     $scope.activeFilters = [];
     $scope.filterList = [
       { key: 'admin', label: 'panel_client_administrator' },
-      { key: 'archived', label: 'panel_archived_label' },
+      // { key: 'archived', label: 'panel_archived_label' },
       { key: 'assessmentReason', label: 'panel_client_assessment_reason' },
       { key: 'clinicalAssessmentReferrer', label: 'panel_client_clinical_assessment_referrer' },
       { key: 'countryOfResidence', label: 'panel_client_country_of_residence' },
@@ -64,6 +63,7 @@ testRunner.component('participants', {
       limit: 100,
       archived: 0,
       page: 1,
+      // searchString: undefined
     };
 
     $scope.filterUi = {
@@ -71,9 +71,9 @@ testRunner.component('participants', {
     };
 
     $scope.archivedOptions = [
-      { value: [0], label: 'Active' },
-      { value: [0, 1], label: 'All' },
-      { value: [1], label: 'Archived' },
+      { value: [0], label: transFilter('panel_archived_nonarchived') },
+      { value: [0, 1], label: transFilter('panel_archived_all') },
+      { value: [1], label: transFilter('panel_archived_archived') },
     ];
 
     $scope.selectedArchivedValue = $scope.archivedOptions[0];
@@ -93,6 +93,13 @@ testRunner.component('participants', {
         date.getUTCDate() === now.getUTCDate()
       );
     };
+
+    $scope.$watch('query.searchString', function (newVal, oldVal) {
+      if (newVal === undefined && oldVal === undefined) {
+        return;
+      }
+      $scope.getParticipants();
+    });
 
     $scope.$watch(
       function () {
@@ -202,6 +209,9 @@ testRunner.component('participants', {
     };
 
     $scope.hasFilterValue = function (key) {
+      if (key === 'diagnosis') {
+        return $scope.filters['diagnoses'].enabled === true;
+      }
       const filter = $scope.filters[key];
       return filter.enabled === true;
     };
@@ -224,7 +234,7 @@ testRunner.component('participants', {
       $scope.activeFilters = [];
 
       angular.forEach($scope.filters, function (filter, key) {
-        if (filter.enabled) {
+        if (filter.enabled && key !== 'archived') {
           if (Array.isArray(filter.value)) {
             $scope.activeFilters.push({
               key: key,
@@ -359,8 +369,8 @@ testRunner.component('participants', {
     }
 
     this.$onInit = function () {
+      // Letting paginator do the first fetch
       $scope.clearFilters();
-      $scope.getParticipants();
       $scope.$on('participants:collectionChanged', (event) => {
         $scope.getParticipants();
       });

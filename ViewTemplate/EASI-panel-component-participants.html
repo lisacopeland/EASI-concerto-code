@@ -38,6 +38,15 @@
 					{{'delete_selected'|trans}}</md-button>
 			</div>
 		</div>
+		<!-- the search bar -->
+		<div layout="row" layout-align="space-between center" class="md-dense searchbar-row">
+			<md-input-container class="searchbar-container">
+				<input ng-model="query.searchString" name="search" placeholder="{{'search'|trans}}" aria-label="Search"
+					type="text"><md-icon>search</md-icon>
+			</md-input-container>
+		</div>
+
+		<!-- the collapsible filter panel -->
 		<div class="filter-panel">
 			<!-- filter panel header with caret to toggle  -->
 			<div layout="row" layout-align="start center" ng-click="toggleFilterDrawer()" class="filter-panel-header">
@@ -76,14 +85,6 @@
 									<input ng-model="filters.admin.value" ng-model-options="{ debounce: 500 }"
 										placeholder="Enter value">
 								</md-input-container>
-							</div>
-
-							<div ng-switch-when="archived">
-								<!-- your archived filter control -->
-								<md-select multiple ng-model="filters.archived.value" placeholder="Select value">
-									<md-option ng-value="1">{{'panel_archived_archived'|trans}}</md-option>
-									<md-option ng-value="0">{{'panel_archived_nonarchived'|trans}}</md-option>
-								</md-select>
 							</div>
 							<div ng-switch-when="assessmentReason">
 								<!-- your gender filter control -->
@@ -156,7 +157,7 @@
 								</md-input-container>
 								<div ng-if="filters.diagnoses.value.includes('1')">
 									<span class="md-headline">
-										{{getFilterLabel('diagnosesSelected') | trans }}
+										{{'panel_client_select_diagnoses' | trans }}
 									</span>
 									<md-input-container>
 										<md-select multiple ng-model="filters.diagnosesSelected.value"
