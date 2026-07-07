@@ -54,7 +54,8 @@ testRunner.service('auth', function (api, $cookies, $rootScope) {
                         self.changeLanguage(self.user.languageCode);
                     }
                 }
-            }this.isLoading = false;
+            }
+            this.isLoading = false;
             return response;
         }
     }
@@ -124,7 +125,14 @@ testRunner.service('auth', function (api, $cookies, $rootScope) {
             this.token = response.token;
         });
     }
-    // END ADDED
+
+    this.clearLocalSession = function() {
+      this.user = null;
+      this.token = null;
+      this.removeTokenCookie();
+    
+    }
+    
     this.logOut = function () {
         return api.action('logOut', {}).then(response => {
             this.user = null;

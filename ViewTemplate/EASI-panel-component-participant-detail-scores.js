@@ -14,8 +14,9 @@ testRunner.component('participantDetailScores', {
     $scope.scoresDataSets = [];
 
     $scope.tests = [];
+    $scope.testSelections = [];
     $scope.summaryDataSets = [];
-
+    $scope.suppressTestsWatch = false;
     $scope.ongoingFetchesNum = 0;
     $scope.query = {
       participantId: null,
@@ -31,6 +32,45 @@ testRunner.component('participantDetailScores', {
       history: false,
       details: true
     };
+
+$scope.allTestsChanged = function () {
+    $scope.suppressTestsWatch = true;
+    if ($scope.query.allTests) {
+        // Send "all tests"
+        $scope.query.tests = {};
+        $scope.getScores();
+    } else {
+        // Initialize every test to unselected
+        $scope.query.tests = {};
+
+        angular.forEach($scope.tests, function (test) {
+            $scope.query.tests[test.id] = 0;
+        });
+    }
+};
+
+$scope.$watch(
+    function () {
+        return angular.toJson($scope.query.tests);
+    },
+    function (newValue, oldValue) {
+        if (newValue === oldValue) return;
+            if ($scope.suppressTestsWatch) {
+      $scope.suppressTestsWatch = false;
+      return;
+    }
+    var hasSelected = false;
+    angular.forEach($scope.query.tests, function (selected) {
+      if (selected) {
+        hasSelected = true;
+      }
+    });
+    if (hasSelected){
+      $scope.getScores();
+    }
+
+    }
+);
 
     this.$onInit = function() {
       $scope.participant = this.participant;
@@ -124,8 +164,9 @@ testRunner.component('participantDetailScores', {
         });
         if(data.length === 0) {
           data = [{value: NaN, label: summaryScore.label}];
-        }
-
+        } else {
+        
+        
         const color = summaryScore.color ? summaryScore.color : defaultColors[i];
         dataSets.push({
           label: summaryScore.label,
@@ -138,6 +179,7 @@ testRunner.component('participantDetailScores', {
           borderColor: color,
           color: color
         });
+        }
       }
       $scope.summaryDataSets = dataSets;
     }
@@ -200,7 +242,9 @@ testRunner.component('participantDetailScores', {
       scores.fetch($scope.query).then(response => {
         $scope.scoresCollection = response.collection;
         $scope.tests = response.tests;
-
+        if ($scope.testSelections.length === 0) {
+          $scope.testSelections = response.tests;
+        }
         makeScoresDataSet();
         drawScoresChart();
 

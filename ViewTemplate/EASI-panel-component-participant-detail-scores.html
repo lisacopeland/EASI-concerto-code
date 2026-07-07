@@ -11,11 +11,12 @@
 		<md-icon>[[expandables.tests ? 'expand_more' : 'expand_less']]</md-icon>
 		{{'panel_results_tests'|trans}}
 	</md-subheader>
+
 	<div layout="row" layout-wrap="" layout-align="start center" class="md-dense" ng-show="expandables.tests">
-		<md-switch ng-model="query.allTests" ng-true-value="1" ng-false-value="0" ng-change="getScores()">
+		<md-switch ng-model="query.allTests" ng-true-value="1" ng-false-value="0" ng-change="allTestsChanged()">
 			{{'all_tests'|trans}}
 		</md-switch>
-		<md-switch ng-model="query.tests[test.id]" ng-true-value="1" ng-false-value="0" ng-repeat="test in testService.collection" ng-change="getScores()" ng-if="query.allTests === 0">
+		<md-switch ng-model="query.tests[test.id]" ng-true-value="1" ng-false-value="0" ng-repeat="test in testSelections" ng-show="query.allTests == 0">
 			[[test.code]]
 		</md-switch>
 	</div>

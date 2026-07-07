@@ -1,20 +1,35 @@
 concerto.log("hi from EASI-test__scoring__code.R")
 
-if(!is.na(settings$scoringalgo)) {
+lib$helloWorld()
+
+if (!is.na(settings$scoringalgo) && settings$scoringalgo != "") {
+concerto.log("Going to invoke scoring module.R")
   scoringModuleName = paste0("EASI-scoring-", settings$scoringalgo)
-  scores = concerto.test.run(scoringModuleName, list(
+  # if this is the 
+  scoringResult <- concerto.test.run(scoringModuleName, list(
     items=items,
     responses=responses,
     settings=settings,
     scores=scores,
     session=session,
     test=test
-  ))$scores
+  ))
+  concerto.log(
+  jsonlite::toJSON(scoringResult, pretty = TRUE, auto_unbox = TRUE)
+  )
+  scores <- scoringResult$scores
 } else {
   scores = list(
     "raw score" = sum(responses$score, na.rm=T)
   )
 }
+
+concerto.log("*****SCORES*****")
+
+concerto.log(
+  jsonlite::toJSON(scores, pretty = TRUE, auto_unbox = TRUE)
+)
+
 
 #cleaning past scores
 scoresTable = paste0(test$code, "_scores")
@@ -25,7 +40,7 @@ concerto.table.query("DELETE FROM {{scoresTable}} WHERE session_id='{{session_id
 if(is.list(scores) && length(scores) > 0) {
   insertSql = concerto.table.insertParams("INSERT INTO {{scoresTable}} (session_id, name, value, timeCreated, participant_id) VALUES ", list(scoresTable=scoresTable))
   scoreValuesSqlArray = NULL
-  for(scoreName in ls(scores)) {
+  for(scoreName in names(scores)) {
     scoreValuesSql = concerto.table.insertParams("('{{session_id}}', '{{name}}', IF('{{value}}'='', NULL, '{{value}}'), NOW(), '{{participant_id}}')", list(
       session_id=session$id,
       name=scoreName,

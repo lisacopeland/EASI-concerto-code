@@ -83,6 +83,42 @@ md-checkbox {
   margin: 0 0.5em !important;
 }
 
+.searchbar-row {
+  padding-top: 0px;
+  padding-bottom: 0px; 
+  margin-left: 6px;
+}
+
+.searchbar-container {
+margin-top: 8px;
+margin-bottom: 0px;
+}
+.select-button-group {
+  display: inline-flex;
+  border-radius: 4px;
+  overflow: hidden;
+  box-shadow: 0 2px 5px 0 rgba(0, 0, 0, 0.26);
+  background: white;
+}
+
+.select-button-group .md-button {
+  margin: 0;
+  border-radius: 0;
+}
+
+.select-button-group .md-button:first-child {
+  border-radius: 4px 0 0 4px;
+}
+
+.select-button-group .md-button:last-child {
+  border-radius: 0 4px 4px 0;
+}
+
+.select-button-group .selected {
+  background: #3f51b5;
+  color: white;
+}
+
 .archived td:not(.md-checkbox-cell, .actions-cell) {
   opacity: 0.5;
 }
@@ -93,8 +129,8 @@ md-checkbox {
 }
 
 .filter-panel-content {
-display: flex;
-flex-direction: column;
+  display: flex;
+  flex-direction: column;
   padding: 8px 0 16px 0;
   border-bottom: 1px solid rgba(0, 0, 0, 0.12);
 }
@@ -105,8 +141,8 @@ flex-direction: column;
 }
 
 .filter-panel-chips {
-display: flex;
-flex-direction: row-wrap;
+  display: flex;
+  flex-direction: row-wrap;
 }
 
 .filter-caption-row {
@@ -156,10 +192,10 @@ md-icon {
 
 .filter-editor-card {
   margin-top: 8px;
-    flex: 0 0 auto;
-    width: fit-content;
-    min-width: 300px;
-    max-width: 100%;
+  flex: 0 0 auto;
+  width: fit-content;
+  min-width: 300px;
+  max-width: 100%;
 }
 
 .filter-container {
