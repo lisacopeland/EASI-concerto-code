@@ -1,4 +1,16 @@
 testRunner.service('constants', function () {
+    
+  this.getHost = function() {
+    let hostname = window.location.hostname;
+    let host = 'prod'; 
+    if (hostname.includes('dev.')) {
+      host = 'dev';
+    } else if (hostname.includes('staging.')) {
+      host = 'staging';
+    }
+  return host;
+  }
+  
     this.genders = [
       'Male',
       'Female',

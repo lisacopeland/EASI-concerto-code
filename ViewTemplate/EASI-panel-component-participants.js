@@ -31,6 +31,7 @@ testRunner.component('participants', {
       excludedIds: {}, // if allmatching, only exclude these ids
       filters: {}, // filters passed from the $scope.filters
     };
+    $scope.host = constants.getHost();
     $scope.filters = {};
     $scope.isOpen = false;
     $scope.activeFilters = [];
