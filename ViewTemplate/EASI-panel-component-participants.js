@@ -37,7 +37,6 @@ testRunner.component('participants', {
     $scope.activeFilters = [];
     $scope.filterList = [
       { key: 'admin', label: 'panel_client_administrator' },
-      // { key: 'archived', label: 'panel_archived_label' },
       { key: 'assessmentReason', label: 'panel_client_assessment_reason' },
       { key: 'clinicalAssessmentReferrer', label: 'panel_client_clinical_assessment_referrer' },
       { key: 'countryOfResidence', label: 'panel_client_country_of_residence' },
@@ -46,7 +45,6 @@ testRunner.component('participants', {
       { key: 'diagnosis', label: 'panel_client_diagnosis_label' },
       // { key: 'diagnosesSelected', label: 'panel_client_select_diagnoses' },
       { key: 'email', label: 'panel_client_email' },
-      { key: 'exportExclusion', label: 'panel_client_export_exclusion' },
       { key: 'gender', label: 'panel_client_gender' },
       { key: 'id', label: 'id' },
       { key: 'initials', label: 'panel_client_initials' },
@@ -54,13 +52,14 @@ testRunner.component('participants', {
       { key: 'primaryLanguage', label: 'panel_client_primary_language' },
       { key: 'researchProjectSelected', label: 'Research project' },
     ];
+
     $scope.dictionary = testRunner.R.dictionary;
     $scope.participantsCollection = [];
     $scope.participantsTotalCount = 0;
     $scope.selectedParticipants = [];
     $scope.ongoingFetchesNum = 0;
     $scope.query = {
-      order: 'id',
+      order: '-lastAssessmentDate',
       limit: 100,
       archived: 0,
       page: 1,
@@ -85,6 +84,11 @@ testRunner.component('participants', {
         $scope.filters.archived.value = option.value;
       }
     };
+
+    $scope.onRemoveFilter = function(chip, index, event) {
+      $scope.disableFilter(chip.key);
+      $scope.updateActiveFilters();
+    }
 
     $scope.isToday = function (date) {
       const now = new Date();
@@ -227,7 +231,7 @@ testRunner.component('participants', {
 
     $scope.getFilterLabel = function (key) {
       const item = $scope.filterList.find((x) => x.key === key);
-      return item !== undefined ? item.label : '';
+      return item !== undefined ? item.label : key;
     };
 
     // Used by the list to show the active filters when the filter window is closed
@@ -251,6 +255,20 @@ testRunner.component('participants', {
         }
       });
     };
+    
+    $scope.disableFilter = function(key) {
+      if (Array.isArray($scope.filters[key].value)) {
+        $scope.filters[key].value = [];
+      } else if ((key === 'dateOfBirth') || (key === 'lastAssessment')){
+        const now = new Date();
+        $scope.filters[key].operator = 'equal';
+        $scope.filters[key].value1 = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+        $scope.filters[key].value2 = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+      } else {
+        $scope.filters[key].value = '';
+      }
+      $scope.filters[key].enabled = false;
+    }
 
     $scope.initFilters = function () {
       const now = new Date();
@@ -335,6 +353,10 @@ testRunner.component('participants', {
     $scope.clearFilters = function () {
       $scope.initFilters();
       $scope.$applyAsync();
+      if ($scope.isOpen) {
+        $scope.toggleFilterDrawer();
+      }
+     
     };
 
     $scope.selectAllMatchingParticipants = function () {
@@ -371,6 +393,10 @@ testRunner.component('participants', {
     }
 
     this.$onInit = function () {
+    const isAdmin = $scope.isAdmin();
+    if (isAdmin) {
+       $scope.filterList.push({ key: 'exportExclusion', label: 'panel_client_export_exclusion' })
+    }
       $scope.clearFilters();
       // $scope.getParticipants();
       $scope.$on('participants:collectionChanged', (event) => {

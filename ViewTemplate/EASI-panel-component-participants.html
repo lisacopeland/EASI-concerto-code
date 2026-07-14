@@ -267,9 +267,9 @@
 			<!-- filter panel is closed, show chips -->
 			<div ng-if="!isOpen" class="filter-panel-content">
 				<div class="filter-panel-chips">
-					<md-chips ng-model="activeFilters" readonly="true">
+					<md-chips ng-model="activeFilters" md-on-remove="onRemoveFilter($chip, $index, $event)">
 						<md-chip-template>
-							{{$chip.key | trans}} ({{$chip.count}})
+							{{getFilterLabel($chip.key) | trans}} ({{$chip.count}})
 						</md-chip-template>
 					</md-chips>
 
@@ -296,7 +296,7 @@
 							<th md-column md-order-by="initials">{{'panel_client_initials'|trans}}</th>
 							<th md-column md-order-by="dateOfBirth">{{'panel_client_date_of_birth'|trans}}</th>
 							<th md-column md-order-by="gender">{{'panel_client_gender'|trans}}</th>
-							<th md-column>{{'panel_client_last_assessment'|trans}}</th>
+							<th md-column md-order-by="lastAssessmentDate">{{'panel_client_last_assessment'|trans}}</th>
 							<th md-column ng-if="isAdmin()">
 								{{'panel_client_administrator'|trans}}</th>
 							<th md-column ng-if="isAdmin()">
