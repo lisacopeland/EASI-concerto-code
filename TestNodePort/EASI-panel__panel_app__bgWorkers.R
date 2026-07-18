@@ -1000,7 +1000,8 @@ fetchParticipantsInternal = function(query, filters) {
   id = "p.id",
   initials = "p.initials",
   dateOfBirth = "p.dateOfBirth",
-  gender = "p.gender"
+  gender = "p.gender",
+  lastAssessmentDate = "p.lastAssessmentDate"
  )
 
   orderSql = getOrderSql(query$order, validColumns)
