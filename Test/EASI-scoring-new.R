@@ -1,5 +1,3 @@
-# new scoring method
-
 isValid <- function(trait) {
   !is.null(trait) && !is.na(trait) && length(trait) > 0
 }
@@ -13,7 +11,6 @@ getPropName <- function(trait, name, includeTraitInScoreName = FALSE) {
 }
 
 getScorableItems <- function(responses, items, trait = NULL) {
-
   scoringResponses <- if (is.null(trait)) {
     responses
   } else {
@@ -25,8 +22,8 @@ getScorableItems <- function(responses, items, trait = NULL) {
       items$excludeFromScoring != 1
   ]
 
-  scorableResponses <- scoringResponses[
-    scoringResponses$item_id %in% scorableItemIds &
+  scoreableResponses <- scoringResponses[
+    scoringResponses$item_id %in% scoreableItemIds &
       scoringResponses$scoreStatus == "scored",
   ]
 
@@ -38,63 +35,58 @@ getMeasure <- function(rawScore, measureLookupJson) {
   measureLookup[[as.character(rawScore)]]
 }
 
-getMeasureNew <- function(responses, items, trait, stepDifficulty) {
-  # first get scorable responses and the count
-  scoreableResponses <- getScorableItems(responses, items, trait)
-  itemCount <- nrow(scorableResponses);
-  initialEstimate = 0
-  convergenceTolerance = 0.01
-  maxIterations = 100
-  minUpdateDivisor = 1
-  maxChange = 1.0
+getMeasure <- function(responses, items, trait, stepDifficulty) {
+  itemCount <- nrow(responses)
+  initialEstimate <- 0
+  convergenceTolerance <- 0.01
+  maxIterations <- 100
+  minUpdateDivisor <- 1
+  maxChange <- 1.0
 
-  previousPreviousEstimate = initialEstimate
-  previousEstimate = initialEstimate
-  currentEstimate = initialEstimate
+  previousPreviousEstimate <- initialEstimate
+  previousEstimate <- initialEstimate
+  currentEstimate <- initialEstimate
 
-  outputMath
-  updateDivisor
-  iterationCount = 0
-  converged = false
+  updateDivisor <- 0
+  iterationCount <- 0
+  converged <- FALSE
   repeat {
     outputMath <- calculateExpectedScore(
-        items,
-        responses,
-        currentEstimate
+      responses,
+      items,
+      currentEstimate,
+      stepDifficulty
     )
 
     modelVariance <- outputMath$modelVariance
     expectedScore <- outputMath$expectedScore
     rawScore <- outputMath$rawScore
 
-    if (!Number.isFinite(modelVariance) || modelVariance <= 0) {
-        #`Invalid model variance: ${modelVariance}`
-        
+    if (!is.finite(modelVariance) || modelVariance <= 0) {
+      concerto.log(paste0("Invalid model variance: ", modelVariance))
+      stop("Invalid model variance")
     }
-
-    if (
-        updateDivisor == undefined ||
-        !hasOverShotEstimate(
-            previousPreviousEstimate,
-            previousEstimate,
-            currentEstimate
-        )
+    # todo: maybe this should be if first time... or
+    if (!hasOverShotEstimate(
+      previousPreviousEstimate,
+      previousEstimate,
+      currentEstimate
+    )
     ) {
-        updateDivisor <- modelVariance
-    }
-    else {
-        updateDivisor <- Math.max(
-            updateDivisor * 2,
-            minUpdateDivisor
-        )
+      updateDivisor <- modelVariance
+    } else {
+      updateDivisor <- max(
+        updateDivisor * 2,
+        minUpdateDivisor
+      )
     }
 
-    let change <-
-        (rawScore - expectedScore) / updateDivisor
+    change <-
+      (rawScore - expectedScore) / updateDivisor
 
-    change <- Math.max(
-        -maxChange,
-        Math.min(maxChange, change)
+    change <- max(
+      -maxChange,
+      min(maxChange, change)
     )
 
     previousPreviousEstimate <- previousEstimate
@@ -103,24 +95,21 @@ getMeasureNew <- function(responses, items, trait, stepDifficulty) {
 
     iterationCount <- iterationCount + 1
 
-    if (!Number.isFinite(currentEstimate)) {
-    # error "Ability estimate became non-finite"
+    if (!is.finite(currentEstimate)) {
+      concerto.log(paste0("Invalid current estimate: ", currentEstimate))
+      stop("Ability estimate became non-finite")
     }
 
-    converged =
-        Math.abs(currentEstimate - previousEstimate) <
-        convergenceTolerance
+    converged <- abs(currentEstimate - previousEstimate) < convergenceTolerance
 
     if ((converged) || (iterationCount >= maxIterations)) {
-      # error failure to converge
       break
     }
-
   } # bottom of the do-while
 
-  concerto.log("after the while loop")
-  if (!converged or iterationCount >= maxIterations) {
-    #error
+  if (!converged || (iterationCount >= maxIterations)) {
+    concerto.log(paste0("failure to converge after ", iterationCount))
+    stop("Ability estimate became non-finite")
   }
 
   # Recalculate once at the final estimate so modelVariance,
@@ -128,44 +117,44 @@ getMeasureNew <- function(responses, items, trait, stepDifficulty) {
   # currentEstimate.
 
   outputMath <- calculateExpectedScore(
-          items,
-          responses,
-          currentEstimate
+    responses,
+    items,
+    currentEstimate,
+    stepDifficulty
   )
 
-  modelVariance <- outputMath.modelVariance
-  rawScore <- outputMath.rawScore
+  modelVariance <- outputMath$modelVariance
+  rawScore <- outputMath$rawScore
 
   outfitMeanSquare <-
-      outputMath.outfitMeanSquareNumerator / itemCount
+    outputMath$outfitMeanSquareNumerator / itemCount
 
   infitMeanSquare <-
-      outputMath.infitMeanSquareNumerator /
-      outputMath.infitMeanSquareDivisor
+    outputMath$infitMeanSquareNumerator /
+      outputMath$infitMeanSquareDivisor
 
-  outfitMeanSquare <- Math.min(outfitMeanSquare, 9.9)
+  outfitMeanSquare <- min(outfitMeanSquare, 9.9)
 
-  return {
-      currentEstimate,
-      modelVariance,
-      rawScore,
-      outfitMeanSquare,
-      infitMeanSquare,
-      iterationCount,
-      converged
-  }
-
+  list(
+    currentEstimate = currentEstimate,
+    modelVariance = modelVariance,
+    rawScore = rawScore,
+    outfitMeanSquare = outfitMeanSquare,
+    infitMeanSquare = infitMeanSquare,
+    iterationCount = iterationCount,
+    converged = converged
+  )
 }
 
-# Iterate thru the scores and return expectedScore, modelVariance, rawScore, 
+# Iterate thru the scores and return expectedScore, modelVariance, rawScore,
 # outfitMeanSquareNumerator, infitMeanSquareNumerator, infitMeanSquareDivisor
-calculateExpectedScore <- function(responses, items, abilityEstimate) {
-  rawScore = 0 
-  expectedScore = 0
-  modelVariance = 0
-  outfitMeanSquareNumerator = 0
-  infitMeanSquareNumerator = 0 
-  let infitMeanSquareDivisor = 0
+calculateExpectedScore <- function(responses, items, abilityEstimate, stepDifficulty) {
+  rawScore <- 0
+  expectedScore <- 0
+  modelVariance <- 0
+  outfitMeanSquareNumerator <- 0
+  infitMeanSquareNumerator <- 0
+  infitMeanSquareDivisor <- 0
 
   for (i in seq_len(nrow(responses))) {
     response <- responses[i, ]
@@ -175,55 +164,73 @@ calculateExpectedScore <- function(responses, items, abilityEstimate) {
     ][1]
 
     rawScore <- rawScore + response$value
-    perItemResults <- perItemMath(itemDifficulty, abilityEstimate, Number(input.data.extent))
-    expectedScore <- expectedScore + perItemResults.expectation
-    modelVariance <- modelVariance + perItemResults.variance
-    outfitMeanSquareNumerator <- outfitMeanSquareNumerator + perItemResults.itemOutfitMeanSquareNumerator
-    infitMeanSquareNumerator <- infitMeanSquareNumerator + perItemResults.itemInfitMeanSquareNumerator
-    infitMeanSquareDivisor <- infitMeanSquareDivisor + perItemResults.itemInfitMeanSquareDivisor
+    perItemResults <- perItemMath(
+      itemDifficulty,
+      abilityEstimate,
+      response$score,
+      stepDifficulty
+    )
+
+    expectedScore <- expectedScore + perItemResults$expectation
+    modelVariance <- modelVariance + perItemResults$variance
+    outfitMeanSquareNumerator <- outfitMeanSquareNumerator + perItemResults$itemOutfitMeanSquareNumerator
+    infitMeanSquareNumerator <- infitMeanSquareNumerator + perItemResults$itemInfitMeanSquareNumerator
+    infitMeanSquareDivisor <- infitMeanSquareDivisor + perItemResults$itemInfitMeanSquareDivisor
   }
-  modelVariance = modelVariance < 0.00001 ? 0.00001 : modelVariance
-  return { expectedScore, modelVariance, rawScore, outfitMeanSquareNumerator, infitMeanSquareNumerator, infitMeanSquareDivisor }
+  modelVariance <- max(modelVariance, 0.00001)
+  list(
+    expectedScore = expectedScore,
+    modelVariance = modelVariance,
+    rawScore = rawScore,
+    outfitMeanSquareNumerator = outfitMeanSquareNumerator,
+    infitMeanSquareNumerator = infitMeanSquareNumerator,
+    infitMeanSquareDivisor = infitMeanSquareDivisor
+  )
 }
 
-perItemMath <- function(itemDifficulty, abilityEstimate, inputData) {
-    # Item difficulty is per the item
-    # Ability estimate initially 0 and then gets updated over time with the (rawScore - expectedScore)/updateDivisor
-    # inputData is the score for this item
-    # step difficulty is the array of step difficulty for the test
+perItemMath <- function(itemDifficulty, abilityEstimate, inputData, stepDifficulty) {
+  # Item difficulty is per the item
+  # Ability estimate initially 0 and then gets updated over time with the
+  # inputData is the score for this item
+  # step difficulty is the array of step difficulty for the test
+  # iterating thru settings$stepDifficulty
+  logit <- abilityEstimate - itemDifficulty
 
-    iterating thru settings$stepDifficulty
-    const logit = abilityEstimate - itemDifficulty
+  normalizer <- 0
+  expectation <- 0
+  sumSquare <- 0
+  currentLogit <- 0
+  remark <- ""
+  for (i in seq_along(stepDifficulty)) {
+    stepIndex <- i - 1
+    currentLogit <- currentLogit + logit - stepDifficulty[i]
+    value <- exp(currentLogit)
+    normalizer <- normalizer + value
+    expectation <- expectation + stepIndex * value
+    sumSquare <- sumSquare + stepIndex * stepIndex * value
+  }
+  expectation <- expectation / normalizer
+  variance <- (sumSquare / normalizer) - (expectation * expectation)
+  residual <- inputData - expectation
+  standardizedResidual <- residual / sqrt(variance)
+  if (standardizedResidual > 2) {
+    remark <- "Unexpectedly high rating"
+  } else if (standardizedResidual < -2) {
+    remark <- "Unexpectedly low rating"
+  }
 
-    let normalizer = 0   // cumulative
-    let expectation = 0 // cumulative
-    let sumSquare = 0   // cumulative
-    let currentLogit = 0 // cumulative
-    let remark = ""
+  itemOutfitMeanSquareNumerator <- standardizedResidual * standardizedResidual
+  itemInfitMeanSquareNumerator <- residual * residual
+  itemInfitMeanSquareDivisor <- variance
 
-    for (let i = 1; i < stepDifficulty.length; i++) {
-        currentLogit = currentLogit + logit - stepDifficulty[i];
-        const value = Math.exp(currentLogit)
-        normalizer = normalizer + value
-        expectation = expectation + i * value
-        sumSquare = sumSquare + i * i * value
-    }
-    expectation = expectation / normalizer
-    const variance = (sumSquare / normalizer) - (expectation * expectation)
-    const residual = inputData - expectation
-    const standardizedResidual = residual / Math.sqrt(variance)
-    if (standardizedResidual > 2) {
-        remark = "Unexpectedly high rating"
-    }
-    else if (standardizedResidual < -2) {
-        remark = "Unexpectedly low rating"
-    }
-
-    const itemOutfitMeanSquareNumerator = standardizedResidual * standardizedResidual
-    const itemInfitMeanSquareNumerator = residual * residual
-    const itemInfitMeanSquareDivisor = variance
-
-    return { expectation, variance, itemOutfitMeanSquareNumerator, itemInfitMeanSquareNumerator, itemInfitMeanSquareDivisor, remark }
+  list(
+    expectation = expectation,
+    variance = variance,
+    itemOutfitMeanSquareNumerator = itemOutfitMeanSquareNumerator,
+    itemInfitMeanSquareNumerator = itemInfitMeanSquareNumerator,
+    itemInfitMeanSquareDivisor = itemInfitMeanSquareDivisor,
+    remark = remark
+  )
 }
 
 hasOverShotEstimate <- function(prevprev, prev, curr) {
@@ -258,7 +265,7 @@ createScores <- function(
     b3 * age^3
 
   zScore <- (measure - predictedMean) / sd
-
+  scores <- list()
   scores[[rawScoreProp]] <- rawScore
   scores[[zScoreProp]] <- zScore
   scores[[meanProp]] <- predictedMean
@@ -267,50 +274,71 @@ createScores <- function(
   scores
 }
 
-concerto.log(
-  jsonlite::toJSON(settings, pretty = TRUE, auto_unbox = TRUE)
-)
 
-concerto$globals$easi$lib$helloWorld()
-allScores <- list()
-
-for (scoreSetting in settings$scoreSettings) {
-  trait <- scoreSetting$trait
-
-  scorableResponses <- getScorableItems(responses, items, trait)
-
-  rawScore <- sum(scorableResponses$score, na.rm = TRUE)
-
-  measure <- getMeasure(
-    rawScore,
-    scoreSetting$measurelookup
+runScoring <- function(responses, items, settings) {
+  concerto.log(
+    jsonlite::toJSON(settings, pretty = TRUE, auto_unbox = TRUE)
   )
-  if (is.null(measure)) {
-    stop(
-      paste(
-        "No measure found for raw score",
-        rawScore
-      )
+
+  # concerto.log(
+  #  jsonlite::toJSON(responses, pretty = TRUE, auto_unbox = TRUE)
+  # )
+
+  # concerto.log(
+  #  jsonlite::toJSON(items, pretty = TRUE, auto_unbox = TRUE)
+  # )
+
+  allScores <- list()
+
+  for (scoreSetting in settings$scoreSettings) {
+    trait <- scoreSetting$trait
+
+    scorableResponses <- getScorableItems(responses, items, trait)
+
+    rawScore <- sum(scorableResponses$score, na.rm = TRUE)
+
+    newMeasure <- getMeasure(scorableResponses, items, trait, scoreSetting$stepDifficulty)
+    # currentEstimate = currentEstimate,
+    # modelVariance = modelVariance,
+    # rawScore = rawScore,
+    # outfitMeanSquare = outfitMeanSquare,
+    # infitMeanSquare = infitMeanSquare,
+    # iterationCount = iterationCount,
+    # converged = converged
+    concerto.log("from newMeasure: ")
+    concerto.log(
+      jsonlite::toJSON(newMeasure, pretty = TRUE, auto_unbox = TRUE)
     )
+
+    if (is.null(newMeasure$currentEstimate)) {
+      stop(
+        paste(
+          "No measure found for raw score",
+          rawScore
+        )
+      )
+    }
+
+    # newMeasure$currentEstimate instead of measure here
+    scores <- createScores(
+      trait,
+      newMeasure$currentEstimate,
+      rawScore,
+      settings$includeTraitInScoreName,
+      settings$childsAge,
+      scoreSetting$b0,
+      scoreSetting$b1,
+      scoreSetting$b2,
+      scoreSetting$b3,
+      scoreSetting$sd
+    )
+    allScores <- c(allScores, scores)
   }
-  scores <- createScores(
-    trait,
-    measure,
-    rawScore,
-    settings$includeTraitInScoreName,
-    settings$childsAge,
-    scoreSetting$b0,
-    scoreSetting$b1,
-    scoreSetting$b2,
-    scoreSetting$b3,
-    scoreSetting$sd
+
+
+  concerto.log("scores:")
+  concerto.log(
+    jsonlite::toJSON(allScores, pretty = TRUE, auto_unbox = TRUE)
   )
-  allScores <- c(allScores, scores)
+  scores <- allScores
 }
-
-
-concerto.log("scores:")
-concerto.log(
-  jsonlite::toJSON(allScores, pretty = TRUE, auto_unbox = TRUE)
-)
-scores <- allScores
