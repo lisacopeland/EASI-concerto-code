@@ -8,7 +8,7 @@
       "type": "R-Debugger",
       "request": "launch",
       "name": "Debug Test Scoring",
-      "file": "${workspaceFolder}/Test/test-scoring-method.R"
+      "file": "${workspaceFolder}/test-harness.R"
     }
   ]
 }
