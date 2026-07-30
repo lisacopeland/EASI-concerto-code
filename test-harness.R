@@ -231,6 +231,8 @@ response <- list(
 )
 responseTable <- paste0(test$code, "_responses")
 source("TestNodePort/EASI-test__response_processing__code.R")
-response <- createSql(response, selectedItems, test, session, settings, responseTable)
+responseList <- createResponseList(responses, selectedItems, settings$ageExcludedItemsIds)
+print(responseList)  
+# response <- createSql(response, selectedItems, test, session, settings, responseTable)
 
 quit(save = "no")

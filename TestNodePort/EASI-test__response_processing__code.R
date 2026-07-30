@@ -144,8 +144,6 @@ createResponseList <- function(responses, items, ageExcludedItemIds = NULL) {
   for (i in seq_len(nrow(items))) {
     item <- items[i, ]
 
-    itemResponse <- getItemResponse(item, responses)
-
     # if (is.null(itemResponse)) {
     #  stop(
     #    paste0(
@@ -165,12 +163,12 @@ createResponseList <- function(responses, items, ageExcludedItemIds = NULL) {
         value = 0,
         score = 0,
         label = "",
-        submitted = 1,
         skipped = 0,
         skipReason = " ",
         scoreStatus = "scored"
       )
     } else {
+      itemResponse <- getItemResponse(item, responses)
       score <- getItemScore(item, itemResponse)
       responses[[i]] <- list(
         item = item,
@@ -185,7 +183,6 @@ createResponseList <- function(responses, items, ageExcludedItemIds = NULL) {
           item,
           itemResponse
         ),
-        submitted = itemResponse$submitted,
         skipped = itemResponse$skipped,
         skipReason = itemResponse$skipReason,
         scoreStatus = if (!is.na(score)) {
@@ -229,18 +226,13 @@ createSql <- function(response, selectedItems, test, session, settings, response
       } else {
         0
       },
-      skipped = if (itemResponse$skipped == 1) {
-        1
-      } else {
-        0
-      },
+      skipped = itemResponse$skipped,
       scoreStatus = itemResponse$scoreStatus,
       skipReason = itemResponse$skipReason
     ))
     responseSqlArray <- c(responseSqlArray, responseSql)
   }
-
-  }
+  
   insertSql <- paste0(insertSql, paste0(responseSqlArray, collapse = ","))
   insertSql
 }
@@ -248,13 +240,6 @@ createSql <- function(response, selectedItems, test, session, settings, response
 # call createSql with the provided data
 responseTable <- paste0(test$code, "_responses")
 insertSql <- createSql(response, selectedItems, test, session, settings, responseTable)
-
-# remove previous responses before inserting the new ones
-itemIds <- selectedItems$id
-if (!is.null(settings$ageExcludedItemIds)) {
-  itemIds <- c(itemIds, settings$ageExcludedItemIds)
-}
-item_ids <- paste(itemIds, collapse = ",")
 
 concerto.table.query("DELETE FROM {{responseTable}} WHERE session_id='{{session_id}}' AND item_id IN ({{item_ids}})", list(
   responseTable = responseTable,
