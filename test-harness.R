@@ -32,20 +32,59 @@ scoreStatus <- sample(
     replace = TRUE
 )
 
-value <- ifelse(
-    scoreStatus == "scored",
-    sample(0:2, length(accuracyItemIds), replace = TRUE),
-    NA
+
+
+responseCount <- length(accuracyItemIds)
+
+# Randomly determine whether each item was skipped
+skipped <- sample(
+    c(TRUE, FALSE),
+    size = responseCount,
+    replace = TRUE
 )
 
-# put scoreStatus back to scoreStatus to calc values with nonscored values
+# If skipped, assign a random skip reason
+skipReason <- ifelse(
+    skipped,
+    sample(
+        c("gimme a 0", "gimme a NS"),
+        size = responseCount,
+        replace = TRUE
+    ),
+    ""
+)
+
+
+value <- rep(NA_real_, responseCount)
+score <- rep(NA_real_, responseCount)
+scoreStatus <- rep("not scored", responseCount)
+# Normal, non-skipped responses
+notSkipped <- !skipped
+
+value[notSkipped] <- sample(
+    0:2,
+    size = sum(notSkipped),
+    replace = TRUE
+)
+
+score[notSkipped] <- value[notSkipped]
+scoreStatus[notSkipped] <- "scored"
+
+# Skipped responses that should receive a zero
+skippedWithZero <- skipped & skipReason == "gimme a 0"
+
+value[skippedWithZero] <- 0
+score[skippedWithZero] <- 0
+scoreStatus[skippedWithZero] <- "scored"
+
 responses <- data.frame(
     item_id = accuracyItemIds,
-    trait = rep("Accuracy", length(accuracyItemIds)),
-    scoreStatus = "scored",
+    trait = rep("Accuracy", responseCount),
+    scoreStatus = scoreStatus,
     value = value,
-    score = value,
-    skipped = FALSE
+    score = score,
+    skipped = skipped,
+    skipReason = skipReason
 )
 
 items <- data.frame(
@@ -82,10 +121,13 @@ items <- data.frame(
     type = rep("options", 24),
     optionLabel1 = rep("2", 24),
     optionValue1 = rep(2, 24),
+    optionScore1 = rep(2, 24),
     optionLabel2 = rep("1", 24),
     optionValue2 = rep(1, 24),
+    optionScore2 = rep(1, 24),
     optionLabel3 = rep("0", 24),
     optionValue3 = rep(0, 24),
+    optionScore3 = rep(0, 24),
     stepDifficulty = rep("[0, 0.02, -0.02]", 24)
 )
 
@@ -105,7 +147,6 @@ settings <- list(
     scoreSettings = list(
         list(
             trait = "Accuracy",
-            stepDifficulty = c(0, 0.02, -0.02),
             b0 = -6.41941,
             b1 = 2.09146,
             b2 = -0.20452,
@@ -172,7 +213,6 @@ roundLikeJavaScript <- function(value, digits = 0) {
     floor(value * multiplier + 0.5) / multiplier
 }
 
-source("TestNodePort/EASI-test__response_processing__code.R")
 
 selectedItems <- items
 itemResponses <- lapply(
@@ -185,9 +225,12 @@ response <- list(
     buttonPressed = "next",
     isTimeout = "0",
     submitId = "1",
+    timeTaken = 42,
     retryTimeTaken = "0",
     itemResponses = itemResponses
 )
-response <- createSql(response, selectedItems, test, session, settings)
+responseTable <- paste0(test$code, "_responses")
+source("TestNodePort/EASI-test__response_processing__code.R")
+response <- createSql(response, selectedItems, test, session, settings, responseTable)
 
 quit(save = "no")

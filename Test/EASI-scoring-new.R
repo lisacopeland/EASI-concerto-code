@@ -35,7 +35,7 @@ getMeasure <- function(rawScore, measureLookupJson) {
   measureLookup[[as.character(rawScore)]]
 }
 
-getMeasure <- function(responses, items, trait, stepDifficulty) {
+getMeasure <- function(responses, items, trait) {
   itemCount <- nrow(responses)
   initialEstimate <- 0
   convergenceTolerance <- 0.01
@@ -54,8 +54,7 @@ getMeasure <- function(responses, items, trait, stepDifficulty) {
     outputMath <- calculateExpectedScore(
       responses,
       items,
-      currentEstimate,
-      stepDifficulty
+      currentEstimate
     )
 
     modelVariance <- outputMath$modelVariance
@@ -119,8 +118,7 @@ getMeasure <- function(responses, items, trait, stepDifficulty) {
   outputMath <- calculateExpectedScore(
     responses,
     items,
-    currentEstimate,
-    stepDifficulty
+    currentEstimate
   )
 
   modelVariance <- outputMath$modelVariance
@@ -148,7 +146,7 @@ getMeasure <- function(responses, items, trait, stepDifficulty) {
 
 # Iterate thru the scores and return expectedScore, modelVariance, rawScore,
 # outfitMeanSquareNumerator, infitMeanSquareNumerator, infitMeanSquareDivisor
-calculateExpectedScore <- function(responses, items, abilityEstimate, stepDifficulty) {
+calculateExpectedScore <- function(responses, items, abilityEstimate) {
   rawScore <- 0
   expectedScore <- 0
   modelVariance <- 0
@@ -163,7 +161,11 @@ calculateExpectedScore <- function(responses, items, abilityEstimate, stepDiffic
       items$id == response$item_id
     ][1]
 
-    rawScore <- rawScore + response$value
+    stepDifficulty <- items$stepDifficulty[
+      items$id == response$item_id
+    ][1]
+
+    rawScore <- rawScore + response$score
     perItemResults <- perItemMath(
       itemDifficulty,
       abilityEstimate,
@@ -188,7 +190,7 @@ calculateExpectedScore <- function(responses, items, abilityEstimate, stepDiffic
   )
 }
 
-perItemMath <- function(itemDifficulty, abilityEstimate, inputData, stepDifficulty) {
+perItemMath <- function(itemDifficulty, abilityEstimate, responseScore, stepDifficulty) {
   # Item difficulty is per the item
   # Ability estimate initially 0 and then gets updated over time with the
   # inputData is the score for this item
@@ -211,7 +213,7 @@ perItemMath <- function(itemDifficulty, abilityEstimate, inputData, stepDifficul
   }
   expectation <- expectation / normalizer
   variance <- (sumSquare / normalizer) - (expectation * expectation)
-  residual <- inputData - expectation
+  residual <- responseScore - expectation
   standardizedResidual <- residual / sqrt(variance)
   if (standardizedResidual > 2) {
     remark <- "Unexpectedly high rating"
@@ -297,7 +299,7 @@ runScoring <- function(responses, items, settings) {
 
     rawScore <- sum(scorableResponses$score, na.rm = TRUE)
 
-    newMeasure <- getMeasure(scorableResponses, items, trait, scoreSetting$stepDifficulty)
+    newMeasure <- getMeasure(scorableResponses, items, trait)
     # currentEstimate = currentEstimate,
     # modelVariance = modelVariance,
     # rawScore = rawScore,
