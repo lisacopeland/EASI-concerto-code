@@ -77,12 +77,19 @@ value[skippedWithZero] <- 0
 score[skippedWithZero] <- 0
 scoreStatus[skippedWithZero] <- "scored"
 
+# responses <- data.frame(
+#    item_id = accuracyItemIds,
+#    trait = rep("Accuracy", responseCount),
+#    scoreStatus = scoreStatus,
+#    value = value,
+#    score = score,
+#    skipped = skipped,
+#    skipReason = skipReason
+# )
+
 responses <- data.frame(
     item_id = accuracyItemIds,
-    trait = rep("Accuracy", responseCount),
-    scoreStatus = scoreStatus,
     value = value,
-    score = score,
     skipped = skipped,
     skipReason = skipReason
 )
@@ -215,12 +222,14 @@ roundLikeJavaScript <- function(value, digits = 0) {
 
 
 selectedItems <- items
+
 itemResponses <- lapply(
     seq_len(nrow(responses)),
     function(i) {
         as.list(responses[i, , drop = FALSE])
     }
 )
+
 response <- list(
     buttonPressed = "next",
     isTimeout = "0",
@@ -231,8 +240,12 @@ response <- list(
 )
 responseTable <- paste0(test$code, "_responses")
 source("TestNodePort/EASI-test__response_processing__code.R")
-responseList <- createResponseList(responses, selectedItems, settings$ageExcludedItemsIds)
-print(responseList)  
-# response <- createSql(response, selectedItems, test, session, settings, responseTable)
-
+# processedResponses <- createResponseList(responses, selectedItems, settings$ageExcludedItemsIds)
+# print(class(response$itemResponses))
+createdSqlResponse <- createSql(response, selectedItems, test, session, settings, responseTable)
+print(createdSqlResponse)
+# source("Test/EASI-scoring-new.R")
+# scorableResponses <- getScorableItems(processedResponses, selectedItems, "Accuracy")
+# measure <- getMeasure(scorableResponses, selectedItems, "Accuracy")
+# print(measure)
 quit(save = "no")

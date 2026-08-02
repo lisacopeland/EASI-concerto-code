@@ -1,10 +1,8 @@
 concerto.log("hi from EASI-test__scoring__code.R")
 
-lib$helloWorld()
 # TODO: maybe add an error message or something to settings to flag whether the response
 # processing code found an error in the responses - if there was, don't produce scores
 if (!is.na(settings$scoringalgo) && settings$scoringalgo != "") {
-  concerto.log("Going to invoke scoring module.R")
   scoringModuleName <- paste0("EASI-scoring-", settings$scoringalgo)
   # if this is the
   scoringResult <- concerto.test.run(scoringModuleName, list(
@@ -15,6 +13,7 @@ if (!is.na(settings$scoringalgo) && settings$scoringalgo != "") {
     session = session,
     test = test
   ))
+  concerto.log("scoringResult: ")
   concerto.log(
     jsonlite::toJSON(scoringResult, pretty = TRUE, auto_unbox = TRUE)
   )

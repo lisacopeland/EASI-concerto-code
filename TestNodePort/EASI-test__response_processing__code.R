@@ -1,7 +1,7 @@
 concerto.log("Hi from response processing")
 
 getItemResponseLabel <- function(item, itemResponse) {
-  if (itemResponse$skipped) {
+  if (itemResponse$skipped == "1") {
     return(" ")
   }
   if (is.na(item$scoreMapType)) {
@@ -46,7 +46,7 @@ getSubtractScorableValue <- function(item, itemResponse) {
 }
 
 getItemResponseSerializableValue <- function(item, itemResponse) {
-  if (itemResponse$skipped) {
+  if (itemResponse$skipped == "1") {
     return(0)
   }
   switch(item$type,
@@ -66,7 +66,7 @@ getItemScore <- function(item, itemResponse) {
   if (
     is.null(itemResponse) ||
       item$excludeFromScoring == 1 ||
-      itemResponse$skipped == 1
+      itemResponse$skipped == "1"
   ) {
     return(NA)
   }
@@ -78,6 +78,36 @@ getItemScore <- function(item, itemResponse) {
   switch(item$scoreMapType,
     range = getRangeTypeScore(item, itemResponse),
     getDefaultMapScore(item, itemResponse)
+  )
+}
+
+getItemScoringResult <- function(item, itemResponse) {
+  if (is.null(itemResponse)) {
+    return(list(
+      score = NA_real_,
+      scoreStatus = "not scored"
+    ))
+  }
+
+  if (itemResponse$skipped == "1") {
+    if (itemResponse$skipReason == "gimme a 0") {
+      return(list(
+        score = 0,
+        scoreStatus = "scored"
+      ))
+    }
+
+    return(list(
+      score = NA_real_,
+      scoreStatus = "not scored"
+    ))
+  }
+
+  score <- getItemScore(item, itemResponse)
+
+  list(
+    score = score,
+    scoreStatus = "scored"
   )
 }
 
@@ -139,23 +169,14 @@ getItemResponse <- function(item, itemResponses) {
   NULL
 }
 
-createResponseList <- function(responses, items, ageExcludedItemIds = NULL) {
-  responses <- vector("list", nrow(items))
+createResponseList <- function(itemResponses, items, ageExcludedItemIds = NULL) {
+  responseList <- vector("list", nrow(items))
   for (i in seq_len(nrow(items))) {
     item <- items[i, ]
 
-    # if (is.null(itemResponse)) {
-    #  stop(
-    #    paste0(
-    #      "No response found for item ",
-    #      item$id
-    #    )
-    #  )
-    # }
-
     if (!is.null(ageExcludedItemIds) &&
       item$id %in% ageExcludedItemIds) {
-      responses[[i]] <- list(
+      responseList[[i]] <- data.frame(
         # item is age excluded
         item = item,
         item_id = item$id,
@@ -168,32 +189,28 @@ createResponseList <- function(responses, items, ageExcludedItemIds = NULL) {
         scoreStatus = "scored"
       )
     } else {
-      itemResponse <- getItemResponse(item, responses)
-      score <- getItemScore(item, itemResponse)
-      responses[[i]] <- list(
-        item = item,
+      itemResponse <- getItemResponse(item, itemResponses)
+      scoringResult <- getItemScoringResult(item, itemResponse)
+
+      responseList[[i]] <- data.frame(
         item_id = item$id,
         trait = item$trait,
         value = getItemResponseSerializableValue(
           item,
           itemResponse
         ),
-        score = score,
+        score = scoringResult$score,
         label = getItemResponseLabel(
           item,
           itemResponse
         ),
         skipped = itemResponse$skipped,
         skipReason = itemResponse$skipReason,
-        scoreStatus = if (!is.na(score)) {
-          "scored"
-        } else {
-          "not scored"
-        }
+        scoreStatus = scoringResult$scoreStatus
       )
     }
   }
-  responses
+  responseReturn <- do.call(rbind, responseList)
 }
 
 createSql <- function(response, selectedItems, test, session, settings, responseTable) {
@@ -206,45 +223,56 @@ createSql <- function(response, selectedItems, test, session, settings, response
     direction <- -1
   }
 
-  responseList <- createResponseList(response$responseList, selectedItems, settings$ageExcludedItemsIds)
-  insertSql <- concerto.table.insertParams("INSERT INTO {{responseTable}} (session_id, item_id, label, value, score, timeTaken, trait, timeCreated, submitted, skipped) VALUES ", list(responseTable = responseTable))
-  responseSqlArray <- NULL
+  responseList <- createResponseList(response$itemResponses, selectedItems, settings$ageExcludedItemIds)
+  insertSql <- concerto.table.insertParams(
+    paste0(
+      "INSERT INTO {{responseTable}} ",
+      "(session_id, item_id, label, value, score, timeTaken, ",
+      "trait, timeCreated, submitted, skipped, skipReason, scoreStatus) VALUES "
+    ),
+    list(responseTable = responseTable)
+  )
+  responseSqlArray <- character(nrow(responseList))
   for (i in seq_len(nrow(responseList))) {
-    itemResponse <- responseList[i, ]
+    processedResponse <- responseList[i, , drop = FALSE]
+
     # here, you will see if the item was skipped and if so if it should get a 0 or a NS
-    responseSql <- "('{{session_id}}', '{{item_id}}', IF('{{label}}'='', NULL, '{{label}}'), IF('{{value}}'='', NULL, '{{value}}'), IF('{{score}}'='', NULL, '{{score}}'), '{{timeTaken}}', '{{trait}}', NOW(), '{{submitted}}', '{{skipped}}', '{{scoreStatus}}' {{skipReason}})"
-    responseSql <- concerto.table.insertParams(responseSql, list(
-      session_id = session$id,
-      item_id = itemResponse$item$id,
-      value = itemResponse$value,
-      score = itemResponse$score,
-      label = itemResponse$label,
-      timeTaken = response$timeTaken,
-      trait = itemResponse$item$trait,
-      submitted = if (direction == 1) {
-        1
-      } else {
-        0
-      },
-      skipped = itemResponse$skipped,
-      scoreStatus = itemResponse$scoreStatus,
-      skipReason = itemResponse$skipReason
-    ))
-    responseSqlArray <- c(responseSqlArray, responseSql)
+    responseSql <- paste0(
+      "('{{session_id}}', '{{item_id}}', ",
+      "IF('{{label}}'='', NULL, '{{label}}'), ",
+      "IF('{{value}}'='', NULL, '{{value}}'), ",
+      "IF('{{score}}'='', NULL, '{{score}}'), ",
+      "'{{timeTaken}}', '{{trait}}', NOW(), ",
+      "'{{submitted}}', '{{skipped}}', '{{skipReason}}', '{{scoreStatus}}')"
+    )
+    responseSqlArray[i] <- concerto.table.insertParams(
+      responseSql,
+      list(
+        session_id = session$id,
+        item_id = processedResponse$item_id[[1]],
+        value = processedResponse$value[[1]],
+        score = processedResponse$score[[1]],
+        label = processedResponse$label[[1]],
+        timeTaken = response$timeTaken,
+        trait = processedResponse$trait[[1]],
+        submitted = if (direction == 1) 1 else 0,
+        skipped = processedResponse$skipped[[1]],
+        skipReason = processedResponse$skipReason[[1]],
+        scoreStatus = processedResponse$scoreStatus[[1]]
+      )
+    )
   }
-  
-  insertSql <- paste0(insertSql, paste0(responseSqlArray, collapse = ","))
-  insertSql
+
+  sql <- paste0(insertSql, paste(responseSqlArray, collapse = ","))
 }
 
 # call createSql with the provided data
 responseTable <- paste0(test$code, "_responses")
 insertSql <- createSql(response, selectedItems, test, session, settings, responseTable)
 
-concerto.table.query("DELETE FROM {{responseTable}} WHERE session_id='{{session_id}}' AND item_id IN ({{item_ids}})", list(
+concerto.table.query("DELETE FROM {{responseTable}} WHERE session_id='{{session_id}}'", list(
   responseTable = responseTable,
-  session_id = session$id,
-  item_ids = item_ids
+  session_id = session$id
 ))
 
 # call the query to insert the responses

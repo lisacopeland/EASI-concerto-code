@@ -21,14 +21,14 @@ getAgeYears <- function(dateOfBirth, assessmentDate) {
     3
   )
 }
-#responses
+# responses
 responsesTable <- paste0(test$code, "_responses")
 responses <- concerto.table.query(
   "SELECT * FROM {{responsesTable}} WHERE session_id='{{id}}'",
   list(responsesTable = responsesTable, id = session$id)
 )
 
-#scores
+# scores
 scoresTable <- paste0(test$code, "_scores")
 scoresRecords <- concerto.table.query(
   "SELECT * FROM {{scoresTable}} WHERE session_id='{{id}}'",
@@ -42,7 +42,7 @@ if (nrow(scoresRecords) > 0) {
   }
 }
 
-#items
+# items
 itemTable <- paste0(test$code, "_items")
 stemTransCol <- lib$getTransCol(itemTable, "stem", language)
 questionTransCol <- lib$getTransCol(itemTable, "question", language)
@@ -51,9 +51,20 @@ optionLabel2TransCol <- lib$getTransCol(itemTable, "optionLabel2", language)
 optionLabel3TransCol <- lib$getTransCol(itemTable, "optionLabel3", language)
 optionLabel4TransCol <- lib$getTransCol(itemTable, "optionLabel4", language)
 optionLabel5TransCol <- lib$getTransCol(itemTable, "optionLabel5", language)
+
+hasGroups <- !is.null(test$hasGroups) &&
+  !is.na(test$hasGroups) &&
+  as.integer(test$hasGroups) == 1
+
+orderBySql <- if (hasGroups) {
+  "ORDER BY groupOrder ASC, stimulusOrder ASC, itemOrder ASC, id ASC"
+} else {
+  "ORDER BY stimulusOrder ASC, itemOrder ASC, id ASC"
+}
+
 items <- concerto.table.query(
-  "
-SELECT 
+  paste0("
+SELECT
 *,
 IFNULL({{stemTransCol}}, stem) stem_trans,
 IFNULL({{questionTransCol}}, question) question_trans,
@@ -62,8 +73,8 @@ IFNULL({{optionLabel2TransCol}}, optionLabel2) optionLabel2_trans,
 IFNULL({{optionLabel3TransCol}}, optionLabel3) optionLabel3_trans,
 IFNULL({{optionLabel4TransCol}}, optionLabel4) optionLabel4_trans,
 IFNULL({{optionLabel5TransCol}}, optionLabel5) optionLabel5_trans
-FROM {{itemTable}} 
-WHERE enabled=1",
+FROM {{itemTable}}
+WHERE enabled=1 ", orderBySql),
   list(
     itemTable = itemTable,
     stemTransCol = stemTransCol,
@@ -84,7 +95,12 @@ if (nrow(responses) > 0) {
   items <- rbind(answeredItems, unansweredItems)
 }
 
-#settings
+concerto.log("items from initialize code: ")
+concerto.log(
+  jsonlite::toJSON(items, pretty = TRUE, auto_unbox = TRUE)
+)
+
+# settings
 settings <- list(
   itemsperpage = test$itemsPerPage,
   scoringalgo = test$scoringAlgo,
@@ -93,7 +109,7 @@ settings <- list(
   cangoback = test$canGoBack
 )
 
-#default settings
+# default settings
 if (is.na(settings$itemsperpage)) {
   settings$itemsperpage <- nrow(items)
 }
@@ -101,7 +117,7 @@ if (is.na(settings$itemsperpage)) {
 settingsTable <- paste0(test$code, "_settings")
 extraSettings <- concerto.table.query(
   "
-SELECT * FROM {{settingsTable}} 
+SELECT * FROM {{settingsTable}}
 WHERE (minParticipantMonths<='{{months}}' OR minParticipantMonths IS NULL) AND
 (maxParticipantMonths>='{{months}}' OR maxParticipantMonths IS NULL)",
   list(settingsTable = settingsTable, months = session$participantMonths)
@@ -130,10 +146,6 @@ if (test$scoringAlgo == "new") {
     row <- as.list(extraSettingsNew[i, ])
     row$id <- NULL
     names(row) <- tolower(names(row))
-
-    trait <- row$trait
-    row$trait <- NULL
-
     settings$scoreSettings[[i]] <- row
   }
 }

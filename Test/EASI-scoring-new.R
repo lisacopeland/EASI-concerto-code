@@ -30,11 +30,6 @@ getScorableItems <- function(responses, items, trait = NULL) {
   scoreableResponses
 }
 
-getMeasure <- function(rawScore, measureLookupJson) {
-  measureLookup <- jsonlite::fromJSON(measureLookupJson)
-  measureLookup[[as.character(rawScore)]]
-}
-
 getMeasure <- function(responses, items, trait) {
   itemCount <- nrow(responses)
   initialEstimate <- 0
@@ -157,13 +152,19 @@ calculateExpectedScore <- function(responses, items, abilityEstimate) {
   for (i in seq_len(nrow(responses))) {
     response <- responses[i, ]
 
-    itemDifficulty <- items$itemDifficulty[
-      items$id == response$item_id
-    ][1]
+    itemIndex <- match(response$item_id, items$id)
 
-    stepDifficulty <- items$stepDifficulty[
-      items$id == response$item_id
-    ][1]
+    if (is.na(itemIndex)) {
+      stop(
+        paste0(
+          "No item found for response item_id ",
+          response$item_id
+        )
+      )
+    }
+
+    itemDifficulty <- items$itemDifficulty[itemIndex]
+    stepDifficulty <- jsonlite::fromJSON(items$stepDifficulty[itemIndex])
 
     rawScore <- rawScore + response$score
     perItemResults <- perItemMath(
@@ -197,7 +198,6 @@ perItemMath <- function(itemDifficulty, abilityEstimate, responseScore, stepDiff
   # step difficulty is the array of step difficulty for the test
   # iterating thru settings$stepDifficulty
   logit <- abilityEstimate - itemDifficulty
-
   normalizer <- 0
   expectation <- 0
   sumSquare <- 0
@@ -260,6 +260,7 @@ createScores <- function(
   percentileProp <- getPropName(trait, "percentile", includeTraitInScoreName)
   meanProp <- getPropName(trait, "predicted mean", includeTraitInScoreName)
   sdProp <- getPropName(trait, "sd", includeTraitInScoreName)
+  measureProp <- getPropName(trait, "measure", includeTraitInScoreName)
 
   predictedMean <- b0 +
     b1 * age +
@@ -273,6 +274,7 @@ createScores <- function(
   scores[[meanProp]] <- predictedMean
   scores[[percentileProp]] <- round(100 * pnorm(zScore))
   scores[[sdProp]] <- sd
+  scores[[measureProp]] <- measure
   scores
 }
 
@@ -281,14 +283,6 @@ runScoring <- function(responses, items, settings) {
   concerto.log(
     jsonlite::toJSON(settings, pretty = TRUE, auto_unbox = TRUE)
   )
-
-  # concerto.log(
-  #  jsonlite::toJSON(responses, pretty = TRUE, auto_unbox = TRUE)
-  # )
-
-  # concerto.log(
-  #  jsonlite::toJSON(items, pretty = TRUE, auto_unbox = TRUE)
-  # )
 
   allScores <- list()
 
@@ -300,13 +294,7 @@ runScoring <- function(responses, items, settings) {
     rawScore <- sum(scorableResponses$score, na.rm = TRUE)
 
     newMeasure <- getMeasure(scorableResponses, items, trait)
-    # currentEstimate = currentEstimate,
-    # modelVariance = modelVariance,
-    # rawScore = rawScore,
-    # outfitMeanSquare = outfitMeanSquare,
-    # infitMeanSquare = infitMeanSquare,
-    # iterationCount = iterationCount,
-    # converged = converged
+
     concerto.log("from newMeasure: ")
     concerto.log(
       jsonlite::toJSON(newMeasure, pretty = TRUE, auto_unbox = TRUE)
@@ -326,7 +314,7 @@ runScoring <- function(responses, items, settings) {
       trait,
       newMeasure$currentEstimate,
       rawScore,
-      settings$includeTraitInScoreName,
+      scoreSetting$includetraitinscorename,
       settings$childsAge,
       scoreSetting$b0,
       scoreSetting$b1,
@@ -344,3 +332,5 @@ runScoring <- function(responses, items, settings) {
   )
   scores <- allScores
 }
+
+scores <- runScoring(responses, items, settings)
