@@ -1,8 +1,17 @@
 testRunner.controllerProvider.register('assessment', function ($scope) {
+  debugger;
   $scope.items = testRunner.R.items;
   $scope.test = testRunner.R.test;
-  $scope.hasGroups = false;
-  $scope.allowIncomplete = false;
+  $scope.groups = [];
+
+  $scope.skipReasons = [
+    "Item exceeded the child's ability",
+    'Hyperreactivity',
+    'Inattention or other behavioral reasons',
+    'Ran out of time',
+    'Missing materials',
+    'Unintentionally skipped',
+  ];
 
   $scope.isValid = function (form) {
     if ($scope.items.length === 0) return true;
@@ -17,55 +26,83 @@ testRunner.controllerProvider.register('assessment', function ($scope) {
 
   $scope.getItemResponses = function () {
     let responses = [];
-    for (let i = 0; i < $scope.items.length; i++) {
+    for (let i = 0; i < $scope.groups.length; i++) {
+      const group = $scope.groups[i];
+      for (let x = 0; x < group.stimuli.length; x++) {
+        const stimulus = group.stimuli[x];
+        for (let y = 0; y < stimulus.items.length; y++) {
+          let item = stimulus.items[y];
+          responses.push({
+            item_id: item.id,
+            value: item.value,
+            skipped: stimulus.skipped ? 1 : 0,
+            skipReason: stimulus.skipped ? stimulus.stimulusSkipReason : null,
+          });
+        }
+      }
+    }
+
+    /*     for (let i = 0; i < $scope.items.length; i++) {
       let item = $scope.items[i];
       responses.push({
         item_id: item.id,
         value: item.value,
         skipped: item.skipped ? 1 : 0,
+        skipReason: ' ',
       });
-    }
+    } */
     return responses;
   };
 
   testRunner.addExtraControl('itemResponses', function () {
     return $scope.getItemResponses();
   });
-  this.$onInit = function () {
-    console.log('hi from assessment - items: ', $scope.items);
-    $scope.hasGroups = $scope.test.hasGroups;
-    $scope.allowIncomplete = $scope.test.allowIncomplete;
+
+  $scope.skipThisOne = function (stimulus) {
+    console.log('lets skip this one: ', stimulus);
+    stimulus.stimulusSkipped = true;
   };
 
-  const groups = items.reduce((acc, curr) => {
-    let matchingGroup = acc.find((group) => group.groupId === curr.groupId);
+  this.$onInit = function () {
+    console.log('hi from assessment - items: ', $scope.items);
 
-    if (!matchingGroup) {
-      matchingGroup = {
-        groupId: curr.groupId,
-        stimuli: [],
-      };
+    $scope.hasGroups = $scope.test.hasGroups;
+    $scope.allowIncomplete = $scope.test.allowIncomplete;
+    const groups = $scope.items.reduce((acc, curr) => {
+      let matchingGroup = acc.find((group) => group.groupId === curr.groupId);
 
-      acc.push(matchingGroup);
-    }
+      if (!matchingGroup) {
+        matchingGroup = {
+          groupId: curr.groupId,
+          stimuli: [],
+        };
 
-    let matchingStimulus = matchingGroup.stimuli.find(
-      (stimulus) => stimulus.stimulusId === curr.stimulusId,
-    );
+        acc.push(matchingGroup);
+      }
 
-    if (!matchingStimulus) {
-      matchingStimulus = {
-        stimulusId: curr.stimulusId,
-        stimulusOrder: curr.stimulusOrder,
-        items: [],
-      };
+      let matchingStimulus = matchingGroup.stimuli.find(
+        (stimulus) => stimulus.stimulusId === curr.stimulusId,
+      );
 
-      matchingGroup.stimuli.push(matchingStimulus);
-    }
+      if (!matchingStimulus) {
+        matchingStimulus = {
+          stimulusId: curr.stimulusId,
+          stimulusOrder: curr.stimulusOrder,
+          stimulousStemTrans: curr.stem_trans,
+          stimulusCanSkip: curr.skippable === 1,
+          stimulusSkipped: false,
+          stimulusSkipReason: null,
+          items: [],
+        };
 
-    matchingStimulus.items.push(curr);
+        matchingGroup.stimuli.push(matchingStimulus);
+      }
 
-    return acc;
-  }, []);
-  console.log('groups: ', groups);
+      matchingStimulus.items.push(curr);
+
+      return acc;
+    }, []);
+    $scope.groups = [...groups];
+    console.log('groups: ', $scope.groups);
+  };
 });

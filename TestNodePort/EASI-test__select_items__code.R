@@ -1,3 +1,12 @@
+concerto.log("Hi from select items")
+concerto.log(
+  paste0(
+    "assignResponses: items rows=",
+    nrow(items),
+    ", responses rows=",
+    nrow(responses)
+  )
+)
 makeItemsSafe <- function(items) {
   for (i in 1:5) {
     items[[paste0("optionScore", i)]] <- NULL
@@ -7,13 +16,57 @@ makeItemsSafe <- function(items) {
 }
 
 assignResponses <- function(items, responses) {
+  concerto.log("hi from assignResponses")
+  concerto.log(
+    paste0(
+      "assignResponses: items rows=",
+      nrow(items),
+      ", responses rows=",
+      nrow(responses)
+    )
+  )
+
+  if (is.null(items) || nrow(items) == 0) {
+    stop("assignResponses received no assessment items")
+  }
+
+  if (is.null(responses) || nrow(responses) == 0) {
+    return(items)
+  }
   if (nrow(responses) > 0) {
-    for (i in 1:nrow(responses)) {
-      response <- as.list(responses[i, ])
-      items[items$id == response$item_id, "value"] <- response$value
-      items[items$id == response$item_id, "skipped"] <- response$skipped
+    for (i in seq_len(nrow(responses))) {
+      response <- as.list(responses[i, , drop = FALSE])
+
+      itemId <- as.integer(response$item_id[[1]])
+      itemIndex <- match(itemId, as.integer(items$id))
+
+      if (is.na(itemIndex)) {
+        concerto.log(
+          paste0(
+            "assignResponses: response item_id ",
+            itemId,
+            " was not found in items"
+          )
+        )
+        next
+      }
+
+      skipReason <- response$skipReason[[1]]
+
+      if (
+        is.null(skipReason) ||
+          length(skipReason) == 0 ||
+          is.na(skipReason)
+      ) {
+        skipReason <- NA_character_
+      }
+
+      items$value[itemIndex] <- response$value[[1]]
+      items$skipped[itemIndex] <- response$skipped[[1]]
+      items$skipReason[itemIndex] <- skipReason
     }
   }
+
   items
 }
 
@@ -76,11 +129,11 @@ if (page > maxPages) {
       # default linear algo
       childsAge <- settings$childsAge
       isAgeApplicable <-
-        (is.na(items$minimumAge) | items$minimumAge <= childAge) &
-          (is.na(items$maximumAge) | items$maximumAge >= childAge)
+        (is.na(items$minimumAge) | items$minimumAge <= childsAge) &
+          (is.na(items$maximumAge) | items$maximumAge >= childsAge)
       selectedItems <- items[isAgeApplicable, ]
       settings$ageExcludedItemIds <- items$id[!isAgeApplicable]
-      # selectedItems = items[itemsStartIndex:itemsEndIndex,]
+      selectedItems <- items[itemsStartIndex:itemsEndIndex, ]
     }
 
     # safe items

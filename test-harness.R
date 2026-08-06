@@ -32,34 +32,31 @@ scoreStatus <- sample(
     replace = TRUE
 )
 
-
-
 responseCount <- length(accuracyItemIds)
 
 # Randomly determine whether each item was skipped
 skipped <- sample(
-    c(TRUE, FALSE),
+    c("1", "0"),
     size = responseCount,
     replace = TRUE
 )
+isSkipped <- skipped == "1"
+notSkipped <- skipped == "0"
 
-# If skipped, assign a random skip reason
-skipReason <- ifelse(
-    skipped,
-    sample(
-        c("gimme a 0", "gimme a NS"),
-        size = responseCount,
-        replace = TRUE
+skipReason <- rep("", responseCount)
+
+skipReason[isSkipped] <- sample(
+    c(
+        "Item exceeded the child's ability",
+        "Hyperreactivity"
     ),
-    ""
+    size = sum(isSkipped),
+    replace = TRUE
 )
-
 
 value <- rep(NA_real_, responseCount)
 score <- rep(NA_real_, responseCount)
 scoreStatus <- rep("not scored", responseCount)
-# Normal, non-skipped responses
-notSkipped <- !skipped
 
 value[notSkipped] <- sample(
     0:2,
@@ -71,21 +68,11 @@ score[notSkipped] <- value[notSkipped]
 scoreStatus[notSkipped] <- "scored"
 
 # Skipped responses that should receive a zero
-skippedWithZero <- skipped & skipReason == "gimme a 0"
+skippedWithZero <- isSkipped & skipReason == "Item exceeded the child's ability"
 
 value[skippedWithZero] <- 0
 score[skippedWithZero] <- 0
 scoreStatus[skippedWithZero] <- "scored"
-
-# responses <- data.frame(
-#    item_id = accuracyItemIds,
-#    trait = rep("Accuracy", responseCount),
-#    scoreStatus = scoreStatus,
-#    value = value,
-#    score = score,
-#    skipped = skipped,
-#    skipReason = skipReason
-# )
 
 responses <- data.frame(
     item_id = accuracyItemIds,
@@ -93,6 +80,8 @@ responses <- data.frame(
     skipped = skipped,
     skipReason = skipReason
 )
+
+
 
 items <- data.frame(
     id = accuracyItemIds,
@@ -220,8 +209,8 @@ roundLikeJavaScript <- function(value, digits = 0) {
     floor(value * multiplier + 0.5) / multiplier
 }
 
-
 selectedItems <- items
+
 
 itemResponses <- lapply(
     seq_len(nrow(responses)),
@@ -238,14 +227,33 @@ response <- list(
     retryTimeTaken = "0",
     itemResponses = itemResponses
 )
+
+dbResponseList <- data.frame(
+    item_id = accuracyItemIds,
+    trait = rep("Accuracy", length(accuracyItemIds)),
+    value = rep(2, length(accuracyItemIds)),
+    score = rep(2, length(accuracyItemIds)),
+    skipped = rep("0", length(accuracyItemIds)),
+    skipReason = rep("", length(accuracyItemIds)),
+    scoreStatus = rep("scored", length(accuracyItemIds)),
+    stringsAsFactors = FALSE
+)
+
 responseTable <- paste0(test$code, "_responses")
 source("TestNodePort/EASI-test__response_processing__code.R")
-# processedResponses <- createResponseList(responses, selectedItems, settings$ageExcludedItemsIds)
+# processedResponses <- createResponseList(itemResponses, selectedItems, settings$ageExcludedItemsIds)
+# print(processedResponses)
 # print(class(response$itemResponses))
-createdSqlResponse <- createSql(response, selectedItems, test, session, settings, responseTable)
-print(createdSqlResponse)
-# source("Test/EASI-scoring-new.R")
-# scorableResponses <- getScorableItems(processedResponses, selectedItems, "Accuracy")
-# measure <- getMeasure(scorableResponses, selectedItems, "Accuracy")
-# print(measure)
+# createdSqlResponse <- createSql(response, selectedItems, test, session, settings, responseTable)
+# print(createdSqlResponse)
+source("Test/EASI-scoring-new.R")
+
+scorableResponses <- getScorableItems(dbResponseList, selectedItems, "Accuracy")
+str(scorableResponses)
+print(scorableResponses)
+scoreRange <- getScoreRange(scorableResponses, items)
+
+newMeasure <- getMeasure(scorableResponses, items, scoreRange)
+
+print(newMeasure)
 quit(save = "no")

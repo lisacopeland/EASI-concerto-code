@@ -30,7 +30,57 @@ getScorableItems <- function(responses, items, trait = NULL) {
   scoreableResponses
 }
 
-getMeasure <- function(responses, items, trait) {
+getScoreRange <- function(responses, items) {
+  rawScore <- sum(responses$score)
+
+  minimumScore <- 0
+  maximumScore <- 0
+
+  for (i in seq_len(nrow(responses))) {
+    item <- items[
+      items$id == responses$item_id[i], ,
+      drop = FALSE
+    ]
+
+    optionScores <- c(
+      item$optionScore1,
+      item$optionScore2,
+      item$optionScore3,
+      item$optionScore4,
+      item$optionScore5
+    )
+
+    optionScores <- optionScores[!is.na(optionScores)]
+
+    minimumScore <- minimumScore + min(optionScores)
+    maximumScore <- maximumScore + max(optionScores)
+  }
+
+  adjustedScore <- rawScore
+
+  isMinimumScore <- FALSE
+  isMaximumScore <- FALSE
+
+  if (rawScore == minimumScore) {
+    adjustedScore <- minimumScore + 0.5
+    isMinimumScore <- TRUE
+  } else if (rawScore == maximumScore) {
+    adjustedScore <- maximumScore - 0.5
+    isMaximumScore <- TRUE
+  }
+
+  list(
+    rawScore = rawScore,
+    adjustedScore = adjustedScore,
+    minimumScore = minimumScore,
+    maximumScore = maximumScore,
+    isMinimumScore = isMinimumScore,
+    isMaximumScore = isMaximumScore
+  )
+}
+
+getMeasure <- function(responses, items, scoreRange) {
+  print(responses)
   itemCount <- nrow(responses)
   initialEstimate <- 0
   convergenceTolerance <- 0.01
@@ -45,6 +95,7 @@ getMeasure <- function(responses, items, trait) {
   updateDivisor <- 0
   iterationCount <- 0
   converged <- FALSE
+
   repeat {
     outputMath <- calculateExpectedScore(
       responses,
@@ -54,7 +105,6 @@ getMeasure <- function(responses, items, trait) {
 
     modelVariance <- outputMath$modelVariance
     expectedScore <- outputMath$expectedScore
-    rawScore <- outputMath$rawScore
 
     if (!is.finite(modelVariance) || modelVariance <= 0) {
       concerto.log(paste0("Invalid model variance: ", modelVariance))
@@ -74,9 +124,11 @@ getMeasure <- function(responses, items, trait) {
         minUpdateDivisor
       )
     }
-
+    print("scoreRange immediately before change:")
+    str(scoreRange)
+    print(scoreRange)
     change <-
-      (rawScore - expectedScore) / updateDivisor
+      (scoreRange$adjustedScore - expectedScore) / updateDivisor
 
     change <- max(
       -maxChange,
@@ -117,7 +169,7 @@ getMeasure <- function(responses, items, trait) {
   )
 
   modelVariance <- outputMath$modelVariance
-  rawScore <- outputMath$rawScore
+  # rawScore <- outputMath$rawScore
 
   outfitMeanSquare <-
     outputMath$outfitMeanSquareNumerator / itemCount
@@ -131,7 +183,7 @@ getMeasure <- function(responses, items, trait) {
   list(
     currentEstimate = currentEstimate,
     modelVariance = modelVariance,
-    rawScore = rawScore,
+    # rawScore = rawScore,
     outfitMeanSquare = outfitMeanSquare,
     infitMeanSquare = infitMeanSquare,
     iterationCount = iterationCount,
@@ -142,7 +194,7 @@ getMeasure <- function(responses, items, trait) {
 # Iterate thru the scores and return expectedScore, modelVariance, rawScore,
 # outfitMeanSquareNumerator, infitMeanSquareNumerator, infitMeanSquareDivisor
 calculateExpectedScore <- function(responses, items, abilityEstimate) {
-  rawScore <- 0
+  # rawScore <- 0
   expectedScore <- 0
   modelVariance <- 0
   outfitMeanSquareNumerator <- 0
@@ -166,7 +218,7 @@ calculateExpectedScore <- function(responses, items, abilityEstimate) {
     itemDifficulty <- items$itemDifficulty[itemIndex]
     stepDifficulty <- jsonlite::fromJSON(items$stepDifficulty[itemIndex])
 
-    rawScore <- rawScore + response$score
+    # rawScore <- rawScore + response$score
     perItemResults <- perItemMath(
       itemDifficulty,
       abilityEstimate,
@@ -184,7 +236,7 @@ calculateExpectedScore <- function(responses, items, abilityEstimate) {
   list(
     expectedScore = expectedScore,
     modelVariance = modelVariance,
-    rawScore = rawScore,
+    # rawScore = rawScore,
     outfitMeanSquareNumerator = outfitMeanSquareNumerator,
     infitMeanSquareNumerator = infitMeanSquareNumerator,
     infitMeanSquareDivisor = infitMeanSquareDivisor
@@ -291,9 +343,10 @@ runScoring <- function(responses, items, settings) {
 
     scorableResponses <- getScorableItems(responses, items, trait)
 
-    rawScore <- sum(scorableResponses$score, na.rm = TRUE)
+    # rawScore <- sum(scorableResponses$score, na.rm = TRUE)
+    scoreRange <- getScoreRange(scorableResponses, items)
 
-    newMeasure <- getMeasure(scorableResponses, items, trait)
+    newMeasure <- getMeasure(scorableResponses, items, scoreRange)
 
     concerto.log("from newMeasure: ")
     concerto.log(
@@ -304,7 +357,7 @@ runScoring <- function(responses, items, settings) {
       stop(
         paste(
           "No measure found for raw score",
-          rawScore
+          scoreRange$adjustedScore
         )
       )
     }
@@ -313,7 +366,8 @@ runScoring <- function(responses, items, settings) {
     scores <- createScores(
       trait,
       newMeasure$currentEstimate,
-      rawScore,
+      scoreRange$rawScore,
+      scoreRange$adjustedScore,
       scoreSetting$includetraitinscorename,
       settings$childsAge,
       scoreSetting$b0,
@@ -333,4 +387,4 @@ runScoring <- function(responses, items, settings) {
   scores <- allScores
 }
 
-scores <- runScoring(responses, items, settings)
+# scores <- runScoring(responses, items, settings)
