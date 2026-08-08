@@ -80,7 +80,6 @@ getScoreRange <- function(responses, items) {
 }
 
 getMeasure <- function(responses, items, scoreRange) {
-  print(responses)
   itemCount <- nrow(responses)
   initialEstimate <- 0
   convergenceTolerance <- 0.01
@@ -124,9 +123,7 @@ getMeasure <- function(responses, items, scoreRange) {
         minUpdateDivisor
       )
     }
-    print("scoreRange immediately before change:")
-    str(scoreRange)
-    print(scoreRange)
+
     change <-
       (scoreRange$adjustedScore - expectedScore) / updateDivisor
 
@@ -299,6 +296,7 @@ createScores <- function(
   trait,
   measure,
   rawScore,
+  adjustedScore,
   includeTraitInScoreName,
   age,
   b0,
@@ -308,6 +306,7 @@ createScores <- function(
   sd
 ) {
   rawScoreProp <- getPropName(trait, "raw score", includeTraitInScoreName)
+  adjustedScoreProp <- getPropName(trait, "adjustedScore", includeTraitInScoreName)
   zScoreProp <- getPropName(trait, "z score", includeTraitInScoreName)
   percentileProp <- getPropName(trait, "percentile", includeTraitInScoreName)
   meanProp <- getPropName(trait, "predicted mean", includeTraitInScoreName)
@@ -322,6 +321,7 @@ createScores <- function(
   zScore <- (measure - predictedMean) / sd
   scores <- list()
   scores[[rawScoreProp]] <- rawScore
+  scores[[adjustedScoreProp]] <- adjustedScore
   scores[[zScoreProp]] <- zScore
   scores[[meanProp]] <- predictedMean
   scores[[percentileProp]] <- round(100 * pnorm(zScore))
@@ -387,4 +387,4 @@ runScoring <- function(responses, items, settings) {
   scores <- allScores
 }
 
-# scores <- runScoring(responses, items, settings)
+scores <- runScoring(responses, items, settings)

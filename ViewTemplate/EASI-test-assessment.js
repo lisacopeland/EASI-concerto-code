@@ -1,8 +1,10 @@
-testRunner.controllerProvider.register('assessment', function ($scope) {
+testRunner.controllerProvider.register('assessment', function ($scope, $mdDialog) {
   debugger;
   $scope.items = testRunner.R.items;
   $scope.test = testRunner.R.test;
   $scope.groups = [];
+  $scope.discontinueReason = "Item exceeded the child's ability";
+  $scope.discontinuing = false;
 
   $scope.skipReasons = [
     "Item exceeded the child's ability",
@@ -32,25 +34,37 @@ testRunner.controllerProvider.register('assessment', function ($scope) {
         const stimulus = group.stimuli[x];
         for (let y = 0; y < stimulus.items.length; y++) {
           let item = stimulus.items[y];
+          let responseValue = null;
+          let skipped = false;
+          let skipReason = null;
+          if ($scope.discontinuing) {
+            if (item.value !== undefined || item.skipped) {
+              // had existing value leave alone
+              responseValue = item.skipped ? null : item.value;
+              skipped = item.skipped;
+              skipReason = item.skipped ? item.skipReason : null;
+            } else {
+              responseValue = null;
+              skipped = true;
+              skipReason = $scope.discontinueReason;
+            }
+          } else {
+            // not discontinuing
+            responseValue = item.value;
+            skipped = stimulus.skipped ? 1 : 0;
+            skipReason = stimulus.skipped ? stimulus.stimulusSkipReason : null;
+          }
+
           responses.push({
             item_id: item.id,
-            value: item.value,
-            skipped: stimulus.skipped ? 1 : 0,
-            skipReason: stimulus.skipped ? stimulus.stimulusSkipReason : null,
+            value: responseValue,
+            skipped: skipped,
+            skipReason: skipReason,
           });
         }
       }
     }
 
-    /*     for (let i = 0; i < $scope.items.length; i++) {
-      let item = $scope.items[i];
-      responses.push({
-        item_id: item.id,
-        value: item.value,
-        skipped: item.skipped ? 1 : 0,
-        skipReason: ' ',
-      });
-    } */
     return responses;
   };
 
@@ -60,7 +74,41 @@ testRunner.controllerProvider.register('assessment', function ($scope) {
 
   $scope.skipThisOne = function (stimulus) {
     console.log('lets skip this one: ', stimulus);
-    stimulus.stimulusSkipped = true;
+    stimulus.stimulusSkipped = !stimulus.stimulusSkipped;
+    for (let y = 0; y < stimulus.items.length; y++) {
+      let item = stimulus.items[y];
+      item.skipped = stimulus.stimulusSkipped;
+      item.value = null;
+      item.skipReason = null;
+    }
+  };
+
+  $scope.openDiscontinueDialog = function () {
+    $mdDialog
+      .show({
+        controller: DialogDiscontinueTestController,
+        templateUrl: '/ViewTemplate/EASI-test-discontinue-dialog/html',
+        parent: angular.element(document.body),
+        clickOutsideToClose: true,
+      })
+      .then(
+        function (reason) {
+          console.log('reason was ', reason);
+          $scope.discontinueReason = reason;
+          $scope.discontinuing = true;
+          submitView(true);
+        },
+        function () {
+          console.log('not discontinuing');
+        },
+      );
+  };
+
+  $scope.skipReasonChanged = function (stimulus) {
+    for (let y = 0; y < stimulus.items.length; y++) {
+      let item = stimulus.items[y];
+      item.skipReason = stimulus.stimulusSkipReason;
+    }
   };
 
   this.$onInit = function () {

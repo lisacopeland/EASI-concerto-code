@@ -74,13 +74,37 @@ value[skippedWithZero] <- 0
 score[skippedWithZero] <- 0
 scoreStatus[skippedWithZero] <- "scored"
 
-responses <- data.frame(
-    item_id = accuracyItemIds,
-    value = value,
-    skipped = skipped,
-    skipReason = skipReason
+# responses <- data.frame(
+#    item_id = accuracyItemIds,
+#    value = value,
+#    skipped = skipped,
+#    skipReason = skipReason
+# )
+responses <- vector(
+    mode = "list",
+    length = responseCount
 )
 
+for (i in seq_len(responseCount)) {
+    if (isSkipped[i]) {
+        responses[[i]] <- list(
+            item_id = as.character(accuracyItemIds[i]),
+            skipped = "1",
+            skipReason = skipReason[i]
+        )
+    } else {
+        responses[[i]] <- list(
+            item_id = as.character(accuracyItemIds[i]),
+            value = as.character(
+                sample(
+                    0:2,
+                    size = 1
+                )
+            ),
+            skipped = "0"
+        )
+    }
+}
 
 
 items <- data.frame(
@@ -212,12 +236,12 @@ roundLikeJavaScript <- function(value, digits = 0) {
 selectedItems <- items
 
 
-itemResponses <- lapply(
-    seq_len(nrow(responses)),
-    function(i) {
-        as.list(responses[i, , drop = FALSE])
-    }
-)
+# itemResponses <- lapply(
+#    seq_len(nrow(responses)),
+#    function(i) {
+#        as.list(responses[i, , drop = FALSE])
+#    }
+# )
 
 response <- list(
     buttonPressed = "next",
@@ -225,14 +249,14 @@ response <- list(
     submitId = "1",
     timeTaken = 42,
     retryTimeTaken = "0",
-    itemResponses = itemResponses
+    itemResponses = responses
 )
 
 dbResponseList <- data.frame(
     item_id = accuracyItemIds,
     trait = rep("Accuracy", length(accuracyItemIds)),
-    value = rep(2, length(accuracyItemIds)),
-    score = rep(2, length(accuracyItemIds)),
+    value = rep(0, length(accuracyItemIds)),
+    score = rep(0, length(accuracyItemIds)),
     skipped = rep("0", length(accuracyItemIds)),
     skipReason = rep("", length(accuracyItemIds)),
     scoreStatus = rep("scored", length(accuracyItemIds)),
@@ -241,19 +265,25 @@ dbResponseList <- data.frame(
 
 responseTable <- paste0(test$code, "_responses")
 source("TestNodePort/EASI-test__response_processing__code.R")
-# processedResponses <- createResponseList(itemResponses, selectedItems, settings$ageExcludedItemsIds)
+jsonlite::toJSON(
+    responses,
+    auto_unbox = TRUE,
+    pretty = TRUE
+)
+str(responses)
+processedResponses <- createResponseList(responses, selectedItems, settings$ageExcludedItemsIds)
 # print(processedResponses)
 # print(class(response$itemResponses))
 # createdSqlResponse <- createSql(response, selectedItems, test, session, settings, responseTable)
 # print(createdSqlResponse)
-source("Test/EASI-scoring-new.R")
+# source("Test/EASI-scoring-new.R")
 
-scorableResponses <- getScorableItems(dbResponseList, selectedItems, "Accuracy")
-str(scorableResponses)
-print(scorableResponses)
-scoreRange <- getScoreRange(scorableResponses, items)
+# scorableResponses <- getScorableItems(dbResponseList, selectedItems, "Accuracy")
+# str(scorableResponses)
+# print(scorableResponses)
+# scoreRange <- getScoreRange(scorableResponses, items)
 
-newMeasure <- getMeasure(scorableResponses, items, scoreRange)
+# newMeasure <- getMeasure(scorableResponses, items, scoreRange)
 
-print(newMeasure)
-quit(save = "no")
+# print(newMeasure)
+# quit(save = "no")
