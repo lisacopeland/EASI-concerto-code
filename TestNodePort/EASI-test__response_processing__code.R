@@ -132,12 +132,12 @@ getItemScoringResult <- function(item, itemResponse) {
         scoreStatus = "scored"
       ))
     } else {
-        return(list(
-      score = NA_real_,
-      value = NA_real_,
-      label = NA_real_,
-      scoreStatus = "not scored"
-    ))
+      return(list(
+        score = NA_real_,
+        value = NA_real_,
+        label = NA_real_,
+        scoreStatus = "not scored"
+      ))
     }
   }
   score <- getItemScore(item, itemResponse)
@@ -232,7 +232,7 @@ createResponseList <- function(itemResponses, items, ageExcludedItemIds = NULL) 
       itemResponse <- getItemResponse(item, itemResponses)
       if (!is.null(itemResponse)) {
         scoringResult <- getItemScoringResult(item, itemResponse)
-        
+
         skipReason <- itemResponse$skipReason
         skipStr <- "0"
         if (itemResponse$skipped == "1") {
@@ -270,11 +270,10 @@ createResponseList <- function(itemResponses, items, ageExcludedItemIds = NULL) 
       }
     }
   }
-  responseReturn <- do.call(rbind, responseList)
+  do.call(rbind, responseList)
 }
 
 createSql <- function(response, selectedItems, test, session, settings, responseTable) {
-
   responseList <- createResponseList(response$itemResponses, selectedItems, settings$ageExcludedItemIds)
 
   insertSql <- concerto.table.insertParams(
@@ -289,7 +288,6 @@ createSql <- function(response, selectedItems, test, session, settings, response
   for (i in seq_len(nrow(responseList))) {
     processedResponse <- responseList[i, , drop = FALSE]
 
-    # here, you will see if the item was skipped and if so if it should get a 0 or a NS
     responseSql <- paste0(
       "('{{session_id}}', '{{item_id}}', ",
       "IF('{{label}}'='', NULL, '{{label}}'), ",
@@ -316,7 +314,10 @@ createSql <- function(response, selectedItems, test, session, settings, response
     )
   }
 
-  sql <- paste0(insertSql, paste(responseSqlArray, collapse = ","))
+  paste0(
+    insertSql,
+    paste(responseSqlArray, collapse = ",")
+  )
 }
 
 # call createSql with the provided data
@@ -329,8 +330,6 @@ if (response$buttonPressed == "next") {
 if (settings$cangoback == 1 && response$buttonPressed == "previous") {
   direction <- -1
 }
-concerto.log(direction, "direction")
-
 insertSql <- createSql(response, selectedItems, test, session, settings, responseTable)
 
 concerto.table.query("DELETE FROM {{responseTable}} WHERE session_id='{{session_id}}'", list(

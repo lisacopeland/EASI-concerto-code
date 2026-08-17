@@ -4,12 +4,10 @@ makeItemsSafe <- function(items) {
   for (i in 1:5) {
     items[[paste0("optionScore", i)]] <- NULL
   }
-
   items
 }
 
 assignResponses <- function(items, responses) {
-
   if (is.null(items) || nrow(items) == 0) {
     stop("assignResponses received no assessment items")
   }
@@ -18,11 +16,10 @@ assignResponses <- function(items, responses) {
     return(items)
   }
   items$value <- rep(NA_character_, nrow(items))
-items$skipped <- rep(NA_integer_, nrow(items))
-items$skipReason <- rep(NA_character_, nrow(items))
+  items$skipped <- rep(NA_integer_, nrow(items))
+  items$skipReason <- rep(NA_character_, nrow(items))
   if (nrow(responses) > 0) {
     for (i in seq_len(nrow(responses))) {
-
       response <- as.list(responses[i, , drop = FALSE])
 
       itemId <- as.integer(response$item_id[[1]])
@@ -43,15 +40,15 @@ items$skipReason <- rep(NA_character_, nrow(items))
 
       if (
         is.null(skipReason) ||
-        length(skipReason) == 0 ||
-        is.na(skipReason)
+          length(skipReason) == 0 ||
+          is.na(skipReason)
       ) {
         skipReason <- NA_character_
       }
 
-  items$value[itemIndex] <- responses$value[[i]]
-  items$skipped[itemIndex] <- responses$skipped[[i]]
-  items$skipReason[itemIndex] <- skipReason
+      items$value[itemIndex] <- responses$value[[i]]
+      items$skipped[itemIndex] <- responses$skipped[[i]]
+      items$skipReason[itemIndex] <- skipReason
     }
   }
 
@@ -121,12 +118,11 @@ if (page > maxPages) {
           (is.na(items$maximumAge) | items$maximumAge >= childsAge)
       selectedItems <- items[isAgeApplicable, ]
       settings$ageExcludedItemIds <- items$id[!isAgeApplicable]
-      selectedItems = items[itemsStartIndex:itemsEndIndex,]
+      selectedItems <- items[itemsStartIndex:itemsEndIndex, ]
     }
 
     # safe items
     safeSelectedItems <- makeItemsSafe(selectedItems)
     safeSelectedItems <- assignResponses(safeSelectedItems, responses)
-
   }
 }

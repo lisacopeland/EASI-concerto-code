@@ -13,23 +13,13 @@ if (!is.na(settings$scoringalgo) && settings$scoringalgo != "") {
     session = session,
     test = test
   ))
-  concerto.log("scoringResult: ")
-  concerto.log(
-    jsonlite::toJSON(scoringResult, pretty = TRUE, auto_unbox = TRUE)
-  )
+
   scores <- scoringResult$scores
 } else {
   scores <- list(
-    "raw score" = sum(responses$score, na.rm = T)
+    "raw score" = sum(responses$score, na.rm = TRUE)
   )
 }
-
-concerto.log("*****SCORES*****")
-
-concerto.log(
-  jsonlite::toJSON(scores, pretty = TRUE, auto_unbox = TRUE)
-)
-
 
 # cleaning past scores
 scoresTable <- paste0(test$code, "_scores")
