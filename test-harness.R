@@ -40,8 +40,8 @@ skipped <- sample(
     size = responseCount,
     replace = TRUE
 )
-isSkipped <- skipped == "1"
-notSkipped <- skipped == "0"
+isSkipped <- skipped == "true"
+notSkipped <- skipped == "false"
 
 skipReason <- rep("", responseCount)
 
