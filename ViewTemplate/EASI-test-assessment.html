@@ -1,59 +1,135 @@
 <src>
-	<div class="page" ng-controller="assessment" layout="column" layout-align="start stretch">
-		<test-header></test-header>
+  <div class="page" ng-controller="assessment" layout="column" layout-align="start stretch">
+    <test-header></test-header>
 
-		<form name="form" flex="noshrink">
-			<md-content layout="column" layout-align="start stretch" layout-margin="" class="page-content">
-				<div ng-repeat="group in groups track by $index">
+    <form name="form" flex="noshrink">
+      <md-content
+        layout="column"
+        layout-align="start stretch"
+        layout-margin=""
+        class="page-content"
+      >
+        <div class="group-container" ng-repeat="group in groups track by $index">
+          <div
+            ng-if="hasGroups"
+            class="group-header"
 
-					<div ng-repeat="stimulus in group.stimuli track by $index">
-						<md-card> <!-- box around stimulus -->
-							<div layout="row" layout-align="between center" class="stim-header">
-								<div class="stem" ng-html="stimulus.stimulousStemTrans|trans"
-									ng-if="stimulus.stimulousStemTrans" style="align-self: flex-start;"></div>
-								<div ng-if="stimulus.stimulusCanSkip">
-									<md-button class="md-raised" ng-click="skipThisOne(stimulus)" name="skipStimulus">
-										<md-icon style="color: orange;">save</md-icon> {{trans:skip}}</md-button>
-									<md-input-container ng-if="stimulus.stimulusSkipped" flex>
-										<label>Skip Reason</label>
-										<md-select ng-model="stimulus.stimulusSkipReason"
-											ng-change="skipReasonChanged(stimulus)" name="skipReason">
-											<md-option value=""><em>Not selected</em></md-option>
-											<md-option ng-repeat="reason in skipReasons" ng-value="reason">
-												[[reason]]
-											</md-option>
-										</md-select>
-									</md-input-container>
-								</div>
-							</div>
-							<div ng-if="!stimulus.stimulusSkipped">
-								<div ng-repeat="item in stimulus.items track by $index" ng-switch="item.type"
-									class="item">
-									<item-options ng-switch-when="options" item="item"></item-options>
-									<item-open ng-switch-when="open" item="item"></item-open>
-									<item-range ng-switch-when="range" item="item"></item-range>
-									<item-subtract ng-switch-when="subtract" item="item"></item-subtract>
-								</div>
-							</div>
-						</md-card>
-					</div>
-				</div>
-				<div layout layout-align="end center" class="sticky-buttons-container">
-					<md-button class="md-raised" name="assessmentDate"><md-icon>date_range</md-icon>
-						{{trans:test_change_assessment_date}}</md-button>
-					<md-button class="md-raised" name="previous"
-						ng-show="R.canGoBack && R.page &gt; 1"><md-icon>arrow_back</md-icon>
-						{{trans:go_back}}</md-button>
-					<md-button ng-if="allowIncomplete" ng-click="openDiscontinueDialog()"
-						class="md-raised concerto-nosubmit" name="discontinue">
-						<md-icon style="color: orange;">save</md-icon> {{trans:discontinue}}</md-button>
-					<md-button class="md-raised" name="save"><md-icon style="color: orange;">save</md-icon>
-						{{trans:save}}</md-button>
-					<md-button class="md-raised md-primary" name="next" ng-disabled="!isValid(form)"><md-icon
-							style="color: green;">done</md-icon> {{trans:submit}}</md-button>
-				</div>
-			</md-content>
-		</form>
-		<test-footer></test-footer>
-	</div>
+            layout-align="space-between center"
+          >
+            <span class="md-headline"> [[ group.groupId ]] </span>
+            <div layout="row" ng-if="group.groupCanSkip">
+              <div class="skip-reason" ng-if="group.groupSkipped">
+                <label>Skip Reason</label>
+                <md-select
+                  ng-model="group.groupSkipReason"
+                  ng-change="skipReasonChanged('group', group)"
+                  name="skipReason"
+                >
+                  <md-option value=""><em>Not selected</em></md-option>
+                  <md-option ng-repeat="reason in skipReasons" ng-value="reason">
+                    [[reason]]
+                  </md-option>
+                </md-select>
+              </div>
+              <md-button ng-if="!group.groupSkipped" class="md-raised" ng-click="skipGroup(group)"><md-icon style="color: green">skip_next</md-icon>
+                {{trans:skip_this_section}}</md-button
+              >
+                                  <md-button
+                      ng-if="group.groupSkipped"
+                      class="md-raised"
+                      ng-click="skipGroup(group)"
+                      name="skipGroup"
+                    >
+                      <md-icon style="color: red">skip_previous</md-icon> {{trans:unskip_this_section}}</md-button
+                    >
+            </div>
+          </div>
+
+          <div class="group-content" ng-if="!group.groupSkipped">
+            <div ng-repeat="stimulus in group.stimuli track by $index">
+              <md-card>
+                <!-- box around stimulus -->
+                <div layout="row" layout-align="between center" class="stim-header">
+                  <div
+                    class="stem"
+                    ng-html="stimulus.stimulousStemTrans|trans"
+                    ng-if="stimulus.stimulousStemTrans"
+                    style="align-self: flex-start"
+                  ></div>
+                  <div ng-if="stimulus.stimulusCanSkip" layout="row">
+                    <div class="skip-reason" ng-if="stimulus.stimulusSkipped" flex>
+                      <label for="skipReason">Skip Reason</label>
+                      <md-select
+                        ng-model="stimulus.stimulusSkipReason"
+                        ng-change="skipReasonChanged('stimulus', stimulus)"
+                        id="skipReason"
+                        name="skipReason"
+                      >
+                        <md-option value=""><em>Not selected</em></md-option>
+                        <md-option ng-repeat="reason in skipReasons" ng-value="reason">
+                          [[reason]]
+                        </md-option>
+                      </md-select>
+                    </div>
+                    <md-button
+                      ng-if="!stimulus.stimulusSkipped"
+                      class="md-raised"
+                      ng-click="skipStimulus(stimulus)"
+                      name="skipStimulus"
+                    >
+                      <md-icon style="color: green">skip_next</md-icon> {{trans:skip_this_item}}</md-button
+                    >
+                    <md-button
+                      ng-if="stimulus.stimulusSkipped"
+                      class="md-raised"
+                      ng-click="skipStimulus(stimulus)"
+                      name="skipStimulus"
+                    >
+                      <md-icon style="color: red">skip_previous</md-icon> {{trans:unskip_this_item}}</md-button
+                    >
+                  </div>
+                </div>
+                <div ng-if="!stimulus.stimulusSkipped">
+                  <div
+                    ng-repeat="item in stimulus.items track by $index"
+                    ng-switch="item.type"
+                    class="item"
+                  >
+                    <item-options ng-switch-when="options" item="item"></item-options>
+                    <item-open ng-switch-when="open" item="item"></item-open>
+                    <item-range ng-switch-when="range" item="item"></item-range>
+                    <item-subtract ng-switch-when="subtract" item="item"></item-subtract>
+                  </div>
+                </div>
+              </md-card>
+            </div>
+          </div>
+        </div> 
+
+        <div layout layout-align="end center" class="sticky-buttons-container">
+          <md-button class="md-raised" name="assessmentDate"
+            ><md-icon>date_range</md-icon> {{trans:test_change_assessment_date}}</md-button
+          >
+          <md-button class="md-raised" name="previous" ng-show="R.canGoBack && R.page &gt; 1"
+            ><md-icon>arrow_back</md-icon> {{trans:go_back}}</md-button
+          >
+          <md-button
+            ng-if="allowIncomplete"
+            ng-click="openDiscontinueDialog()"
+            class="md-raised concerto-nosubmit"
+            name="discontinue"
+          >
+            <md-icon style="color: orange">save</md-icon> {{trans:discontinue}}</md-button
+          >
+          <md-button class="md-raised" name="save"
+            ><md-icon style="color: orange">save</md-icon> {{trans:save}}</md-button
+          >
+          <md-button class="md-raised md-primary" name="next" ng-disabled="!isValid(form)"
+            ><md-icon style="color: green">done</md-icon> {{trans:submit}}</md-button
+          >
+        </div>
+      </md-content>
+    </form>
+    <test-footer></test-footer>
+  </div>
 </src>

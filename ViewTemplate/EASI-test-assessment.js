@@ -6,14 +6,7 @@ testRunner.controllerProvider.register('assessment', function ($scope, $mdDialog
   $scope.discontinueReason = "Item exceeded the child's ability";
   $scope.discontinuing = false;
 
-  $scope.skipReasons = [
-    "Item exceeded the child's ability",
-    'Hyperreactivity',
-    'Inattention or other behavioral reasons',
-    'Ran out of time',
-    'Missing materials',
-    'Unintentionally skipped',
-  ];
+  $scope.skipReasons = $scope.test.skipReasons;
 
   $scope.isValid = function (form) {
     if ($scope.items.length === 0) return true;
@@ -51,8 +44,8 @@ testRunner.controllerProvider.register('assessment', function ($scope, $mdDialog
           } else {
             // not discontinuing
             responseValue = item.value;
-            skipped = stimulus.skipped ? 1 : 0;
-            skipReason = stimulus.skipped ? stimulus.stimulusSkipReason : null;
+            skipped = stimulus.stimulusSkipped ? 1 : 0;
+            skipReason = stimulus.stimulusSkipped ? stimulus.stimulusSkipReason : null;
           }
 
           responses.push({
@@ -72,9 +65,18 @@ testRunner.controllerProvider.register('assessment', function ($scope, $mdDialog
     return $scope.getItemResponses();
   });
 
-  $scope.skipThisOne = function (stimulus) {
+  $scope.skipGroup = function (group) {
+    group.groupSkipped = !group.groupSkipped;
+    group.groupSkipReason = null;
+    group.stimuli.forEach((x) => {
+      $scope.skipStimulus(x);
+    });
+  };
+
+  $scope.skipStimulus = function (stimulus) {
     console.log('lets skip this one: ', stimulus);
     stimulus.stimulusSkipped = !stimulus.stimulusSkipped;
+    stimulus.skippedReason = null;
     for (let y = 0; y < stimulus.items.length; y++) {
       let item = stimulus.items[y];
       item.skipped = stimulus.stimulusSkipped;
@@ -104,10 +106,25 @@ testRunner.controllerProvider.register('assessment', function ($scope, $mdDialog
       );
   };
 
-  $scope.skipReasonChanged = function (stimulus) {
-    for (let y = 0; y < stimulus.items.length; y++) {
-      let item = stimulus.items[y];
-      item.skipReason = stimulus.stimulusSkipReason;
+  $scope.skipReasonChanged = function (itemType, item) {
+    if (itemType === 'stimulus') {
+      const stimulus = item;
+      for (let y = 0; y < stimulus.items.length; y++) {
+        let item = stimulus.items[y];
+        item.skipReason = stimulus.stimulusSkipReason;
+      }
+    }
+    if (itemType === 'group') {
+    const group = item;
+      for (let x = 0; x < group.stimuli.length; x++) {
+        let stimulus = group.stimuli[x];
+        stimulus.stimulusSkipped = group.groupSkipped;
+        stimulus.stimulusSkipReason = group.groupSkipReason;
+        for (let y = 0; y < stimulus.items.length; y++) {
+          let item = stimulus.items[y];
+          item.skipReason = stimulus.stimulusSkipReason;
+        }
+      }
     }
   };
 
@@ -122,6 +139,9 @@ testRunner.controllerProvider.register('assessment', function ($scope, $mdDialog
       if (!matchingGroup) {
         matchingGroup = {
           groupId: curr.groupId,
+          groupCanSkip: true,
+          groupSkipped: false,
+          groupSkipReason: null,
           stimuli: [],
         };
 
@@ -150,6 +170,15 @@ testRunner.controllerProvider.register('assessment', function ($scope, $mdDialog
 
       return acc;
     }, []);
+    groups.sort((a, b) => a.groupOrder - b.groupOrder);
+
+    groups.forEach((group) => {
+      group.stimuli.sort((a, b) => a.stimulusOrder - b.stimulusOrder);
+
+      group.stimuli.forEach((stimulus) => {
+        stimulus.items.sort((a, b) => a.itemOrder - b.itemOrder);
+      });
+    });
     $scope.groups = [...groups];
     console.log('groups: ', $scope.groups);
   };

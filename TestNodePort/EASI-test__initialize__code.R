@@ -1,11 +1,4 @@
-concerto.log("hi from initialize! Participant:")
-concerto.log(
-  jsonlite::toJSON(participant, pretty = TRUE, auto_unbox = TRUE)
-)
-lib$helloWorld()
-concerto.log(
-  jsonlite::toJSON(session, pretty = TRUE, auto_unbox = TRUE)
-)
+concerto.log("hi from initialize!")
 
 concerto.table.query(
   "UPDATE EASI_participants SET lastAssessmentDate=NOW() WHERE id='{{id}}'",
@@ -27,19 +20,21 @@ responses <- concerto.table.query(
   "SELECT * FROM {{responsesTable}} WHERE session_id='{{id}}'",
   list(responsesTable = responsesTable, id = session$id)
 )
-
+concerto.log(
+  jsonlite::toJSON(responses, pretty = TRUE, auto_unbox = TRUE)
+)
 # scores
 scoresTable <- paste0(test$code, "_scores")
 scoresRecords <- concerto.table.query(
   "SELECT * FROM {{scoresTable}} WHERE session_id='{{id}}'",
   list(scoresTable = scoresTable, id = session$id)
 )
+
 scores <- list()
-if (nrow(scoresRecords) > 0) {
-  for (i in 1:nrow(scoresRecords)) {
-    record <- scoresRecords[i, ]
-    scores[[record$name]] <- record$value
-  }
+
+for (i in seq_len(nrow(scoresRecords))) {
+  record <- scoresRecords[i, ]
+  scores[[record$name]] <- record$value
 }
 
 # items
@@ -57,7 +52,7 @@ hasGroups <- !is.null(test$hasGroups) &&
   as.integer(test$hasGroups) == 1
 
 orderBySql <- if (hasGroups) {
-  "ORDER BY groupOrder ASC, stimulusOrder ASC, itemOrder ASC, id ASC"
+  "ORDER BY groupId ASC, stimulusOrder ASC, itemOrder ASC, id ASC"
 } else {
   "ORDER BY stimulusOrder ASC, itemOrder ASC, id ASC"
 }
@@ -87,18 +82,23 @@ WHERE enabled=1 ", orderBySql),
   )
 )
 
-if (nrow(responses) > 0) {
-  answeredItemsIndices <- which(responses$item_id %in% items$id)
-  answeredItems <- items[answeredItemsIndices, ]
-  unansweredItems <- items[-answeredItemsIndices, ]
-  unansweredItems <- unansweredItems[unansweredItems$enabled == 1, ]
-  items <- rbind(answeredItems, unansweredItems)
+if (is.null(items) || nrow(items) == 0) {
+  stop("initialize query for items failed")
 }
 
-concerto.log("items from initialize code: ")
-concerto.log(
-  jsonlite::toJSON(items, pretty = TRUE, auto_unbox = TRUE)
-)
+if (nrow(responses) > 0) {
+  answeredItemsIndices <- which(items$id %in% responses$item_id)
+
+  answeredItems <- items[answeredItemsIndices, , drop = FALSE]
+  unansweredItems <- items[-answeredItemsIndices, , drop = FALSE]
+
+  unansweredItems <- unansweredItems[
+    unansweredItems$enabled == 1, ,
+    drop = FALSE
+  ]
+
+  items <- rbind(answeredItems, unansweredItems)
+}
 
 # settings
 settings <- list(
@@ -123,13 +123,10 @@ WHERE (minParticipantMonths<='{{months}}' OR minParticipantMonths IS NULL) AND
   list(settingsTable = settingsTable, months = session$participantMonths)
 )
 
-if (nrow(extraSettings) > 0) {
-  for (i in 1:nrow(extraSettings)) {
-    extraSetting <- as.list(extraSettings[i, ])
-    settings[[tolower(extraSetting$name)]] <- extraSetting$value
-  }
+for (i in seq_len(nrow(extraSettings))) {
+  extraSetting <- as.list(extraSettings[i, ])
+  settings[[tolower(extraSetting$name)]] <- extraSetting$value
 }
-
 if (test$scoringAlgo == "new") {
   settingsTableNew <- paste0(test$code, "_settings_new")
   extraSettingsNew <- concerto.table.query(
@@ -149,11 +146,6 @@ if (test$scoringAlgo == "new") {
     settings$scoreSettings[[i]] <- row
   }
 }
-
-concerto.log("hi from initialize, settings:")
-concerto.log(
-  jsonlite::toJSON(settings, pretty = TRUE, auto_unbox = TRUE)
-)
 
 .branch <- "intro"
 instructionsAvailable <- 1

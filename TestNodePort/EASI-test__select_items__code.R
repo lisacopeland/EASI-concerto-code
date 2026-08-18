@@ -1,31 +1,13 @@
 concerto.log("Hi from select items")
-concerto.log(
-  paste0(
-    "assignResponses: items rows=",
-    nrow(items),
-    ", responses rows=",
-    nrow(responses)
-  )
-)
+
 makeItemsSafe <- function(items) {
   for (i in 1:5) {
     items[[paste0("optionScore", i)]] <- NULL
   }
-
   items
 }
 
 assignResponses <- function(items, responses) {
-  concerto.log("hi from assignResponses")
-  concerto.log(
-    paste0(
-      "assignResponses: items rows=",
-      nrow(items),
-      ", responses rows=",
-      nrow(responses)
-    )
-  )
-
   if (is.null(items) || nrow(items) == 0) {
     stop("assignResponses received no assessment items")
   }
@@ -33,6 +15,9 @@ assignResponses <- function(items, responses) {
   if (is.null(responses) || nrow(responses) == 0) {
     return(items)
   }
+  items$value <- rep(NA_character_, nrow(items))
+  items$skipped <- rep(NA_integer_, nrow(items))
+  items$skipReason <- rep(NA_character_, nrow(items))
   if (nrow(responses) > 0) {
     for (i in seq_len(nrow(responses))) {
       response <- as.list(responses[i, , drop = FALSE])
@@ -61,8 +46,8 @@ assignResponses <- function(items, responses) {
         skipReason <- NA_character_
       }
 
-      items$value[itemIndex] <- response$value[[1]]
-      items$skipped[itemIndex] <- response$skipped[[1]]
+      items$value[itemIndex] <- responses$value[[i]]
+      items$skipped[itemIndex] <- responses$skipped[[i]]
       items$skipReason[itemIndex] <- skipReason
     }
   }
