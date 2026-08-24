@@ -101,13 +101,15 @@ getMeasure <- function(responses, items, scoreRange) {
       items,
       currentEstimate
     )
-
+    if (is.null(outputMath)) {
+      return(NULL)
+    }
     modelVariance <- outputMath$modelVariance
     expectedScore <- outputMath$expectedScore
 
     if (!is.finite(modelVariance) || modelVariance <= 0) {
       concerto.log(paste0("Invalid model variance: ", modelVariance))
-      stop("Invalid model variance")
+      return(NULL)
     }
     # todo: maybe this should be if first time... or
     if (!hasOverShotEstimate(
@@ -139,8 +141,8 @@ getMeasure <- function(responses, items, scoreRange) {
     iterationCount <- iterationCount + 1
 
     if (!is.finite(currentEstimate)) {
-      concerto.log(paste0("Invalid current estimate: ", currentEstimate))
-      stop("Ability estimate became non-finite")
+      concerto.log(paste0("Ability estimate became non-finite", currentEstimate))
+      return(NULL)
     }
 
     converged <- abs(currentEstimate - previousEstimate) < convergenceTolerance
@@ -152,7 +154,7 @@ getMeasure <- function(responses, items, scoreRange) {
 
   if (!converged || (iterationCount >= maxIterations)) {
     concerto.log(paste0("failure to converge after ", iterationCount))
-    stop("Ability estimate became non-finite")
+    return(NULL)
   }
 
   # Recalculate once at the final estimate so modelVariance,
@@ -164,23 +166,22 @@ getMeasure <- function(responses, items, scoreRange) {
     items,
     currentEstimate
   )
-
+  if (is.null(outputMath)) {
+    return(NULL)
+  }
   modelVariance <- outputMath$modelVariance
-  # rawScore <- outputMath$rawScore
 
   outfitMeanSquare <-
     outputMath$outfitMeanSquareNumerator / itemCount
 
   infitMeanSquare <-
-    outputMath$infitMeanSquareNumerator /
-      outputMath$infitMeanSquareDivisor
+    outputMath$infitMeanSquareNumerator / outputMath$infitMeanSquareDivisor
 
   outfitMeanSquare <- min(outfitMeanSquare, 9.9)
 
   list(
     currentEstimate = currentEstimate,
     modelVariance = modelVariance,
-    # rawScore = rawScore,
     outfitMeanSquare = outfitMeanSquare,
     infitMeanSquare = infitMeanSquare,
     iterationCount = iterationCount,
@@ -191,7 +192,6 @@ getMeasure <- function(responses, items, scoreRange) {
 # Iterate thru the scores and return expectedScore, modelVariance, rawScore,
 # outfitMeanSquareNumerator, infitMeanSquareNumerator, infitMeanSquareDivisor
 calculateExpectedScore <- function(responses, items, abilityEstimate) {
-  # rawScore <- 0
   expectedScore <- 0
   modelVariance <- 0
   outfitMeanSquareNumerator <- 0
@@ -204,18 +204,17 @@ calculateExpectedScore <- function(responses, items, abilityEstimate) {
     itemIndex <- match(response$item_id, items$id)
 
     if (is.na(itemIndex)) {
-      stop(
+      concerto.log(
         paste0(
           "No item found for response item_id ",
           response$item_id
         )
       )
+      return(NULL)
     }
 
     itemDifficulty <- items$itemDifficulty[itemIndex]
     stepDifficulty <- jsonlite::fromJSON(items$stepDifficulty[itemIndex])
-
-    # rawScore <- rawScore + response$score
     perItemResults <- perItemMath(
       itemDifficulty,
       abilityEstimate,
@@ -233,7 +232,6 @@ calculateExpectedScore <- function(responses, items, abilityEstimate) {
   list(
     expectedScore = expectedScore,
     modelVariance = modelVariance,
-    # rawScore = rawScore,
     outfitMeanSquareNumerator = outfitMeanSquareNumerator,
     infitMeanSquareNumerator = infitMeanSquareNumerator,
     infitMeanSquareDivisor = infitMeanSquareDivisor
@@ -332,34 +330,29 @@ createScores <- function(
 
 
 runScoring <- function(responses, items, settings) {
-  concerto.log(
-    jsonlite::toJSON(settings, pretty = TRUE, auto_unbox = TRUE)
-  )
-
   allScores <- list()
-
   for (scoreSetting in settings$scoreSettings) {
     trait <- scoreSetting$trait
-
     scorableResponses <- getScorableItems(responses, items, trait)
-
-    # rawScore <- sum(scorableResponses$score, na.rm = TRUE)
     scoreRange <- getScoreRange(scorableResponses, items)
-
     newMeasure <- getMeasure(scorableResponses, items, scoreRange)
 
     concerto.log("from newMeasure: ")
     concerto.log(
       jsonlite::toJSON(newMeasure, pretty = TRUE, auto_unbox = TRUE)
     )
+    if (is.null(newMeasure)) {
+      return(NULL)
+    }
 
     if (is.null(newMeasure$currentEstimate)) {
-      stop(
+      concerto.log(
         paste(
           "No measure found for raw score",
           scoreRange$adjustedScore
         )
       )
+      return(NULL)
     }
 
     # newMeasure$currentEstimate instead of measure here
@@ -378,12 +371,6 @@ runScoring <- function(responses, items, settings) {
     )
     allScores <- c(allScores, scores)
   }
-
-
-  concerto.log("scores:")
-  concerto.log(
-    jsonlite::toJSON(allScores, pretty = TRUE, auto_unbox = TRUE)
-  )
   scores <- allScores
 }
 
