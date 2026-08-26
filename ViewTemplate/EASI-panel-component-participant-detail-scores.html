@@ -1,7 +1,8 @@
 <src>
 	<div class="print-header">{{'panel_results_tested_by'|trans}} <strong>[[getAdminName()]]</strong></div>
-	<div class="print-header">{{'panel_results_client'|trans}} <strong>#[[participant.id]], [[participant.initials]], [[participant.dateOfBirth]]</strong></div>
-	
+	<div class="print-header">{{'panel_results_client'|trans}} <strong>#[[participant.id]], [[participant.initials]],
+			[[participant.dateOfBirth]]</strong></div>
+
 	<div layout="row" layout-align="end center" class="actions">
 		<md-button class="md-raised" ng-click="print()"><md-icon>printer</md-icon> {{'print'|trans}}</md-button>
 		<md-button class="md-raised" ng-click="getScores()"><md-icon>refresh</md-icon> {{'refresh'|trans}}</md-button>
@@ -16,7 +17,8 @@
 		<md-switch ng-model="query.allTests" ng-true-value="1" ng-false-value="0" ng-change="allTestsChanged()">
 			{{'all_tests'|trans}}
 		</md-switch>
-		<md-switch ng-model="query.tests[test.id]" ng-true-value="1" ng-false-value="0" ng-repeat="test in testSelections" ng-show="query.allTests == 0">
+		<md-switch ng-model="query.tests[test.id]" ng-true-value="1" ng-false-value="0"
+			ng-repeat="test in testSelections" ng-show="query.allTests == 0">
 			[[test.code]]
 		</md-switch>
 	</div>
@@ -39,7 +41,8 @@
 			{{'panel_results_results'|trans}}
 		</md-subheader>
 		<div ng-show="expandables.details">
-			<fieldset ng-repeat="test in tests" ng-if="getTestScores(test.code).length > 0" style="align-self: stretch; page-break-inside: avoid;">
+			<fieldset ng-repeat="test in tests" ng-if="getTestScores(test.code).length > 0"
+				style="align-self: stretch; page-break-inside: avoid;">
 				<legend>{{test.title_trans|trans}}</legend>
 
 				<md-list layout="row" layout-wrap layout-align="start start">
@@ -52,6 +55,18 @@
 				</md-list>
 
 				<p ng-repeat="score in getTestScores(test.code, true)">{{score.feedback_trans|trans}}</p>
+			</fieldset>
+			<fieldset ng-if="getTestScores('PRAXIS').length > 0" style="align-self: stretch; page-break-inside: avoid;">
+				<legend>{{test.title_trans|trans}}</legend>
+
+				<md-list layout="row" layout-wrap layout-align="start start">
+					<md-list-item class="md-2-line score-item" ng-repeat="score in getTestScores('PRAXIS')">
+						<div class="md-list-item-text" layout="column">
+							<h4>{{score.name|trans}}</h4>
+							<p>[[score.value]]</p>
+						</div>
+					</md-list-item>
+				</md-list>
 			</fieldset>
 		</div>
 	</div>
@@ -67,6 +82,7 @@
 			</div>
 		</div>
 	</div>
-	
-	<msg type="warning" ng-if="scoresDataSets.length === 0 && summaryDataSets.length === 0">{{'panel_results_no_data'|trans}}</msg>
+
+	<msg type="warning" ng-if="scoresDataSets.length === 0 && summaryDataSets.length === 0">
+		{{'panel_results_no_data'|trans}}</msg>
 </src>

@@ -1,8 +1,8 @@
 {
-  "r.rpath.windows": "C:\\Program Files (x86)\\R\\R-4.6.1\\bin\\x64\\R.exe",
-  "r.rterm.windows": "C:\\Program Files (x86)\\R\\R-4.6.1\\bin\\x64\\Rterm.exe",
+  "r.rpath.windows": "C:\\Program Files\\R\\R-4.6.0\\bin\\x64\\R.exe",
+  "r.rterm.windows": "C:\\Program Files\\R\\R-4.6.0\\bin\\x64\\Rterm.exe",
   "[r]": {
     "editor.formatOnSave": true
   },
-  "editor.inlineSuggest.enab led": false
+  "editor.inlineSuggest.enabled": false
 }

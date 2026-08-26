@@ -17,13 +17,15 @@ getScorableItems <- function(responses, items, trait = NULL) {
     responses[responses$trait == trait, ]
   }
 
-  scoreableItemIds <- items$id[
+  scoreableItems <- items[
     is.na(items$excludeFromScoring) |
-      items$excludeFromScoring != 1
+      items$excludeFromScoring != 1, ,
+    drop = FALSE
   ]
 
   scoreableResponses <- scoringResponses[
-    scoringResponses$item_id %in% scoreableItemIds &
+    paste(scoringResponses$test, scoringResponses$item_id) %in%
+      paste(scoreableItems$test, scoreableItems$id) &
       scoringResponses$scoreStatus == "scored",
   ]
 
@@ -38,7 +40,8 @@ getScoreRange <- function(responses, items) {
 
   for (i in seq_len(nrow(responses))) {
     item <- items[
-      items$id == responses$item_id[i], ,
+      items$id == responses$item_id[i] &
+        items$test == responses$test[i], ,
       drop = FALSE
     ]
 
@@ -201,12 +204,17 @@ calculateExpectedScore <- function(responses, items, abilityEstimate) {
   for (i in seq_len(nrow(responses))) {
     response <- responses[i, ]
 
-    itemIndex <- match(response$item_id, items$id)
+    responseKey <- paste(response$test, response$item_id, sep = "_")
+    itemKeys <- paste(items$test, items$id, sep = "_")
+
+    itemIndex <- match(responseKey, itemKeys)
 
     if (is.na(itemIndex)) {
       concerto.log(
         paste0(
-          "No item found for response item_id ",
+          "No item found for response test/item_id ",
+          response$test,
+          "/",
           response$item_id
         )
       )
@@ -294,7 +302,6 @@ createScores <- function(
   trait,
   measure,
   rawScore,
-  adjustedScore,
   includeTraitInScoreName,
   age,
   b0,
@@ -304,7 +311,6 @@ createScores <- function(
   sd
 ) {
   rawScoreProp <- getPropName(trait, "raw score", includeTraitInScoreName)
-  adjustedScoreProp <- getPropName(trait, "adjustedScore", includeTraitInScoreName)
   zScoreProp <- getPropName(trait, "z score", includeTraitInScoreName)
   percentileProp <- getPropName(trait, "percentile", includeTraitInScoreName)
   meanProp <- getPropName(trait, "predicted mean", includeTraitInScoreName)
@@ -319,7 +325,6 @@ createScores <- function(
   zScore <- (measure - predictedMean) / sd
   scores <- list()
   scores[[rawScoreProp]] <- rawScore
-  scores[[adjustedScoreProp]] <- adjustedScore
   scores[[zScoreProp]] <- zScore
   scores[[meanProp]] <- predictedMean
   scores[[percentileProp]] <- round(100 * pnorm(zScore))
@@ -341,18 +346,10 @@ runScoring <- function(responses, items, settings) {
     concerto.log(
       jsonlite::toJSON(newMeasure, pretty = TRUE, auto_unbox = TRUE)
     )
-    if (is.null(newMeasure)) {
-      return(NULL)
-    }
-
-    if (is.null(newMeasure$currentEstimate)) {
-      concerto.log(
-        paste(
-          "No measure found for raw score",
-          scoreRange$adjustedScore
-        )
-      )
-      return(NULL)
+    if (is.null(newMeasure) || is.null(newMeasure$currentEstimate)) {
+      scores <- list()
+      scores[["error"]] <- "Measure calculation failed"
+      return(scores)
     }
 
     # newMeasure$currentEstimate instead of measure here
@@ -360,7 +357,6 @@ runScoring <- function(responses, items, settings) {
       trait,
       newMeasure$currentEstimate,
       scoreRange$rawScore,
-      scoreRange$adjustedScore,
       scoreSetting$includetraitinscorename,
       settings$childsAge,
       scoreSetting$b0,

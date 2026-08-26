@@ -2,7 +2,7 @@ concerto.log("hi from EASI-test__scoring__code.R")
 
 calcScores <- function(scoringAlgo, responses, items, settings) {
   scoringModuleName <- paste0("EASI-scoring-", scoringAlgo)
-  # if this is the
+
   scoringResult <- concerto.test.run(scoringModuleName, list(
     items = items,
     responses = responses,
@@ -33,33 +33,27 @@ updateScoreTable <- function(testCode, sessionId, participantId, scores) {
   }
 }
 
+runCompositeScoring <- function(settings, participant_id, compositeGroup) {
+  scoringModuleName <- "EASI-scoring-composite"
+  # if this is the
+  scoringResult <- concerto.test.run(scoringModuleName, list(
+    settings = settings,
+    participant_id = participant_id,
+    compositeGroup = compositeGroup
+  ))
+}
+
+items$test <- test$code
+responses$test <- test$code
 scores <- calcScores(settings$scoringAlgo, responses, items, settings)
 
-updateScoreTable(test$code, session$id, session$participant_id, scores)
+if (is.null(scores)) {
+  concerto.log("No scores returned from scoring module")
+  scores <- list()
+} else {
+  updateScoreTable(test$code, session$id, session$participant_id, scores)
+}
 
-# to do composite:
-# see if this test has composite
-# if (test$compositeGroup)
-# get all tests for this composite
-# select from EASI_tests where compositeGroup == test$compositeGroup
-# tests for Each
-# SELECT *
-# FROM test$code_sessions
-# WHERE participant_Id = session$participant_id and status = 2
-# ORDER BY dateAssessment DESC
-# LIMIT 1;
-# you have to get at least one session for each test
-# if you got them,
-# select * from compositeGroup settings table and load into a settings object
-# get the items for all the tests
-# get the responses for each of those sessions
-# for each composite trait -
-# - for each test
-# -   get the items and responses for that trait
-# - combine the list of items and responses
-# settings forEach
-# (test items from all three tests, responses from all three tests)
-# settings will be for all three traits
-# run calcScore on that list with those settings
-# scores columns will include the session id for each test, prp_sessionId, etc
-# write the scores to the composite score table
+if (!is.null(test$compositeGroup) && test$compositeGroup != "") {
+  # runCompositeScoring(settings, session$participant_id, test$compositeGroup)
+}
