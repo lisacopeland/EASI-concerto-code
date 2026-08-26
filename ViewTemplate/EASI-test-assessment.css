@@ -1,4 +1,5 @@
-md-content {
+
+md-content.page-content {
   overflow: inherit;
 }
 
@@ -7,4 +8,18 @@ md-content {
   bottom: 1em;
   z-index: 3;
   align-self: end;
+}
+
+.group-container {
+  border: 1px solid #ddd;
+  margin-bottom: 24px;
+}
+
+.group-header {
+  background-color: #eee;
+  padding: 8px 16px;
+}
+
+.group-content {
+  padding: 16px;
 }

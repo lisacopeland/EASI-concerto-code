@@ -13,7 +13,7 @@
           <div
             ng-if="hasGroups"
             class="group-header"
-
+            layout="row"
             layout-align="space-between center"
           >
             <span class="md-headline"> [[ group.groupId ]] </span>
@@ -89,7 +89,7 @@
                     >
                   </div>
                 </div>
-                <div ng-if="!stimulus.stimulusSkipped">
+                <div ng-if="!stimulus.stimulusSkipped"> 
                   <div
                     ng-repeat="item in stimulus.items track by $index"
                     ng-switch="item.type"
@@ -119,7 +119,7 @@
             class="md-raised concerto-nosubmit"
             name="discontinue"
           >
-            <md-icon style="color: orange">save</md-icon> {{trans:discontinue}}</md-button
+            <md-icon style="color: red">logout</md-icon> {{trans:discontinue}}</md-button
           >
           <md-button class="md-raised" name="save"
             ><md-icon style="color: orange">save</md-icon> {{trans:save}}</md-button

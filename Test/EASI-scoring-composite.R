@@ -1,5 +1,6 @@
 getResponses <- function(participant_id) {
     # Query to get tests and responses:
+    concerto.log(paste0("participant id :", participant_id))
     responses <- concerto.table.query(
         "SELECT
     'PRFD' AS test,
@@ -235,14 +236,14 @@ calcScores <- function(responses, items, settings) {
     scoringResult <- concerto.test.run(scoringModuleName, list(
         items = items,
         responses = responses,
-        settings = settings,
+        settings = settings
     ))
     scores <- scoringResult$scores
 }
 
-updateScoreTable <- function(participantId, scores, sessionIds) {
+updateScoreTable <- function(participant_id, scores, sessionIds) {
     scoresTable <- paste0("PRAXIS", "_scores")
-    concerto.table.query("DELETE FROM {{scoresTable}} WHERE participant_id='{{participant_id}}'", list(scoresTable = scoresTable, participant_id = participantId))
+    concerto.table.query("DELETE FROM {{scoresTable}} WHERE participant_id='{{participant_id}}'", list(scoresTable = scoresTable, participant_id = participant_id))
 
     if (is.list(scores) && length(scores) > 0) {
         insertSql <- concerto.table.insertParams("INSERT INTO {{scoresTable}} (prp_session_id, prs_session_id, prfd_session_id, name, value, timeCreated, participant_id) VALUES ", list(scoresTable = scoresTable))
@@ -254,7 +255,7 @@ updateScoreTable <- function(participantId, scores, sessionIds) {
                 prfd_session_id = sessionIds[["PRFD"]],
                 name = scoreName,
                 value = scores[[scoreName]],
-                participant_id = participantId
+                participant_id = participant_id
             ))
             scoreValuesSqlArray <- c(scoreValuesSqlArray, scoreValuesSql)
         }
@@ -266,7 +267,8 @@ updateScoreTable <- function(participantId, scores, sessionIds) {
 
 # you get settings, participant_id, compositeGroup
 
-responses <- getResponses(settings$participant_id)
+responses <- getResponses(participant_id)
+concerto.log("ran get responses")
 
 requiredTests <- c("PRFD", "PRP", "PRS")
 
@@ -274,6 +276,7 @@ if (
     is.null(responses) ||
         !all(requiredTests %in% unique(responses$test))
 ) {
+concerto.log("didnt get responses")
     return(list())
 }
 
@@ -291,10 +294,18 @@ for (i in seq_len(nrow(settingsNew))) {
     names(row) <- tolower(names(row))
     settings$scoreSettings[[i]] <- row
 }
+concerto.log(
+  jsonlite::toJSON(settings, pretty = TRUE, auto_unbox = TRUE)
+)
 
 items <- getTests()
 
 scores <- calcScores(responses, items, settings)
+
+concerto.log("got scores")
+concerto.log(
+  jsonlite::toJSON(scores, pretty = TRUE, auto_unbox = TRUE)
+)
 
 sessionIds <- tapply(
     responses$session_id,
@@ -302,4 +313,4 @@ sessionIds <- tapply(
     unique
 )
 
-updateScoreTable(settings$participant_id, scores, sessionIds)
+updateScoreTable(participant_id, scores, sessionIds)

@@ -5,7 +5,7 @@ html {
 html, #testContainer, #testHtml, body {
   height: 100%;
   /* fix for mat-select disabling body vertical scrollbar */
-  position: relative !important;
+  /* position: relative !important; */
 }
 
 .center {

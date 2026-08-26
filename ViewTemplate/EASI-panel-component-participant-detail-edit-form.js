@@ -22,8 +22,11 @@ testRunner.component('participantDetailEditForm', {
     $scope.researchProjectSelected = [];
     $scope.admin = auth.user;
     $scope.isAdmin = auth.user.type === 1;
+    $scope.hasResearchProject = ((auth.user.researchGroup !== '') && (auth.user.researchGroup !== null))
     $scope.addingNew = false;
-
+    if ($scope.hasResearchProject) {
+      $scope.assessmentReasons.push('Research project');
+    }
     this.$onInit = function () {
       $scope.participant = this.participant;
       $scope.addingNew = this.participant.id == undefined;

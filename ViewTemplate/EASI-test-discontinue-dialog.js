@@ -12,4 +12,8 @@ function DialogDiscontinueTestController($scope, $mdDialog) {
   $scope.discontinue = function () {
     $mdDialog.hide($scope.skipReason);
   };
+  
+  $scope.cancel = function () {
+    $mdDialog.cancel();
+  };
 }

@@ -1,42 +1,37 @@
 concerto.log("Hi from response processing")
 
-getItemResponseLabel <- function(item, itemResponse, scoreStatus) {
-  if (scoreStatus != "scored") {
-    return(" ")
-  }
-  if (is.na(item$scoreMapType)) {
-    return(getDefaultMapLabel(item, itemResponse))
-  }
+getItemResponseLabel <- function(item, itemResponse) {
 
-  switch(item$scoreMapType,
-    getDefaultMapLabel(item, itemResponse)
-  )
-}
-
-getDefaultMapLabel <- function(item, itemResponse) {
-  if (itemResponse$skipped == "1") {
+  if (!is.null(itemResponse$skipped) && itemResponse$skipped == "1") {
     value <- 0
   } else {
     value <- getItemResponseScorableValue(item, itemResponse)
   }
+
+  if (is.null(value)) {
+    return(NULL)
+  }
+
   for (i in 1:5) {
     valueProp <- paste0("optionValue", i)
     labelProp <- paste0("optionLabel", i)
-    if (!is.na(item[[valueProp]]) && !is.null(value)) {
-      if (item[[valueProp]] == value) {
-        return(item[[labelProp]])
-      }
-    } else {
+
+    if (is.na(item[[valueProp]])) {
       break
     }
+
+    if (item[[valueProp]] == value) {
+      return(item[[labelProp]])
+    }
   }
+
   NULL
 }
 
 # gets single numeric representation of response value
 getItemResponseScorableValue <- function(item, itemResponse) {
   if (
-    itemResponse$skipped == "1" &&
+    (!is.null(itemResponse$skipped) && itemResponse$skipped == "1") &&
       itemResponse$skipReason == "Item exceeded the child's ability"
   ) {
     return(0)
@@ -54,38 +49,6 @@ getSubtractScorableValue <- function(item, itemResponse) {
   as.numeric(itemResponse$value[1]) - as.numeric(itemResponse$value[2])
 }
 
-getItemResponseSerializableValue <- function(
-  item,
-  itemResponse,
-  scoreStatus
-) {
-  if (scoreStatus != "scored") {
-    return(NA_real_)
-  }
-
-  if (
-    itemResponse$skipped == "1" &&
-      itemResponse$skipReason == "Item exceeded the child's ability"
-  ) {
-    return(0)
-  }
-
-  if (
-    is.null(itemResponse$value) ||
-      length(itemResponse$value) == 0
-  ) {
-    return(NA_real_)
-  }
-
-  switch(item$type,
-    subtract = getSubtractSerializableValue(
-      item,
-      itemResponse
-    ),
-    itemResponse$value
-  )
-}
-
 getSubtractSerializableValue <- function(item, itemResponse) {
   if (is.null(itemResponse$value)) {
     return(NULL)
@@ -94,13 +57,6 @@ getSubtractSerializableValue <- function(item, itemResponse) {
 }
 
 getItemScore <- function(item, itemResponse) {
-  if (
-    is.null(itemResponse) ||
-      item$excludeFromScoring == 1 ||
-      itemResponse$skipped == "1"
-  ) {
-    return(NA)
-  }
   if (is.na(item$scoreMapType)) {
     newScore <- getDefaultMapScore(item, itemResponse)
     return(newScore)
@@ -122,9 +78,9 @@ getItemScoringResult <- function(item, itemResponse) {
     ))
   }
 
-  if (itemResponse$skipped == "1") {
+if (!is.null(itemResponse$skipped) && (itemResponse$skipped == "1")) {
     if (itemResponse$skipReason == "Item exceeded the child's ability") {
-      label <- getItemResponseLabel(item, itemResponse, "scored")
+      label <- getItemResponseLabel(item, itemResponse)
       return(list(
         score = 0,
         value = 0,
@@ -140,8 +96,9 @@ getItemScoringResult <- function(item, itemResponse) {
       ))
     }
   }
+  
   score <- getItemScore(item, itemResponse)
-  label <- getItemResponseLabel(item, itemResponse, "scored")
+  label <- getItemResponseLabel(item, itemResponse)
 
   list(
     score = score,
@@ -150,6 +107,7 @@ getItemScoringResult <- function(item, itemResponse) {
     label = label
   )
 }
+
 
 getDefaultMapScore <- function(item, itemResponse) {
   score <- NA
@@ -171,6 +129,7 @@ getDefaultMapScore <- function(item, itemResponse) {
 
   score
 }
+
 
 getRangeTypeScore <- function(item, itemResponse) {
   score <- NA
@@ -235,7 +194,7 @@ createResponseList <- function(itemResponses, items, ageExcludedItemIds = NULL) 
 
         skipReason <- itemResponse$skipReason
         skipStr <- "0"
-        if (itemResponse$skipped == "1") {
+        if ((!is.null(itemResponse$skipped) && itemResponse$skipped == "1")) {
           skipStr <- "1"
         }
 

@@ -25,87 +25,77 @@ getTranslationDictionary <- function() {
   translationDictionaryCache
 }
 
-lib <- list(
-  helloWorld = function() {
-    concerto.log("hello from hello world")
-    "hello"
-  },
+lib = list(
+helloWorld = function() {
+concerto.log("hello from hello world")
+  "hello"
+},
   oldTranslate = function(entryKey, languageCode) {
-    if (languageCode == "") {
-      languageCode <- "en"
-    }
-    columns <- concerto.table.query(
-      "SHOW COLUMNS FROM `EASI_translation_dictionary` LIKE '{{languageCode}}'",
-      list(languageCode = languageCode)
-    )
-    concerto.log(columns, "COLUMNS")
-    if (nrow(columns) == 0) {
-      languageCode <- "en"
-    }
-
-    result <- concerto.table.query(
-      "SELECT entryKey, IF({{languageCode}} IS NOT NULL, {{languageCode}}, en) AS translation FROM EASI_translation_dictionary WHERE entryKey='{{entryKey}}'",
-      list(entryKey = entryKey, languageCode = languageCode)
-    )
-    if (nrow(result) == 0) {
+    if(languageCode == "") { languageCode = "en" }
+    columns = concerto.table.query("SHOW COLUMNS FROM `EASI_translation_dictionary` LIKE '{{languageCode}}'", list(languageCode=languageCode));
+    concerto.log(columns, "COLUMNS");
+    if(nrow(columns) == 0) { languageCode = "en" }
+    
+    result = concerto.table.query("SELECT entryKey, IF({{languageCode}} IS NOT NULL, {{languageCode}}, en) AS translation FROM EASI_translation_dictionary WHERE entryKey='{{entryKey}}'", list(entryKey=entryKey, languageCode=languageCode))
+    if(nrow(result) == 0) {
       entryKey
     } else {
       result$translation
     }
   },
-
+  
   translate = function(entryKey, languageCode) {
-    if (is.null(languageCode) || languageCode == "") {
-      languageCode <- "en"
-    }
+  if (is.null(languageCode) || languageCode == "") {
+    languageCode <- "en"
+  }
 
-    dict <- getTranslationDictionary()
+  dict <- getTranslationDictionary()
 
-    if (!(languageCode %in% names(dict))) {
-      languageCode <- "en"
-    }
+  if (!(languageCode %in% names(dict))) {
+    languageCode <- "en"
+  }
 
-    row <- dict[dict$entryKey == entryKey, ]
+  row <- dict[dict$entryKey == entryKey, ]
 
-    if (nrow(row) == 0) {
-      return(entryKey)
-    }
+  if (nrow(row) == 0) {
+    return(entryKey)
+  }
 
-    translation <- row[[languageCode]]
+  translation <- row[[languageCode]]
 
-    if (is.null(translation) || is.na(translation) || translation == "") {
-      translation <- row[["en"]]
-    }
+  if (is.null(translation) || is.na(translation) || translation == "") {
+    translation <- row[["en"]]
+  }
 
-    if (is.null(translation) || is.na(translation) || translation == "") {
-      entryKey
-    } else {
-      translation
-    }
-  },
+  if (is.null(translation) || is.na(translation) || translation == "") {
+    entryKey
+  } else {
+    translation
+  }
+},
 
   #translate data frame
   transDF = function(tdf, language, cols) {
     if (nrow(tdf) > 0) {
       for (col in cols) {
-        transColName <- paste0(col, "_trans")
-        tdf[, transColName] <- NA
+        transColName = paste0(col, "_trans")
+        tdf[, transColName] = NA
       }
 
       for (i in 1:nrow(tdf)) {
-        row <- tdf[i, ]
+        row = tdf[i, ]
         for (col in cols) {
-          langColName <- paste0(col, "_", language)
-          transColName <- paste0(col, "_trans")
-          langColValue <- row[[langColName]]
+          langColName = paste0(col, "_", language)
+          transColName = paste0(col, "_trans")
+          langColValue = row[[langColName]]
           if (!is.null(langColValue) && !is.na(langColValue)) {
-            row[[transColName]] <- langColValue
+            row[[transColName]] = langColValue
           } else {
-            row[[transColName]] <- row[[col]]
+            row[[transColName]] = row[[col]]
           }
         }
 
-        tdf[i, ] <- data.frame(row)
+        tdf[i, ] = data.frame(row)
       }
     }
 
@@ -124,8 +114,8 @@ lib <- list(
   },
 
   oldGetTransCol = function(table, col, language) {
-    transColName <- paste0(col, "_", language)
-    result <- concerto.table.query(
+    transColName = paste0(col, "_", language)
+    result = concerto.table.query(
       "SHOW COLUMNS FROM `{{table}}` WHERE Field='{{transColName}}'",
       list(table = table, transColName = transColName)
     )

@@ -22,7 +22,7 @@ testRunner.service('constants', function () {
     this.assessmentReasons = [
       'Clinical assessment',
       "As part of tester's SI Certificate",
-      'Research project',
+      // 'Research project',
     ];
     this.sensoryIntegrationConcerns = [
       'Sensory Integration and Praxis Tests (SIPT)',

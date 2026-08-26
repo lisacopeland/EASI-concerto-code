@@ -20,9 +20,7 @@ responses <- concerto.table.query(
   "SELECT * FROM {{responsesTable}} WHERE session_id='{{id}}'",
   list(responsesTable = responsesTable, id = session$id)
 )
-concerto.log(
-  jsonlite::toJSON(responses, pretty = TRUE, auto_unbox = TRUE)
-)
+
 # scores
 scoresTable <- paste0(test$code, "_scores")
 scoresRecords <- concerto.table.query(

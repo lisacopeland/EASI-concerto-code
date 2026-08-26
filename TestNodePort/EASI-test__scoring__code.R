@@ -6,7 +6,7 @@ calcScores <- function(scoringAlgo, responses, items, settings) {
   scoringResult <- concerto.test.run(scoringModuleName, list(
     items = items,
     responses = responses,
-    settings = settings,
+    settings = settings
   ))
   scores <- scoringResult$scores
 }
@@ -35,7 +35,7 @@ updateScoreTable <- function(testCode, sessionId, participantId, scores) {
 
 runCompositeScoring <- function(settings, participant_id, compositeGroup) {
   scoringModuleName <- "EASI-scoring-composite"
-  # if this is the
+  concerto.log("hi from run composite scoring, here we go!")
   scoringResult <- concerto.test.run(scoringModuleName, list(
     settings = settings,
     participant_id = participant_id,
@@ -45,7 +45,7 @@ runCompositeScoring <- function(settings, participant_id, compositeGroup) {
 
 items$test <- test$code
 responses$test <- test$code
-scores <- calcScores(settings$scoringAlgo, responses, items, settings)
+scores <- calcScores(test$scoringAlgo, responses, items, settings)
 
 if (is.null(scores)) {
   concerto.log("No scores returned from scoring module")
@@ -55,5 +55,6 @@ if (is.null(scores)) {
 }
 
 if (!is.null(test$compositeGroup) && test$compositeGroup != "") {
-  # runCompositeScoring(settings, session$participant_id, test$compositeGroup)
+  concerto.log("hi from test scoring code - going to invoke composite scoring")
+  runCompositeScoring(settings, session$participant_id, test$compositeGroup)
 }

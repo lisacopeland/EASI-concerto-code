@@ -4,8 +4,8 @@
 		</div>
 
 		<div layout-gt-sm="row" layout-align-gt-sm="start center" layout="column" class="item-options-container">
-			<md-button class="concerto-nosubmit md-raised" ng-class="{'md-accent': item.value === option.value}" ng-click="selectOption(option.value, $event)" ng-html="option.label|trans" ng-repeat="option in options" tabindex="-1" flex ng-style="settings.optionStyle"></md-button>
-			<md-button class="concerto-nosubmit md-raised" ng-class="{'md-accent': item.skipped}" ng-click="selectSkip()" ng-html="skipLabel|trans" flex ng-style="settings.optionStyle" tabindex="-1" ng-if="item.skippable"></md-button>
+			<md-button class="concerto-nosubmit md-raised" aria-label="Option button" ng-class="{'md-accent': item.value === option.value}" ng-click="selectOption(option.value, $event)" ng-html="option.label|trans" ng-repeat="option in options" tabindex="-1" flex ng-style="settings.optionStyle"></md-button>
+			<!--<md-button class="concerto-nosubmit md-raised" ng-class="{'md-accent': item.skipped}" ng-click="selectSkip()" ng-html="skipLabel|trans" flex ng-style="settings.optionStyle" tabindex="-1" ng-if="item.skippable"></md-button> -->
 		</div>
 	</div>
 </src>

@@ -6,7 +6,9 @@ testRunner.controllerProvider.register('assessment', function ($scope, $mdDialog
   $scope.discontinueReason = "Item exceeded the child's ability";
   $scope.discontinuing = false;
 
-  $scope.skipReasons = $scope.test.skipReasons;
+$scope.skipReasons = $scope.test.skipReasons
+  ? JSON.parse($scope.test.skipReasons)
+  : [];
 
   $scope.isValid = function (form) {
     if ($scope.items.length === 0) return true;
@@ -44,16 +46,24 @@ testRunner.controllerProvider.register('assessment', function ($scope, $mdDialog
           } else {
             // not discontinuing
             responseValue = item.value;
+            if (stimulus.stimulusSkipped !== undefined) {
+            
             skipped = stimulus.stimulusSkipped ? 1 : 0;
+            } else {
+            skipped = undefined;
+            }
             skipReason = stimulus.stimulusSkipped ? stimulus.stimulusSkipReason : null;
           }
 
+          if ((responseValue !== undefined) || (skipped !== undefined)) {
+          
           responses.push({
             item_id: item.id,
             value: responseValue,
             skipped: skipped,
             skipReason: skipReason,
           });
+          }
         }
       }
     }
@@ -76,7 +86,7 @@ testRunner.controllerProvider.register('assessment', function ($scope, $mdDialog
   $scope.skipStimulus = function (stimulus) {
     console.log('lets skip this one: ', stimulus);
     stimulus.stimulusSkipped = !stimulus.stimulusSkipped;
-    stimulus.skippedReason = null;
+    stimulusSkipReason = null;
     for (let y = 0; y < stimulus.items.length; y++) {
       let item = stimulus.items[y];
       item.skipped = stimulus.stimulusSkipped;
@@ -90,7 +100,6 @@ testRunner.controllerProvider.register('assessment', function ($scope, $mdDialog
       .show({
         controller: DialogDiscontinueTestController,
         templateUrl: '/ViewTemplate/EASI-test-discontinue-dialog/html',
-        parent: angular.element(document.body),
         clickOutsideToClose: true,
       })
       .then(
@@ -158,7 +167,7 @@ testRunner.controllerProvider.register('assessment', function ($scope, $mdDialog
           stimulusOrder: curr.stimulusOrder,
           stimulousStemTrans: curr.stem_trans,
           stimulusCanSkip: curr.skippable === 1,
-          stimulusSkipped: false,
+          stimulusSkipped: undefined,
           stimulusSkipReason: null,
           items: [],
         };

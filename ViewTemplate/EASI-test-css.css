@@ -7,6 +7,14 @@
   margin: auto;
   padding: 8px;
   width: 100%;
+    overflow-y: auto;
+  position: relative;
+}
+
+.stim-card {
+  padding: 10px;
+  margin-top: 20px;
+  margin-bottom: 20px;
 }
 
 .stem {
@@ -21,10 +29,29 @@
 test-footer {
 }
 
+.stim-header {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  padding: 10px;
+}
+
 .progress-container {
   height: 5px; 
   min-height: 5px;
   position: sticky; 
   top: 0;
   z-index: 1;
+}
+
+.skip-reason {
+  width: 300px;
+  min-width: 300px;
+  flex-shrink: 0;
+  margin: 0px 12px 0 0;
+  transform: translateY(-4px);
+}
+
+.skip-reason md-select {
+  width: 100%;
 }

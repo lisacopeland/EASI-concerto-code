@@ -11,21 +11,38 @@ getPropName <- function(trait, name, includeTraitInScoreName = FALSE) {
 }
 
 getScorableItems <- function(responses, items, trait = NULL) {
-  scoringResponses <- if (is.null(trait)) {
+
+scoringResponses <- if (
+  is.null(trait) ||
+  length(trait) == 0 ||
+  is.na(trait) ||
+  !nzchar(trait)
+) {
     responses
   } else {
     responses[responses$trait == trait, ]
   }
-
+  
   scoreableItems <- items[
     is.na(items$excludeFromScoring) |
       items$excludeFromScoring != 1, ,
     drop = FALSE
   ]
 
+
+
+  responseKeys <- paste(
+    scoringResponses$test,
+    scoringResponses$item_id
+  )
+
+  itemKeys <- paste(
+    scoreableItems$test,
+    scoreableItems$id
+  )
+
   scoreableResponses <- scoringResponses[
-    paste(scoringResponses$test, scoringResponses$item_id) %in%
-      paste(scoreableItems$test, scoreableItems$id) &
+    responseKeys %in% itemKeys &
       scoringResponses$scoreStatus == "scored",
   ]
 
@@ -335,10 +352,13 @@ createScores <- function(
 
 
 runScoring <- function(responses, items, settings) {
+
   allScores <- list()
   for (scoreSetting in settings$scoreSettings) {
     trait <- scoreSetting$trait
     scorableResponses <- getScorableItems(responses, items, trait)
+
+    
     scoreRange <- getScoreRange(scorableResponses, items)
     newMeasure <- getMeasure(scorableResponses, items, scoreRange)
 

@@ -6,37 +6,37 @@ getEnvOrFail <- function(name) {
   value
 }
 
-UserPoolId <- getEnvOrFail("USER_POOL_ID")
+UserPoolId = getEnvOrFail("USER_POOL_ID")
 # SecretAccessKey = getEnvOrFail("AWS_SECRET_ACCESS_KEY")
 # AccessKeyId = getEnvOrFail("AWS_ACCESS_KEY_ID")
 # Region = getEnvOrFail("AWS_REGION")
-cognitoClientId <- getEnvOrFail("COGNITO_CLIENT_ID")
+cognitoClientId = getEnvOrFail("COGNITO_CLIENT_ID")
 
-getAdmin <- function(login, password) {
+getAdmin = function(login, password) {
   # curl cognito to validate authn
-  cognito <- ""
-  id <- ""
-  email <- ""
-  type <- ""
-  name <- ""
-  gender <- ""
+  cognito = ""
+  id = ""
+  email = ""
+  type = ""
+  name = ""
+  gender = ""
   library(httr)
   library(openssl)
   library(caTools)
   if (T) {
-    cognito <- tryCatch(
+    cognito = tryCatch(
       {
-        loginObject <- list()
-        rawJson <- ""
+        loginObject = list()
+        rawJson = ""
         if (login == "Code") {
-          loginObject <- cognitoLogInCode(password)
+          loginObject = cognitoLogInCode(password)
         } else {
-          loginObject <- cognitoLogInUserPassword(login, password)
+          loginObject = cognitoLogInUserPassword(login, password)
         }
-        response <- loginObject$response
+        response = loginObject$response
         if (status_code(response) == 200) {
-          rawJson <- toString(content(response, as = "text"))
-          parsedJson <- fromJSON(rawJson)
+          rawJson = toString(content(response, as = "text"))
+          parsedJson = fromJSON(rawJson)
           if ("ChallengeName" %in% names(parsedJson)) {
             if (
               getElement(parsedJson, "ChallengeName") == "NEW_PASSWORD_REQUIRED"
@@ -48,57 +48,57 @@ getAdmin <- function(login, password) {
               ))
             }
           }
-          decodedJson <- parsedJson$AuthenticationResult
+          decodedJson = parsedJson$AuthenticationResult
           # Splitting jwt at .'s so i can parse
-          decodedJson$IdTokenRaw <- loginObject$IdToken
-          decodedJson$AccessTokenRaw <- loginObject$AccessToken
-          decodedJson$IdToken <- decodeJwt(loginObject$IdToken)
-          decodedJson$AccessToken <- decodeJwt(loginObject$AccessToken)
+          decodedJson$IdTokenRaw = loginObject$IdToken
+          decodedJson$AccessTokenRaw = loginObject$AccessToken
+          decodedJson$IdToken = decodeJwt(loginObject$IdToken)
+          decodedJson$AccessToken = decodeJwt(loginObject$AccessToken)
 
           # TODO: Like, maybe store renewal token somewhere?
-          email <- decodedJson$IdToken[[2]]$email
-          name <- decodedJson$IdToken[[2]]$name
-          gender <- decodedJson$IdToken[[2]]$gender
-          type <- getElement(decodedJson$IdToken[[2]], "custom:type")
-          researchGroup <- getElement(
+          email = decodedJson$IdToken[[2]]$email
+          name = decodedJson$IdToken[[2]]$name
+          gender = decodedJson$IdToken[[2]]$gender
+          type = getElement(decodedJson$IdToken[[2]], 'custom:type')
+          researchGroup = getElement(
             decodedJson$IdToken[[2]],
-            "custom:researchGroup"
+            'custom:researchGroup'
           )
-          cohort <- getElement(decodedJson$IdToken[[2]], "custom:cohort")
-          expirationDate <- getElement(
+          cohort = getElement(decodedJson$IdToken[[2]], 'custom:cohort')
+          expirationDate = getElement(
             decodedJson$IdToken[[2]],
-            "custom:expirationDate"
+            'custom:expirationDate'
           )
-          usergroup <- getElement(decodedJson$IdToken[[2]], "custom:usergroup")
-          country <- getElement(decodedJson$IdToken[[2]], "custom:country")
-          profession <- getElement(decodedJson$IdToken[[2]], "custom:profession")
-          highest_degree <- getElement(
+          usergroup = getElement(decodedJson$IdToken[[2]], 'custom:usergroup')
+          country = getElement(decodedJson$IdToken[[2]], 'custom:country')
+          profession = getElement(decodedJson$IdToken[[2]], 'custom:profession')
+          highest_degree = getElement(
             decodedJson$IdToken[[2]],
-            "custom:highest_degree"
+            'custom:highest_degree'
           ) # TODO: Normalize to camel case
           if (is.null(type)) {
             if (is.null(researchGroup)) {
-              type <- 0
+              type = 0
             } else {
-              type <- 2
+              type = 2
             }
           }
 
           if (is.null(expirationDate)) {
             # TODO: i COULD do logic with cohort, but why?
-            expirationDate <- "1970-01-01 00:00:00"
+            expirationDate = "1970-01-01 00:00:00"
           }
 
-          admins <- concerto.table.query(
+          admins = concerto.table.query(
             "SELECT * FROM EASI_admins WHERE login='{{login}}' AND enabled=1",
             list(login = email)
           )
           if (nrow(admins) > 0) {
             # User already in table, update user record
             for (i in 1:nrow(admins)) {
-              admin <- admins[i, ]
-              id <- admin$id # Sets admin id for return
-              params <- list(
+              admin = admins[i, ]
+              id = admin$id # Sets admin id for return
+              params = list(
                 id = id,
                 type = type,
                 enabled = 1,
@@ -121,7 +121,7 @@ getAdmin <- function(login, password) {
           } else {
             # User not in table
             # Trust cognito that this user belongs there, and insert it
-            params <- list(
+            params = list(
               id = id,
               type = type,
               enabled = 1,
@@ -137,19 +137,19 @@ getAdmin <- function(login, password) {
               profession = profession,
               highestDegree = highest_degree # TODO: Normalize to camel case
             )
-            newUsers <- concerto.table.query(
+            newUsers = concerto.table.query(
               "INSERT INTO EASI_admins SET login='{{login}}', type='{{type}}', enabled='{{enabled}}', researchGroup='{{researchGroup}}', email='{{email}}', cohort='{{cohort}}', expirationDate='{{expirationDate}}', profession='{{profession}}', country='{{country}}', usergroup='{{usergroup}}', gender='{{gender}}', name='{{name}}'",
               params
             )
           }
-          admins <- concerto.table.query(
+          admins = concerto.table.query(
             "SELECT * FROM EASI_admins WHERE login='{{login}}' AND enabled=1",
             list(login = email)
           )
           if (nrow(admins) > 0) {
             for (i in 1:nrow(admins)) {
-              admin <- admins[i, ]
-              id <- admin$id # Sets admin id for return
+              admin = admins[i, ]
+              id = admin$id # Sets admin id for return
 
               return(list(
                 id = id,
@@ -202,16 +202,16 @@ getAdmin <- function(login, password) {
     )
     return(cognito)
   } else {
-    admins <- concerto.table.query(
+    admins = concerto.table.query(
       "SELECT * FROM EASI_admins WHERE login='{{login}}' AND enabled=1",
       list(login = login)
     )
     if (nrow(admins) > 0) {
       for (i in 1:nrow(admins)) {
-        admin <- admins[i, ]
+        admin = admins[i, ]
         if (!is.na(admin$algo)) {
           library(digest)
-          password <- digest(password, admin$algo, serialize = F)
+          password = digest(password, admin$algo, serialize = F)
         }
 
         if (password == admin$password) {
@@ -238,56 +238,56 @@ getAdmin <- function(login, password) {
   return(NA)
 }
 
-refreshUserProfile <- function(user, token) {
-  loginObject <- cognitoLogInRefreshToken(token)
-  refreshToken <- loginObject$RefreshToken
-  response <- loginObject$response
-  admin <- list()
+refreshUserProfile = function(user, token) {
+  loginObject = cognitoLogInRefreshToken(token)
+  refreshToken = loginObject$RefreshToken
+  response = loginObject$response
+  admin = list()
   if (status_code(response) == 200) {
-    rawJson <- toString(content(response, as = "text"))
-    parsedJson <- fromJSON(rawJson)
+    rawJson = toString(content(response, as = "text"))
+    parsedJson = fromJSON(rawJson)
 
-    decodedJson <- parsedJson$AuthenticationResult
+    decodedJson = parsedJson$AuthenticationResult
     # Splitting jwt at .'s so i can parse
-    decodedJson$IdTokenRaw <- loginObject$IdToken
-    decodedJson$AccessTokenRaw <- loginObject$AccessToken
-    decodedJson$IdToken <- decodeJwt(loginObject$IdToken)
-    decodedJson$AccessToken <- decodeJwt(loginObject$AccessToken)
+    decodedJson$IdTokenRaw = loginObject$IdToken
+    decodedJson$AccessTokenRaw = loginObject$AccessToken
+    decodedJson$IdToken = decodeJwt(loginObject$IdToken)
+    decodedJson$AccessToken = decodeJwt(loginObject$AccessToken)
 
-    email <- decodedJson$IdToken[[2]]$email
-    name <- decodedJson$IdToken[[2]]$name
-    gender <- decodedJson$IdToken[[2]]$gender
-    type <- getElement(decodedJson$IdToken[[2]], "custom:type")
-    researchGroup <- getElement(decodedJson$IdToken[[2]], "custom:researchGroup")
-    cohort <- getElement(decodedJson$IdToken[[2]], "custom:cohort")
-    expirationDate <- getElement(
+    email = decodedJson$IdToken[[2]]$email
+    name = decodedJson$IdToken[[2]]$name
+    gender = decodedJson$IdToken[[2]]$gender
+    type = getElement(decodedJson$IdToken[[2]], 'custom:type')
+    researchGroup = getElement(decodedJson$IdToken[[2]], 'custom:researchGroup')
+    cohort = getElement(decodedJson$IdToken[[2]], 'custom:cohort')
+    expirationDate = getElement(
       decodedJson$IdToken[[2]],
-      "custom:expirationDate"
+      'custom:expirationDate'
     )
-    usergroup <- getElement(decodedJson$IdToken[[2]], "custom:usergroup")
-    country <- getElement(decodedJson$IdToken[[2]], "custom:country")
-    profession <- getElement(decodedJson$IdToken[[2]], "custom:profession")
-    highest_degree <- getElement(
+    usergroup = getElement(decodedJson$IdToken[[2]], 'custom:usergroup')
+    country = getElement(decodedJson$IdToken[[2]], 'custom:country')
+    profession = getElement(decodedJson$IdToken[[2]], 'custom:profession')
+    highest_degree = getElement(
       decodedJson$IdToken[[2]],
-      "custom:highest_degree"
+      'custom:highest_degree'
     ) # TODO: Normalize to camel case
     if (is.null(type)) {
       if (is.null(researchGroup)) {
-        type <- 0
+        type = 0
       } else {
-        type <- 2
+        type = 2
       }
     }
-    admins <- concerto.table.query(
+    admins = concerto.table.query(
       "SELECT * FROM EASI_admins WHERE login='{{login}}' AND enabled=1",
       list(login = email)
     )
     if (nrow(admins) > 0) {
       # Update user record
       for (i in 1:nrow(admins)) {
-        admin <- admins[i, ]
-        id <- admin$id # Sets admin id for return
-        params <- list(
+        admin = admins[i, ]
+        id = admin$id # Sets admin id for return
+        params = list(
           id = id,
           type = type,
           enabled = 1,
@@ -307,16 +307,16 @@ refreshUserProfile <- function(user, token) {
           params
         )
         # Fetch updated user record
-        admins <- concerto.table.query(
+        admins = concerto.table.query(
           "SELECT * FROM EASI_admins WHERE id='{{id}}'",
           list(id = id)
         )
         if (nrow(admins) > 0) {
           for (i in 1:nrow(admins)) {
-            admin <- admins[i, ]
-            id <- admin$id # Sets admin id for return
+            admin = admins[i, ]
+            id = admin$id # Sets admin id for return
 
-            user <- list(
+            user = list(
               id = id,
               login = admin$login,
               email = admin$email,
@@ -346,7 +346,7 @@ refreshUserProfile <- function(user, token) {
     }
   } else {
     # refresh token not valid, logging out user
-    returnValue <- list(
+    returnValue = list(
       user = NULL,
       token = NULL,
       error = NULL
@@ -354,44 +354,44 @@ refreshUserProfile <- function(user, token) {
   }
 }
 
-updateUserProfile <- function(user, token) {
+updateUserProfile = function(user, token) {
   library(httr)
   library(openssl)
   library(caTools)
-  returnValue <- list()
-  id <- user$id
-  email <- user$email
-  name <- user$name
-  gender <- user$gender
-  cohort <- user$cohort
-  highestDegree <- user$highestDegree
-  profession <- user$profession
-  country <- user$country
-  usergroup <- user$usergroup
-  type <- user$type
-  expirationDate <- user$expirationDate
-  researchGroup <- user$researchGroup
+  returnValue = list()
+  id = user$id
+  email = user$email
+  name = user$name
+  gender = user$gender
+  cohort = user$cohort
+  highestDegree = user$highestDegree
+  profession = user$profession
+  country = user$country
+  usergroup = user$usergroup
+  type = user$type
+  expirationDate = user$expirationDate
+  researchGroup = user$researchGroup
 
-  loginObject <- cognitoLogInRefreshToken(token)
-  response <- loginObject$response
+  loginObject = cognitoLogInRefreshToken(token)
+  response = loginObject$response
   if (status_code(response) == 200) {
-    rawJson <- toString(content(response, as = "text"))
-    parsedJson <- fromJSON(rawJson)
+    rawJson = toString(content(response, as = "text"))
+    parsedJson = fromJSON(rawJson)
 
-    decodedJson <- parsedJson$AuthenticationResult
+    decodedJson = parsedJson$AuthenticationResult
     # Splitting jwt at .'s so i can parse
-    decodedJson$IdTokenRaw <- loginObject$IdToken
-    decodedJson$AccessTokenRaw <- loginObject$AccessToken
-    decodedJson$IdToken <- decodeJwt(loginObject$IdToken)
-    decodedJson$AccessToken <- decodeJwt(loginObject$AccessToken)
+    decodedJson$IdTokenRaw = loginObject$IdToken
+    decodedJson$AccessTokenRaw = loginObject$AccessToken
+    decodedJson$IdToken = decodeJwt(loginObject$IdToken)
+    decodedJson$AccessToken = decodeJwt(loginObject$AccessToken)
     if (is.null(type)) {
       if (is.null(researchGroup)) {
-        type <- 0
+        type = 0
       } else {
-        type <- 2
+        type = 2
       }
     }
-    UserAttributes <- list(
+    UserAttributes = list(
       list(Name = "name", Value = name),
       list(Name = "gender", Value = gender),
       list(Name = "custom:cohort", Value = cohort),
@@ -402,9 +402,9 @@ updateUserProfile <- function(user, token) {
       list(Name = "custom:country", Value = country),
       list(Name = "custom:usergroup", Value = usergroup)
     )
-    error <- list()
+    error = list()
     for (Attribute in UserAttributes) {
-      body <- toJSON(list(
+      body = toJSON(list(
         AccessToken = decodedJson$AccessTokenRaw,
         UserAttributes = list(Attribute)
       ))
@@ -418,7 +418,7 @@ updateUserProfile <- function(user, token) {
         encode = "json"
       )
       if (status_code(response) != 200) {
-        error[[Attribute$Name]] <- list(
+        error[[Attribute$Name]] = list(
           Attribute = Attribute,
           body = body,
           status_code = status_code(response)
@@ -426,7 +426,7 @@ updateUserProfile <- function(user, token) {
       }
     }
 
-    params <- list(
+    params = list(
       id = id,
       name = name,
       gender = gender,
@@ -444,14 +444,14 @@ updateUserProfile <- function(user, token) {
       "UPDATE EASI_admins SET type='{{type}}', researchGroup='{{researchGroup}}', highestDegree='{{highestDegree}}', country='{{country}}', usergroup='{{usergroup}}', email='{{email}}', cohort='{{cohort}}', expirationDate='{{expirationDate}}', profession='{{profession}}', gender='{{gender}}', name='{{name}}' WHERE id='{{id}}'",
       params
     )
-    admins <- concerto.table.query(
+    admins = concerto.table.query(
       "SELECT * FROM EASI_admins WHERE id='{{id}}' AND enabled=1",
       list(id = id)
     )
     if (nrow(admins) > 0) {
       for (i in 1:nrow(admins)) {
-        admin <- admins[i, ]
-        user <- list(
+        admin = admins[i, ]
+        user = list(
           id = id,
           login = admin$login,
           email = admin$email,
@@ -469,7 +469,7 @@ updateUserProfile <- function(user, token) {
         )
       }
     }
-    returnValue <- list(
+    returnValue = list(
       user = user,
       token = token,
       error = NULL
@@ -477,7 +477,7 @@ updateUserProfile <- function(user, token) {
     if (length(error) > 0) {
       # https://www.statology.org/r-argument-is-of-length-zero/#:~:text=How%20to%20Avoid%20the%20Error
       # TODO: Figureout what happens if it errors
-      returnValue <- list(
+      returnValue = list(
         user = user,
         token = token,
         error = error
@@ -485,7 +485,7 @@ updateUserProfile <- function(user, token) {
     }
   } else {
     # refresh token not valid, logging out user
-    returnValue <- list(
+    returnValue = list(
       user = NULL,
       token = NULL,
       error = NULL
@@ -494,13 +494,13 @@ updateUserProfile <- function(user, token) {
   returnValue
 }
 
-cognitoLogInUserPassword <- function(user, password) {
+cognitoLogInUserPassword = function(user, password) {
   #  library(httr)
   library(openssl)
   library(caTools)
 
-  returnValue <- list()
-  body <- toJSON(list(
+  returnValue = list()
+  body = toJSON(list(
     AuthParameters = list(
       USERNAME = user,
       PASSWORD = password
@@ -519,19 +519,19 @@ cognitoLogInUserPassword <- function(user, password) {
   )
 
   if (status_code(response) == 200) {
-    rawJson <- toString(content(response, as = "text"))
-    parsedJson <- fromJSON(rawJson)
+    rawJson = toString(content(response, as = "text"))
+    parsedJson = fromJSON(rawJson)
     if ("ChallengeName" %in% names(parsedJson)) {
       if (getElement(parsedJson, "ChallengeName") == "NEW_PASSWORD_REQUIRED") {
-        returnValue <- list(
+        returnValue = list(
           id = -3,
           parsedJson = parsedJson,
           error = "New Password is required."
         )
       }
     } else {
-      decodedJson <- parsedJson$AuthenticationResult
-      returnValue <- list(
+      decodedJson = parsedJson$AuthenticationResult
+      returnValue = list(
         response = response,
         body = body,
         IdTokenRaw = decodedJson$IdToken,
@@ -550,13 +550,13 @@ cognitoLogInUserPassword <- function(user, password) {
   }
 }
 
-cognitoLogInRefreshToken <- function(refreshToken) {
+cognitoLogInRefreshToken = function(refreshToken) {
   library(httr)
   library(openssl)
   library(caTools)
 
-  returnValue <- list()
-  body <- toJSON(list(
+  returnValue = list()
+  body = toJSON(list(
     AuthParameters = list(
       REFRESH_TOKEN = refreshToken
     ),
@@ -574,19 +574,19 @@ cognitoLogInRefreshToken <- function(refreshToken) {
   )
 
   if (status_code(response) == 200) {
-    rawJson <- toString(content(response, as = "text"))
-    parsedJson <- fromJSON(rawJson)
+    rawJson = toString(content(response, as = "text"))
+    parsedJson = fromJSON(rawJson)
     if ("ChallengeName" %in% names(parsedJson)) {
       if (getElement(parsedJson, "ChallengeName") == "NEW_PASSWORD_REQUIRED") {
-        returnValue <- list(
+        returnValue = list(
           id = -3,
           parsedJson = parsedJson,
           error = "New Password is required."
         )
       }
     } else {
-      decodedJson <- parsedJson$AuthenticationResult
-      returnValue <- list(
+      decodedJson = parsedJson$AuthenticationResult
+      returnValue = list(
         response = response,
         body = body,
         IdTokenRaw = decodedJson$IdToken,
@@ -603,12 +603,12 @@ cognitoLogInRefreshToken <- function(refreshToken) {
   }
 }
 
-cognitoLogInCode <- function(code) {
+cognitoLogInCode = function(code) {
   library(httr)
   library(openssl)
   library(caTools)
-  returnValue <- list()
-  body <- paste0(
+  returnValue = list()
+  body = paste0(
     "grant_type=authorization_code&code=",
     code,
     "&client_id=",
@@ -625,10 +625,10 @@ cognitoLogInCode <- function(code) {
     encode = "json"
   )
   if (status_code(response) == 200) {
-    rawJson <- toString(content(response, as = "text"))
-    decodedJson <- fromJSON(rawJson)
+    rawJson = toString(content(response, as = "text"))
+    decodedJson = fromJSON(rawJson)
 
-    returnValue <- list(
+    returnValue = list(
       response = response,
       body = body,
       IdTokenRaw = decodedJson$id_token,
@@ -636,7 +636,7 @@ cognitoLogInCode <- function(code) {
       RefreshTokenRaw = decodedJson$refresh_token
     )
   } else {
-    returnValue <- list(
+    returnValue = list(
       response = response,
       body = body,
       IdTokenRaw = NULL,
@@ -647,11 +647,11 @@ cognitoLogInCode <- function(code) {
   returnValue
 }
 
-decodeJwt <- function(rawJwt) {
+decodeJwt = function(rawJwt) {
   library(httr)
   library(openssl)
   library(caTools)
-  splitRawJwt <- list(
+  splitRawJwt = list(
     # Split jwt at periods
     strsplit(rawJwt, "\\.")[[1]][1],
     strsplit(rawJwt, "\\.")[[1]][2]
@@ -661,7 +661,7 @@ decodeJwt <- function(rawJwt) {
   # %% = 1 -> 3
   # %% = 2 -> 2
   # %% = 3 -> 1
-  modNum <- list(
+  modNum = list(
     # number of equals to pad. Needs to be multiple of 4 characters, hence the modulus 4
     if ((nchar(splitRawJwt[[1]]) %% 4) == 0) {
       0
@@ -674,7 +674,7 @@ decodeJwt <- function(rawJwt) {
       (4 - (nchar(splitRawJwt[[2]]) %% 4))
     }
   )
-  splitRawPaddedJwt <- list(
+  splitRawPaddedJwt = list(
     # padding equals using modNum
     paste0(
       splitRawJwt[[1]],
@@ -685,33 +685,33 @@ decodeJwt <- function(rawJwt) {
       strrep("=", modNum[[2]])
     )
   )
-  parsedJwt <- list(
+  parsedJwt = list(
     fromJSON(base64decode(splitRawPaddedJwt[[1]], typeof("String"))),
     fromJSON(base64decode(splitRawPaddedJwt[[2]], typeof("String")))
   )
   parsedJwt
 }
 
-getOrderSql <- function(order, validColumns) {
-  orderDir <- "ASC"
+getOrderSql = function(order, validColumns) {
+  orderDir = "ASC"
 
   if (substr(order, 1, 1) == "-") {
-    orderDir <- "DESC"
-    order <- substring(order, 2)
+    orderDir = "DESC"
+    order = substring(order, 2)
   }
 
   if (!order %in% names(validColumns)) {
-    order <- names(validColumns)[1]
+    order = names(validColumns)[1]
   }
 
   paste0(validColumns[[order]], " ", orderDir)
 }
 
-getFilterCompNumericSql <- function(filterName, filters, colName = filterName) {
+getFilterCompNumericSql = function(filterName, filters, colName = filterName) {
   if (
     filters[[filterName]]$enabled && length(filters[[filterName]]$value) > 0
   ) {
-    sql <- paste0("p.", colName, " IN ({{value}})")
+    sql = paste0("p.", colName, " IN ({{value}})")
     return(concerto.table.insertParams(
       sql,
       list(
@@ -722,7 +722,7 @@ getFilterCompNumericSql <- function(filterName, filters, colName = filterName) {
   NULL
 }
 
-getFilterCompTextArraySql <- function(
+getFilterCompTextArraySql = function(
   filterName,
   filters,
   colName = filterName
@@ -730,10 +730,10 @@ getFilterCompTextArraySql <- function(
   if (
     filters[[filterName]]$enabled && length(filters[[filterName]]$value) > 0
   ) {
-    sqlTemplate <- paste0("p.", colName, " = '{{value}}'")
-    sql <- NULL
+    sqlTemplate = paste0("p.", colName, " = '{{value}}'")
+    sql = NULL
     for (i in 1:length(filters[[filterName]]$value)) {
-      sql <- c(
+      sql = c(
         sql,
         concerto.table.insertParams(
           sqlTemplate,
@@ -746,7 +746,7 @@ getFilterCompTextArraySql <- function(
   NULL
 }
 
-getFilterCompTextMultiArraySql <- function(
+getFilterCompTextMultiArraySql = function(
   filterName,
   filters,
   colName = filterName
@@ -754,10 +754,10 @@ getFilterCompTextMultiArraySql <- function(
   if (
     filters[[filterName]]$enabled && length(filters[[filterName]]$value) > 0
   ) {
-    sqlTemplate <- paste0("JSON_CONTAINS(p.", colName, ", '\"{{value}}\"')")
-    sql <- NULL
+    sqlTemplate = paste0("JSON_CONTAINS(p.", colName, ", '\"{{value}}\"')")
+    sql = NULL
     for (i in 1:length(filters[[filterName]]$value)) {
-      sql <- c(
+      sql = c(
         sql,
         concerto.table.insertParams(
           sqlTemplate,
@@ -770,19 +770,19 @@ getFilterCompTextMultiArraySql <- function(
   NULL
 }
 
-getFilterCompTextSingleSql <- function(
+getFilterCompTextSingleSql = function(
   filterName,
   filters,
   colName = filterName,
   alias = "p"
 ) {
-  prefix <- if (alias == "") "" else paste0(alias, ".")
+  prefix = if (alias == "") "" else paste0(alias, ".")
   if (
     filters[[filterName]]$enabled &&
       length(filters[[filterName]]$value) > 0 &&
-      filters[[filterName]]$value != ""
+      filters[[filterName]]$value != ''
   ) {
-    sql <- paste0(prefix, colName, " REGEXP '{{value}}'")
+    sql = paste0(prefix, colName, " REGEXP '{{value}}'")
     return(concerto.table.insertParams(
       sql,
       list(value = filters[[filterName]]$value)
@@ -791,45 +791,45 @@ getFilterCompTextSingleSql <- function(
   NULL
 }
 
-getFilterCompDateSql <- function(filterName, filters, colName = filterName) {
+getFilterCompDateSql = function(filterName, filters, colName = filterName) {
   if (filters[[filterName]]$enabled) {
     if (filters[[filterName]]$operator == "equal") {
-      sql <- paste0("p.", colName, " = '{{value1}}'")
+      sql = paste0("p.", colName, " = '{{value1}}'")
       return(concerto.table.insertParams(
         sql,
         list(value1 = filters[[filterName]]$value1)
       ))
     }
     if (filters[[filterName]]$operator == "lesser") {
-      sql <- paste0("p.", colName, " < '{{value1}}'")
+      sql = paste0("p.", colName, " < '{{value1}}'")
       return(concerto.table.insertParams(
         sql,
         list(value1 = filters[[filterName]]$value1)
       ))
     }
     if (filters[[filterName]]$operator == "lesserOrEqual") {
-      sql <- paste0("p.", colName, " <= '{{value1}}'")
+      sql = paste0("p.", colName, " <= '{{value1}}'")
       return(concerto.table.insertParams(
         sql,
         list(value1 = filters[[filterName]]$value1)
       ))
     }
     if (filters[[filterName]]$operator == "greater") {
-      sql <- paste0("p.", colName, " > '{{value1}}'")
+      sql = paste0("p.", colName, " > '{{value1}}'")
       return(concerto.table.insertParams(
         sql,
         list(value1 = filters[[filterName]]$value1)
       ))
     }
     if (filters[[filterName]]$operator == "greaterOrEqual") {
-      sql <- paste0("p.", colName, " >= '{{value1}}'")
+      sql = paste0("p.", colName, " >= '{{value1}}'")
       return(concerto.table.insertParams(
         sql,
         list(value1 = filters[[filterName]]$value1)
       ))
     }
     if (filters[[filterName]]$operator == "between") {
-      sql <- paste0("(p.", colName, " BETWEEN '{{value1}}' AND '{{value2}}')")
+      sql = paste0("(p.", colName, " BETWEEN '{{value1}}' AND '{{value2}}')")
       return(concerto.table.insertParams(
         sql,
         list(
@@ -842,72 +842,72 @@ getFilterCompDateSql <- function(filterName, filters, colName = filterName) {
   NULL
 }
 
-getFilterSql <- function(filters) {
+getFilterSql = function(filters) {
   if (is.character(filters)) {
-    filters <- jsonlite::fromJSON(filters, simplifyVector = FALSE)
+    filters = jsonlite::fromJSON(filters, simplifyVector = FALSE)
   }
+  
+  comps = 1
 
-  comps <- 1
+  #admin
+  comps = c(comps, getFilterCompTextSingleSql("admin", filters, "login", "a"))
 
-  # admin
-  comps <- c(comps, getFilterCompTextSingleSql("admin", filters, "login", "a"))
+  #archived
+  comps = c(comps, getFilterCompNumericSql("archived", filters))
 
-  # archived
-  comps <- c(comps, getFilterCompNumericSql("archived", filters))
+  #assessmentReason
+  comps = c(comps, getFilterCompTextArraySql("assessmentReason", filters))
 
-  # assessmentReason
-  comps <- c(comps, getFilterCompTextArraySql("assessmentReason", filters))
-
-  # clinicalAssessmentReferrer
-  comps <- c(
+  #clinicalAssessmentReferrer
+  comps = c(
     comps,
     getFilterCompTextArraySql("clinicalAssessmentReferrer", filters)
   )
 
-  # countryOfResidence
-  comps <- c(comps, getFilterCompTextArraySql("countryOfResidence", filters))
+  #countryOfResidence
+  comps = c(comps, getFilterCompTextArraySql("countryOfResidence", filters))
 
-  # customId
-  comps <- c(comps, getFilterCompTextSingleSql("customId", filters))
+  #customId
+  comps = c(comps, getFilterCompTextSingleSql("customId", filters))
 
-  # dateOfBirth
-  comps <- c(comps, getFilterCompDateSql("dateOfBirth", filters))
+  #dateOfBirth
+  comps = c(comps, getFilterCompDateSql("dateOfBirth", filters))
 
-  # diagnoses
-  comps <- c(comps, getFilterCompNumericSql("diagnoses", filters))
+  #diagnoses
+  comps = c(comps, getFilterCompNumericSql("diagnoses", filters))
 
-  # diagnosesSelected
-  comps <- c(comps, getFilterCompTextMultiArraySql("diagnosesSelected", filters))
+  #diagnosesSelected
+  comps = c(comps, getFilterCompTextMultiArraySql("diagnosesSelected", filters))
 
-  # email
-  comps <- c(comps, getFilterCompTextSingleSql("email", filters))
+  #email
+  comps = c(comps, getFilterCompTextSingleSql("email", filters))
 
-  # exportExclusion
-  comps <- c(comps, getFilterCompNumericSql("exportExclusion", filters))
+  #exportExclusion
+  comps = c(comps, getFilterCompNumericSql("exportExclusion", filters))
 
-  # gender
-  comps <- c(comps, getFilterCompTextArraySql("gender", filters))
+  #gender
+  comps = c(comps, getFilterCompTextArraySql("gender", filters))
 
-  # id
-  comps <- c(comps, getFilterCompTextSingleSql("id", filters))
+  #id
+  comps = c(comps, getFilterCompTextSingleSql("id", filters))
 
-  # initials
-  comps <- c(comps, getFilterCompTextSingleSql("initials", filters))
+  #initials
+  comps = c(comps, getFilterCompTextSingleSql("initials", filters))
 
-  # lastAssessment
-  comps <- c(
+  #lastAssessment
+  comps = c(
     comps,
     getFilterCompDateSql("lastAssessment", filters, "lastAssessmentDate")
   )
 
-  # primaryLanguage
-  comps <- c(
+  #primaryLanguage
+  comps = c(
     comps,
     getFilterCompTextArraySql("primaryLanguage", filters, "languageCode")
   )
 
-  # researchProjectSelected
-  comps <- c(
+  #researchProjectSelected
+  comps = c(
     comps,
     getFilterCompTextMultiArraySql("researchProjectSelected", filters)
   )
@@ -915,14 +915,14 @@ getFilterSql <- function(filters) {
   paste0(comps, collapse = " AND ")
 }
 
-getExcludedIdsSql <- function(excludedIds, alias = "") {
+getExcludedIdsSql = function(excludedIds, alias = "") {
   if (length(excludedIds) == 0) {
     return("")
   }
 
-  prefix <- if (alias == "") "" else paste0(alias, ".")
+  prefix = if (alias == "") "" else paste0(alias, ".")
 
-  excludedIds <- paste0(
+  excludedIds = paste0(
     as.numeric(names(excludedIds)),
     collapse = ","
   )
@@ -936,15 +936,16 @@ getExcludedIdsSql <- function(excludedIds, alias = "") {
   )
 }
 
-getLimitSql <- function(query) {
+getLimitSql = function(query) {
   if (is.null(query$limit) || query$limit == "") {
     return("")
   }
-  startIndex <- as.numeric(query$limit) * (as.numeric(query$page) - 1)
+  startIndex = as.numeric(query$limit) * (as.numeric(query$page) - 1)
   paste0("LIMIT ", startIndex, ", ", query$limit)
 }
 
-getSearchStringSql <- function(searchString) {
+getSearchStringSql = function(searchString) {
+  
   if (is.null(searchString) || trimws(searchString) == "") {
     return("")
   }
@@ -963,13 +964,13 @@ getSearchStringSql <- function(searchString) {
        'longtext'
       )
     ")
-
-  if (is.null(cols) || nrow(cols) == 0) {
-    return("")
-  }
-
-  escapedSearchString <- gsub("'", "''", searchString)
-  searchConditions <- paste(
+    
+    if (is.null(cols) || nrow(cols) == 0) {
+      return("")
+    }
+    
+    escapedSearchString <- gsub("'", "''", searchString)
+    searchConditions <- paste(
     paste0("p.", cols$COLUMN_NAME, " LIKE '%", escapedSearchString, "%'"),
     collapse = " OR "
   )
@@ -977,8 +978,8 @@ getSearchStringSql <- function(searchString) {
   return(paste0(" AND (", searchConditions, ")"))
 }
 
-fetchAdmins <- function(query) {
-  admin <- c.get("admin", T)
+fetchAdmins = function(query) {
+  admin = c.get("admin", T)
   if (!is.list(admin)) {
     return(NULL)
   }
@@ -989,54 +990,55 @@ fetchAdmins <- function(query) {
   concerto.table.query("SELECT id, login FROM EASI_admins ORDER BY login ASC")
 }
 
-fetchParticipantsInternal <- function(query, filters) {
-  admin <- c.get("admin", T)
+fetchParticipantsInternal = function(query, filters) {
+  admin = c.get("admin", T)
   if (!is.list(admin)) {
     return(NULL)
   }
 
-  validColumns <- c(
-    id = "p.id",
-    initials = "p.initials",
-    dateOfBirth = "p.dateOfBirth",
-    gender = "p.gender"
-  )
+  validColumns = c(
+  id = "p.id",
+  initials = "p.initials",
+  dateOfBirth = "p.dateOfBirth",
+  gender = "p.gender",
+  lastAssessmentDate = "p.lastAssessmentDate"
+ )
 
-  orderSql <- getOrderSql(query$order, validColumns)
-  filterSql <- getFilterSql(filters)
-  limitSql <- getLimitSql(query)
-  permissionSql <- getAdminPermissionSql(admin, "p")
-  searchStringSql <- getSearchStringSql(query$searchString)
+  orderSql = getOrderSql(query$order, validColumns)
+  filterSql = getFilterSql(filters)
+  limitSql = getLimitSql(query)
+  permissionSql = getAdminPermissionSql(admin, "p")
+  searchStringSql = getSearchStringSql(query$searchString)
 
-  params <- list(
+  params = list(
     admin_id = admin$id,
     admin_researchGroup = admin$researchGroup,
     orderSql = orderSql,
     limitSql = limitSql
   )
 
-  collectionSql <- paste0(
+  collectionSql = paste0(
     "SELECT p.*, a.login AS adminLogin FROM EASI_participants AS p
      LEFT JOIN EASI_admins as a ON a.id=p.admin_id
      WHERE ",
-    filterSql,
-    permissionSql,
-    searchStringSql,
-    " ORDER BY {{orderSql}} {{limitSql}}"
-  )
-  totalCountSql <- paste0(
-    "SELECT COUNT(*) FROM EASI_participants AS p
+      filterSql,
+      permissionSql,
+      searchStringSql,
+      " ORDER BY {{orderSql}} {{limitSql}}"
+      ) 
+  totalCountSql = paste0(
+      "SELECT COUNT(*) FROM EASI_participants AS p 
       LEFT JOIN EASI_admins as a ON a.id=p.admin_id
       WHERE ",
-    filterSql,
-    permissionSql,
-    searchStringSql
-  )
+      filterSql,
+      permissionSql,
+      searchStringSql
+    )
 
   tryCatch(
     {
-      collection <- concerto.table.query(collectionSql, params)
-      totalCountResult <- concerto.table.query(totalCountSql, params)
+      collection = concerto.table.query(collectionSql, params)
+      totalCountResult = concerto.table.query(totalCountSql, params)
 
       list(
         success = TRUE,
@@ -1056,24 +1058,24 @@ fetchParticipantsInternal <- function(query, filters) {
   )
 }
 
-fetchSingleParticipant <- function(id) {
-  admin <- c.get("admin", T)
+fetchSingleParticipant = function(id) {
+  admin = c.get("admin", T)
   if (!is.list(admin)) {
     return(NULL)
   }
-  permissionSql <- getAdminPermissionSql(admin, "p")
-  params <- list(
+  permissionSql = getAdminPermissionSql(admin, "p")
+  params = list(
     id = id,
     admin_id = admin$id,
     admin_researchGroup = admin$researchGroup
   )
-  query <- paste0(
+  query = paste0(
     "SELECT * FROM EASI_participants p ",
-    "WHERE id='{{id}}'",
-    permissionSql
-  )
-  participant <- concerto.table.query(
-    query,
+      "WHERE id='{{id}}'",
+      permissionSql
+    )
+  participant = concerto.table.query(
+    query, 
     params
   )
   if (nrow(participant) == 1) {
@@ -1087,151 +1089,151 @@ getAdminPermissionSql <- function(admin, alias = "") {
   prefix <- if (alias == "") "" else paste0(alias, ".")
 
   if (admin$type == 2) {
-    # group admin: own records OR same research group
+    # Group admin: own records OR records in the same research group
     return(paste0(
       " AND (",
-      prefix,
-      "admin_id='{{admin_id}}' OR ",
-      prefix,
-      "researchGroup='{{admin_researchGroup}}')"
+      prefix, "admin_id = ", admin$id,
+      " OR ",
+      prefix, "researchGroup = '", admin$researchGroup, "')"
     ))
   }
 
   if (admin$type == 1) {
-    # super user: no restriction
+    # Super user: no restriction
     return("")
   }
 
   if (admin$type == 0) {
-    # regular admin: only own records
-    return(paste0(" AND ", prefix, "admin_id='{{admin_id}}'"))
+    # Regular admin: only own records
+    return(paste0(
+      " AND ",
+      prefix, "admin_id = ", admin$id
+    ))
   }
 
   stop("Unknown admin type")
 }
 
-deleteParticipantsTransactions <- function(selection) {
-  admin <- c.get("admin", T)
+deleteParticipantsTransactions = function(selection) {
+
+  admin = c.get("admin", T)
   if (!is.list(admin)) {
     return(NULL)
   }
-  permissionSql <- getAdminPermissionSql(admin, "p")
-  participantIds <- getParticipantIdsForSelection(selection, admin)
+  permissionSql = getAdminPermissionSql(admin, "p")
+  participantIds = getParticipantIdsForSelection(selection, admin)
   if (length(participantIds) == 0) {
     return(NULL)
   }
-  participantIdsSql <- paste0(as.numeric(participantIds), collapse = ",")
-  testCodes <- concerto.table.query("SELECT code FROM EASI_tests")
+  participantIdsSql = paste0(as.numeric(participantIds), collapse = ",")
+  testCodes = concerto.table.query("SELECT code FROM EASI_tests")  
 
-  tryCatch(
-    {
-      id1 <- concerto.table.query("SELECT CONNECTION_ID() AS id")
-      concerto.table.query("START TRANSACTION")
-      for (testCode in testCodes$code) {
-        if (is.na(testCode) || testCode == "") {
-          next
-        }
-        sessionTable <- paste0(testCode, "_sessions")
-        responseTable <- paste0(testCode, "_responses")
-        scoreTable <- paste0(testCode, "_scores")
+  tryCatch({
+    id1 = concerto.table.query("SELECT CONNECTION_ID() AS id")
+    concerto.table.query("START TRANSACTION")
+    for (testCode in testCodes$code) {
 
-        # get sessions for these participants
-        sessions <- concerto.table.query(
+	  if (is.na(testCode) || testCode == "") {
+	    next
+	  }
+      sessionTable  = paste0(testCode, "_sessions")
+      responseTable = paste0(testCode, "_responses")
+      scoreTable    = paste0(testCode, "_scores")
+
+      # get sessions for these participants
+      sessions = concerto.table.query(
+        paste0(
+          "SELECT id FROM ", sessionTable,
+          " WHERE participant_id IN (", participantIdsSql, ")"
+        )
+      )
+
+      if (nrow(sessions) > 0) {
+        sessionIdsSql = paste0(sessions$id, collapse = ",")
+        concerto.table.query(
           paste0(
-            "SELECT id FROM ", sessionTable,
-            " WHERE participant_id IN (", participantIdsSql, ")"
+            "DELETE FROM ", responseTable,
+            " WHERE session_id IN (", sessionIdsSql, ")"
+          )
+        )
+        concerto.table.query(
+          paste0(
+            "DELETE FROM ", scoreTable,
+            " WHERE session_id IN (", sessionIdsSql, ")"
           )
         )
 
-        if (nrow(sessions) > 0) {
-          sessionIdsSql <- paste0(sessions$id, collapse = ",")
-          concerto.table.query(
-            paste0(
-              "DELETE FROM ", responseTable,
-              " WHERE session_id IN (", sessionIdsSql, ")"
-            )
+        concerto.table.query(
+          paste0(
+            "DELETE FROM ", sessionTable,
+            " WHERE id IN (", sessionIdsSql, ")"
           )
-          concerto.table.query(
-            paste0(
-              "DELETE FROM ", scoreTable,
-              " WHERE session_id IN (", sessionIdsSql, ")"
-            )
-          )
+        )
+    
+      } # end of if sessions > 0
+    } # end of loop thru tests
 
-          concerto.table.query(
-            paste0(
-              "DELETE FROM ", sessionTable,
-              " WHERE id IN (", sessionIdsSql, ")"
-            )
-          )
-        } # end of if sessions > 0
-      } # end of loop thru tests
+    params = list(
+      admin_id = admin$id,
+      admin_researchGroup = admin$researchGroup,
+      ids = participantIdsSql
+    )
+    query = paste0(
+      "DELETE p FROM EASI_participants p ",
+      "WHERE p.id IN ({{ids}})",
+      permissionSql
+    )
+    concerto.table.query(query, params)
+    id2 = concerto.table.query("SELECT CONNECTION_ID() AS id")
 
-      params <- list(
-        admin_id = admin$id,
-        admin_researchGroup = admin$researchGroup,
-        ids = participantIdsSql
-      )
-      query <- paste0(
-        "DELETE p FROM EASI_participants p ",
-        "WHERE p.id IN ({{ids}})",
-        permissionSql
-      )
-      concerto.table.query(query, params)
-      id2 <- concerto.table.query("SELECT CONNECTION_ID() AS id")
-
-      concerto.table.query("COMMIT")
-    },
-    error = function(e) {
-      concerto.table.query("ROLLBACK")
-      concerto.log(e, "deleteParticipants failed")
-      stop(e)
-    }
-  )
+    concerto.table.query("COMMIT")
+      
+  }, error = function(e) {
+    concerto.table.query("ROLLBACK")
+    concerto.log(e, "deleteParticipants failed")
+    stop(e)
+  })
   return(NULL)
 }
 
-getParticipantMonths <- function(dateOfBirth, assessmentDate) {
-  days <- as.numeric(difftime(
+getParticipantMonths = function(dateOfBirth, assessmentDate) {
+  days = as.numeric(difftime(
     as.POSIXct(assessmentDate, tz = "UTC"),
     as.POSIXct(dateOfBirth, tz = "UTC")
   ))
   round(days / 30.4375)
 }
 
-# TODO if test uses new algorithm then get extra settings
-# What about composite scores here
-getTestSettings <- function(test, numberOfMonths) {
-  settingsTable <- paste0(test$code, "_settings")
+getTestSettings = function(test, numberOfMonths) {
+  settingsTable = paste0(test$code, "_settings")
 
-  extraSettings <- concerto.table.query(
+  extraSettings = concerto.table.query(
     "
-    SELECT *
-    FROM {{settingsTable}}
-    WHERE
-      (minParticipantMonths<='{{months}}' OR minParticipantMonths IS NULL)
+    SELECT * 
+    FROM {{settingsTable}} 
+    WHERE 
+      (minParticipantMonths<='{{months}}' OR minParticipantMonths IS NULL) 
       AND
       (maxParticipantMonths>='{{months}}' OR maxParticipantMonths IS NULL)
     ",
     list(
-      settingsTable = settingsTable,
-      months = numberOfMonths
-    )
+      settingsTable = settingsTable, 
+      months = numberOfMonths)
   )
-  settings <- list()
-  settings$scoringalgo <- test$scoringAlgo
+  settings = list()
+  settings$scoringalgo = test$scoringAlgo
 
   if (nrow(extraSettings) > 0) {
     for (i in 1:nrow(extraSettings)) {
-      extraSetting <- as.list(extraSettings[i, ])
-      settings[[tolower(extraSetting$name)]] <- extraSetting$value
+      extraSetting = as.list(extraSettings[i, ])
+      settings[[tolower(extraSetting$name)]] = extraSetting$value
     }
   }
   settings
 }
 
-saveScores <- function(testCode, session, scores) {
-  scoresTable <- paste0(testCode, "_scores")
+saveScores = function(testCode, session, scores) { 
+  scoresTable = paste0(testCode, "_scores")
 
   concerto.table.query(
     "DELETE FROM {{scoresTable}} WHERE session_id='{{session_id}}'",
@@ -1242,15 +1244,15 @@ saveScores <- function(testCode, session, scores) {
   )
 
   if (is.list(scores) && length(scores) > 0) {
-    insertSql <- concerto.table.insertParams(
+    insertSql = concerto.table.insertParams(
       "INSERT INTO {{scoresTable}} (session_id, name, value, timeCreated, participant_id) VALUES ",
       list(scoresTable = scoresTable)
     )
 
-    scoreValuesSqlArray <- NULL
+    scoreValuesSqlArray = NULL
 
     for (scoreName in names(scores)) {
-      scoreValuesSql <- concerto.table.insertParams(
+      scoreValuesSql = concerto.table.insertParams(
         "('{{session_id}}', '{{name}}', IF('{{value}}'='', NULL, '{{value}}'), NOW(), '{{participant_id}}')",
         list(
           session_id = session$id,
@@ -1260,60 +1262,60 @@ saveScores <- function(testCode, session, scores) {
         )
       )
 
-      scoreValuesSqlArray <- c(scoreValuesSqlArray, scoreValuesSql)
+      scoreValuesSqlArray = c(scoreValuesSqlArray, scoreValuesSql)
     }
 
-    insertSql <- paste0(insertSql, paste0(scoreValuesSqlArray, collapse = ","))
+    insertSql = paste0(insertSql, paste0(scoreValuesSqlArray, collapse = ","))
     concerto.table.query(insertSql)
   }
 }
 
 # TODO: need to recalc based on method for test
 
-recalculateScores <- function(participantId) {
-  tests <- concerto.table.query(
+recalculateScores = function(participantId) {
+  tests = concerto.table.query(
     "SELECT * FROM EASI_tests"
   )
-  participant <- fetchSingleParticipant(participantId)
+  participant = fetchSingleParticipant(participantId)
 
   tryCatch(
     {
       concerto.table.query("START TRANSACTION")
       for (i in seq_len(nrow(tests))) {
-        test <- tests[i, ]
-        testCode <- test$code
-        scoringAlgo <- test$scoringAlgo
+        test = tests[i, ]
+        testCode = test$code
+        scoringAlgo = test$scoringAlgo
         if (is.na(testCode) || testCode == "") {
           next
         }
-        sessionTable <- paste0(testCode, "_sessions")
-        responseTable <- paste0(testCode, "_responses")
-        scoreTable <- paste0(testCode, "_scores")
-        settingsTable <- paste0(testCode, "_settings")
+        sessionTable = paste0(testCode, "_sessions")
+        responseTable = paste0(testCode, "_responses")
+        scoreTable = paste0(testCode, "_scores")
+        settingsTable = paste0(testCode, "_settings")
 
         # get sessions for these participants
-        sessions <- concerto.table.query(
-          paste0(
-            "SELECT * FROM ",
-            sessionTable,
-            " WHERE participant_id='{{id}}'"
-          ),
-          list(id = participant$id)
-        )
+        sessions = concerto.table.query(
+        paste0(
+          "SELECT * FROM ",
+          sessionTable,
+          " WHERE participant_id='{{id}}'"
+        ),
+        list(id = participant$id)
+        )        
 
         for (i in seq_len(nrow(sessions))) {
-          session <- sessions[i, ]
+          session = sessions[i, ]
 
           if (session$status == 2) {
             # test has been administered, update this one
-            participantMonths <- getParticipantMonths(
+            participantMonths = getParticipantMonths(
               participant$dateOfBirth,
               session$dateAssessment
             )
-            params <- list(
+            params = list(
               sessionId = session$id
             )
-            responses <- concerto.table.query(
+            responses = concerto.table.query(
               paste0(
                 "SELECT * FROM ",
                 responseTable,
@@ -1321,15 +1323,15 @@ recalculateScores <- function(participantId) {
               ),
               params
             )
-            settings <- getTestSettings(test, participantMonths)
-            scores <- list()
+            settings = getTestSettings(test, participantMonths)
+            scores = list()
             if (
               !is.null(settings$scoringalgo) &&
-                !is.na(settings$scoringalgo) &&
-                trimws(settings$scoringalgo) != ""
+              !is.na(settings$scoringalgo) &&
+              trimws(settings$scoringalgo) != ""
             ) {
-              scoringModuleName <- paste0("EASI-scoring-", settings$scoringalgo)
-              scores <- concerto.test.run(
+              scoringModuleName = paste0("EASI-scoring-", settings$scoringalgo)
+              scores = concerto.test.run(
                 scoringModuleName,
                 list(
                   items = NULL,
@@ -1341,7 +1343,7 @@ recalculateScores <- function(participantId) {
                 )
               )$scores
             } else {
-              scores <- list(
+              scores = list(
                 "raw score" = sum(responses$score, na.rm = TRUE)
               )
             }
@@ -1362,25 +1364,25 @@ recalculateScores <- function(participantId) {
 }
 
 
-toggleArchivedParticipants <- function(selection) {
-  admin <- c.get("admin", T)
+toggleArchivedParticipants = function(selection) {
+  admin = c.get("admin", T)
   if (!is.list(admin)) {
     return(NULL)
   }
-
-  permissionSql <- getAdminPermissionSql(admin, "p")
-  params <- list(
+  
+  permissionSql = getAdminPermissionSql(admin, "p")
+  params = list(
     admin_id = admin$id,
     admin_researchGroup = admin$researchGroup
   )
 
   # for the inclusive case
   if (selection$mode == "allMatching") {
-    query <- list(filters = selection$filters)
-    filterSql <- getFilterSql(query)
-    exclusionClause <- getExcludedIdsSql(selection$excludedIds, "p")
+    query = list(filters = selection$filters)
+    filterSql = getFilterSql(query)
+    exclusionClause = getExcludedIdsSql(selection$excludedIds, "p")
 
-    query <- paste0(
+    query = paste0(
       "UPDATE EASI_participants p SET archived=ABS(archived-1) ",
       "WHERE ",
       filterSql,
@@ -1393,26 +1395,27 @@ toggleArchivedParticipants <- function(selection) {
   }
 
   # for the exclusive case
-  ids <- paste0(
+  ids = paste0(
     as.numeric(names(selection$includedIds)),
     collapse = ","
   )
 
-  params$ids <- ids
-  query <- paste0(
+  params$ids = ids
+  query = paste0(
     "UPDATE EASI_participants p SET archived=ABS(archived-1) ",
     "WHERE p.id IN ({{ids}})",
     permissionSql
   )
   concerto.table.query(query, params)
-  return(NULL)
+    return(NULL)
+
 }
 
-generateRandomId <- function() {
-  id <- NULL
+generateRandomId = function() {
+  id = NULL
   while (T) {
-    id <- paste0(sample(c(0:9, letters), 6, replace = T), collapse = "")
-    result <- concerto.table.query(
+    id = paste0(sample(c(0:9, letters), 6, replace = T), collapse = "")
+    result = concerto.table.query(
       "SELECT COUNT(*) FROM EASI_participants WHERE customId='{{id}}'",
       list(id = id)
     )
@@ -1424,16 +1427,16 @@ generateRandomId <- function() {
   id
 }
 
-addParticipant <- function(participant) {
-  admin <- c.get("admin", T)
+addParticipant = function(participant) {
+  admin = c.get("admin", T)
   if (!is.list(admin)) {
     return(NULL)
   }
 
-  params <- participant
-  params$admin_id <- admin$id
-  params$customId <- generateRandomId()
-
+  params = participant
+  params$admin_id = admin$id
+  params$customId = generateRandomId()
+  
   concerto.table.query(
     "
 INSERT INTO EASI_participants SET
@@ -1446,46 +1449,46 @@ researchProjectSelected='[]'
   )
   as.list(concerto.table.query(
     "SELECT * FROM EASI_participants WHERE customId='{{customId}}'",
-    list(customId = params$customId)
-  ))
+    list(customId = params$customId))
+  )
 }
 
-createParticipant <- function(participant) {
-  admin <- c.get("admin", T)
+createParticipant = function(participant) {
+  admin = c.get("admin", T)
   if (!is.list(admin)) {
     return(NULL)
   }
+  
+#concerto.log(
+#  jsonlite::toJSON(participant, pretty = TRUE, auto_unbox = TRUE)
+#)
 
-  # concerto.log(
-  #  jsonlite::toJSON(participant, pretty = TRUE, auto_unbox = TRUE)
-  # )
-
-  customId <- generateRandomId()
-  demographicsToken <- generateRandomId()
-  params <- list(
-    customId = customId,
-    dateOfBirth = participant$dateOfBirth,
-    countryOfResidence = participant$countryOfResidence,
-    admin_id = admin$id,
-    gender = participant$gender,
-    languageCode = participant$languageCode,
-    diagnoses = participant$diagnoses,
-    diagnosesSelected = participant$diagnosesSelected,
-    valid = as.numeric(participant$valid == "true"),
-    demographicsStatus = participant$demographicsStatus,
-    demographicsToken = demographicsToken,
-    initials = participant$initials,
-    email = participant$email,
-    assessmentReason = participant$assessmentReason,
-    clinicalAssessmentReferrer = participant$clinicalAssessmentReferrer,
-    researchProjectSelected = participant$researchProjectSelected,
-    researchGroup = participant$researchGroup,
-    # lastAssessmentDate = participant$lastAssessmentDate,
-    archived = as.numeric(participant$archived == "true"),
-    exportExclusion = as.numeric(participant$exportExclusion == "true")
-  )
+  customId = generateRandomId()
+  demographicsToken = generateRandomId()
+  params = list(
+  customId = customId,
+  dateOfBirth = participant$dateOfBirth,
+  countryOfResidence = participant$countryOfResidence,
+  admin_id = admin$id,
+  gender = participant$gender,
+  languageCode = participant$languageCode,
+  diagnoses = participant$diagnoses,
+  diagnosesSelected = participant$diagnosesSelected,
+  valid = as.numeric(participant$valid == "true"),
+  demographicsStatus = participant$demographicsStatus,
+  demographicsToken = demographicsToken,
+  initials = participant$initials,
+  email = participant$email,
+  assessmentReason = participant$assessmentReason,
+  clinicalAssessmentReferrer = participant$clinicalAssessmentReferrer,
+  researchProjectSelected = participant$researchProjectSelected,
+  researchGroup = participant$researchGroup,
+  # lastAssessmentDate = participant$lastAssessmentDate,
+  archived = as.numeric(participant$archived == "true"),
+  exportExclusion = as.numeric(participant$exportExclusion == "true")
+)
   concerto.table.query(
-    "
+"
 INSERT INTO EASI_participants
 SET
   customId='{{customId}}',
@@ -1511,32 +1514,33 @@ SET
 ",
     params
   )
+  
+  
+idResult = concerto.table.query(
+  "SELECT LAST_INSERT_ID() AS id"
+)
 
+id = idResult$id
 
-  idResult <- concerto.table.query(
-    "SELECT LAST_INSERT_ID() AS id"
-  )
+newParticipant = concerto.table.query(
+  "SELECT * FROM EASI_participants WHERE id='{{id}}'",
+  list(id = id)
+)
+newParticipant = as.list(newParticipant[1, ])
 
-  id <- idResult$id
-
-  newParticipant <- concerto.table.query(
-    "SELECT * FROM EASI_participants WHERE id='{{id}}'",
-    list(id = id)
-  )
-  newParticipant <- as.list(newParticipant[1, ])
-
-  autoNominate(newParticipant)
-  sendParentEmail(newParticipant)
-  return(newParticipant)
+    autoNominate(newParticipant)
+    sendParentEmail(newParticipant)
+    return(newParticipant)
+    
 }
 
-saveParticipant <- function(newParticipant) {
-  admin <- c.get("admin", T)
+saveParticipant = function(newParticipant) {
+  admin = c.get("admin", T)
   if (!is.list(admin)) {
     return(NULL)
   }
 
-  currentParticipant <- concerto.table.query(
+  currentParticipant = concerto.table.query(
     "SELECT * FROM EASI_participants WHERE id='{{id}}'",
     newParticipant
   )
@@ -1549,7 +1553,7 @@ saveParticipant <- function(newParticipant) {
           is.na(admin$researchGroup) ||
           currentParticipant$researchGroup != admin$researchGroup))
   ) {
-    # not authorized
+    #not authorized
     concerto.log(paste0(
       "not authorized to access participant id: ",
       currentParticipant$id
@@ -1557,11 +1561,11 @@ saveParticipant <- function(newParticipant) {
     return(NULL)
   }
 
-  params <- newParticipant
+  params = newParticipant
 
-  # only admin can change exportExclusion
+  #only admin can change exportExclusion
   if (admin$type != 1) {
-    params$exportExclusion <- NULL
+    params$exportExclusion = NULL
   }
 
   concerto.table.query(
@@ -1590,7 +1594,7 @@ WHERE id='{{id}}'",
     recalculateScores(currentParticipant$id)
   }
 
-  newParticipant <- as.list(concerto.table.query(
+  newParticipant = as.list(concerto.table.query(
     "SELECT * FROM EASI_participants WHERE id='{{id}}'",
     list(id = newParticipant$id)
   ))
@@ -1598,23 +1602,24 @@ WHERE id='{{id}}'",
   newParticipant
 }
 
-autoNominate <- function(participants) {
+autoNominate = function(participants) {
+
   if (is.list(participants)) {
-    participants <- data.frame(participants, stringsAsFactors = F)
+    participants = data.frame(participants, stringsAsFactors = F)
   }
 
-  tests <- concerto.table.query("SELECT * FROM EASI_tests WHERE autoNominate=1")
+  tests = concerto.table.query("SELECT * FROM EASI_tests WHERE autoNominate=1")
   if (nrow(tests) > 0) {
     for (i in 1:nrow(tests)) {
-      test <- tests[i, ]
+      test = tests[i, ]
 
-      autoInvitationSessions <- data.frame()
+      autoInvitationSessions = data.frame()
 
       if (nrow(participants) > 0) {
         for (j in 1:nrow(participants)) {
-          participant <- participants[j, ]
+          participant = participants[j, ]
 
-          token <- paste0(
+          token = paste0(
             sample(c(letters, LETTERS, 0:9), replace = T),
             collapse = ""
           )
@@ -1628,7 +1633,7 @@ autoNominate <- function(participants) {
             )
           )
 
-          session <- as.list(concerto.table.query(
+          session = as.list(concerto.table.query(
             "
 SELECT session.*, participant.email, participant.languageCode, '{{testCode}}' AS testCode, '{{testId}}' AS testId
 FROM {{testCode}}_sessions AS session
@@ -1642,7 +1647,7 @@ WHERE session.id='{{id}}'",
           ))
 
           if (test$autoInvitationEmail == 1) {
-            autoInvitationSessions <- rbind(
+            autoInvitationSessions = rbind(
               autoInvitationSessions,
               data.frame(session, stringsAsFactors = F)
             )
@@ -1654,18 +1659,18 @@ WHERE session.id='{{id}}'",
   }
 }
 
-fetchAllTests <- function() {
-  admin <- c.get("admin", T)
+fetchAllTests = function() {
+  admin = c.get("admin", T)
   if (!is.list(admin)) {
     return(NULL)
   }
 
-  titleTransCol <- concerto$globals$easi$lib$getTransCol(
+  titleTransCol = concerto$globals$easi$lib$getTransCol(
     "EASI_tests",
     "title",
     language
   )
-  tests <- concerto.table.query(
+  tests = concerto.table.query(
     "
 SELECT
 *,
@@ -1676,29 +1681,29 @@ FROM EASI_tests ORDER BY orderIndex ASC",
   tests
 }
 
-fetchSessions <- function(query) {
-  admin <- c.get("admin", T)
+fetchSessions = function(query) {
+  admin = c.get("admin", T)
   if (!is.list(admin)) {
     return(NULL)
   }
 
-  columns <- c(
-    fullId = "fullId",
-    testTitle = "testTitle",
-    dateAssessment = "dateAssessment",
-    timeStarted = "timeStarted",
-    timeFinished = "timeFinished",
-    status = "status"
-  )
-  orderSql <- getOrderSql(query$order, columns)
-  limitSql <- getLimitSql(query)
+  columns = c(
+  fullId = "fullId",
+  testTitle = "testTitle",
+  dateAssessment = "dateAssessment",
+  timeStarted = "timeStarted",
+  timeFinished = "timeFinished",
+  status = "status"
+)
+  orderSql = getOrderSql(query$order, columns)
+  limitSql = getLimitSql(query)
 
-  titleTransCol <- concerto$globals$easi$lib$getTransCol(
+  titleTransCol = concerto$globals$easi$lib$getTransCol(
     "EASI_tests",
     "title",
     language
   )
-  tests <- concerto.table.query(
+  tests = concerto.table.query(
     "
 SELECT
 id,
@@ -1710,12 +1715,12 @@ FROM EASI_tests",
     list(titleTransCol = titleTransCol)
   )
 
-  sessions <- NULL
-  sqlArray <- NULL
+  sessions = NULL
+  sqlArray = NULL
   for (i in 1:nrow(tests)) {
-    test <- tests[i, ]
+    test = tests[i, ]
 
-    params <- list(
+    params = list(
       testId = test$id,
       testCode = test$code,
       testTitle = test$title,
@@ -1728,7 +1733,7 @@ FROM EASI_tests",
     )
 
     if (admin$type == 1) {
-      sqlTest <- "
+      sqlTest = "
 SELECT
 s.id,
 CONCAT('{{testCode}}-', s.id) AS fullId,
@@ -1752,7 +1757,7 @@ LEFT JOIN EASI_participants AS p ON p.id=s.participant_id
 WHERE participant_id='{{participant_id}}'"
     }
     if (admin$type == 2) {
-      sqlTest <- "
+      sqlTest = "
 SELECT
 s.id,
 CONCAT('{{testCode}}', s.id) AS fullId,
@@ -1776,7 +1781,7 @@ WHERE participant_id='{{participant_id}}' AND (p.admin_id='{{admin_id}}' OR p.re
 "
     }
     if (admin$type == 0) {
-      sqlTest <- "
+      sqlTest = "
 SELECT
 s.id,
 CONCAT('{{testCode}}', s.id) AS fullId,
@@ -1799,17 +1804,17 @@ LEFT JOIN EASI_participants AS p ON p.id=s.participant_id
 WHERE participant_id='{{participant_id}}' AND p.admin_id='{{admin_id}}'
 "
     }
-    sqlTest <- concerto.table.insertParams(sqlTest, params)
-    sqlArray <- c(sqlArray, sqlTest)
+    sqlTest = concerto.table.insertParams(sqlTest, params)
+    sqlArray = c(sqlArray, sqlTest)
   }
 
-  params <- list(
+  params = list(
     testCode = test$code,
     testCodeFilter = query$testCode,
     orderSql = orderSql,
     limitSql = limitSql
   )
-  sqlCollection <- paste0(
+  sqlCollection = paste0(
     "
 SELECT * FROM (",
     paste0(sqlArray, collapse = " UNION "),
@@ -1817,16 +1822,16 @@ SELECT * FROM (",
 WHERE '{{testCodeFilter}}'='*' OR testCode='{{testCodeFilter}}'
 ORDER BY {{orderSql}} {{limitSql}}"
   )
-  collection <- concerto.table.query(sqlCollection, params)
+  collection = concerto.table.query(sqlCollection, params)
 
-  sqlTotalCount <- paste0(
+  sqlTotalCount = paste0(
     "
 SELECT COUNT(*) FROM (",
     paste0(sqlArray, collapse = " UNION "),
     ") AS tu
 WHERE '{{testCodeFilter}}'='*' OR testCode='{{testCodeFilter}}'"
   )
-  totalCount <- concerto.table.query(sqlTotalCount, params)[1, 1]
+  totalCount = concerto.table.query(sqlTotalCount, params)[1, 1]
 
   list(
     collection = collection,
@@ -1834,14 +1839,14 @@ WHERE '{{testCodeFilter}}'='*' OR testCode='{{testCodeFilter}}'"
   )
 }
 
-addSession <- function(session) {
-  admin <- c.get("admin", T)
+addSession = function(session) {
+  admin = c.get("admin", T)
   if (!is.list(admin)) {
     return(NULL)
   }
 
-  # participant check
-  participant <- concerto.table.query(
+  #participant check
+  participant = concerto.table.query(
     "SELECT * FROM EASI_participants WHERE id='{{id}}'",
     list(id = session$participant_id)
   )
@@ -1861,8 +1866,8 @@ addSession <- function(session) {
     return(NULL)
   }
 
-  # test check
-  test <- concerto.table.query(
+  #test check
+  test = concerto.table.query(
     "SELECT * FROM EASI_tests WHERE code='{{testCode}}'",
     list(testCode = session$testCode)
   )
@@ -1871,8 +1876,8 @@ addSession <- function(session) {
     return(NULL)
   }
 
-  # nomination token
-  token <- paste0(sample(c(letters, LETTERS, 0:9), replace = T), collapse = "")
+  #nomination token
+  token = paste0(sample(c(letters, LETTERS, 0:9), replace = T), collapse = "")
 
   concerto.table.query(
     "INSERT INTO {{testCode}}_sessions SET participant_id='{{participant_id}}', timeCreated=NOW(), token='{{token}}', admin_id='{{admin_id}}'",
@@ -1883,7 +1888,7 @@ addSession <- function(session) {
       admin_id = admin$id
     )
   )
-  session <- as.list(concerto.table.query(
+  session = as.list(concerto.table.query(
     "
 SELECT session.*, participant.email, participant.languageCode, '{{testCode}}' AS testCode, '{{testId}}' AS testId
 FROM {{testCode}}_sessions AS session
@@ -1903,15 +1908,15 @@ WHERE session.id='{{id}}'",
   session
 }
 
-deleteSessions <- function(ids) {
-  admin <- c.get("admin", T)
+deleteSessions = function(ids) {
+  admin = c.get("admin", T)
   if (!is.list(admin)) {
     return(NULL)
   }
 
   for (testCode in ls(ids)) {
-    # test check
-    test <- concerto.table.query(
+    #test check
+    test = concerto.table.query(
       "SELECT * FROM EASI_tests WHERE code='{{testCode}}'",
       list(testCode = testCode)
     )
@@ -1920,19 +1925,19 @@ deleteSessions <- function(ids) {
       return(NULL)
     }
 
-    sessionTable <- paste0(testCode, "_sessions")
-    idsSql <- paste0(as.numeric(ids[[testCode]]), collapse = ",")
-    params <- list(
+    sessionTable = paste0(testCode, "_sessions")
+    idsSql = paste0(as.numeric(ids[[testCode]]), collapse = ",")
+    params = list(
       ids = idsSql,
       admin_id = admin$id,
       admin_researchGroup = admin$researchGroup,
       sessionTable = sessionTable
     )
     if (admin$type == 1) {
-      sql <- paste0("DELETE FROM {{sessionTable}} WHERE id IN ({{ids}})")
+      sql = paste0("DELETE FROM {{sessionTable}} WHERE id IN ({{ids}})")
     }
     if (admin$type == 2) {
-      sql <- paste0(
+      sql = paste0(
         "
 DELETE s FROM {{sessionTable}} AS s
 LEFT JOIN EASI_participants AS p ON p.id=s.participant_id
@@ -1940,7 +1945,7 @@ WHERE s.id IN ({{ids}}) AND (p.admin_id='{{admin_id}}' OR p.researchGroup='{{adm
       )
     }
     if (admin$type == 0) {
-      sql <- paste0(
+      sql = paste0(
         "
 DELETE s FROM {{sessionTable}} AS s
 LEFT JOIN EASI_participants AS p ON p.id=s.participant_id
@@ -1951,30 +1956,35 @@ WHERE s.id IN ({{ids}}) AND p.admin_id='{{admin_id}}'"
   }
 }
 
-fetchScores <- function(query) {
-  admin <- c.get("admin", T)
+fetchScores = function(query) {
+  admin = c.get("admin", T)
   if (!is.list(admin)) {
     return(NULL)
   }
-
-  permissionSql <- getAdminPermissionSql(admin, "p")
-  params <- list(
-    id = query$participantId
+  
+  permissionSql = getAdminPermissionSql(admin, "p")
+  params = list(
+  id = query$participantId
   )
-
-  participantQuery <- paste0("SELECT id FROM EASI_participants WHERE id = {{id}}", permissionSql)
-  participants <- concerto.table.query(participantQuery, params)
-
+  
+  participantQuery = paste0( "    
+    SELECT p.id
+    FROM EASI_participants AS p
+    LEFT JOIN EASI_admins AS a
+      ON a.id = p.admin_id
+    WHERE p.id = {{id}}", permissionSql )
+  participants = concerto.table.query(participantQuery, params)
+    
   if (nrow(participants) == 0) {
     return(NULL)
   }
 
-  titleTransCol <- concerto$globals$easi$lib$getTransCol(
+  titleTransCol = concerto$globals$easi$lib$getTransCol(
     "EASI_tests",
     "title",
     language
   )
-  tests <- concerto.table.query(
+  tests = concerto.table.query(
     "
 SELECT
 id,
@@ -1987,11 +1997,11 @@ FROM EASI_tests
 ORDER BY orderIndex ASC, title ASC",
     list(titleTransCol = titleTransCol)
   )
-  filteredTests <- NULL
+  filteredTests = NULL
 
-  sqlArray <- NULL
+  sqlArray = NULL
   for (i in 1:nrow(tests)) {
-    test <- tests[i, ]
+    test = tests[i, ]
 
     if (
       query$allTests == 0 &&
@@ -2001,15 +2011,15 @@ ORDER BY orderIndex ASC, title ASC",
     ) {
       next
     }
-    filteredTests <- rbind(filteredTests, test)
+    filteredTests = rbind(filteredTests, test)
 
-    feedbackTable <- paste0(test$code, "_feedback")
-    feedbackTransCol <- concerto$globals$easi$lib$getTransCol(
+    feedbackTable = paste0(test$code, "_feedback")
+    feedbackTransCol = concerto$globals$easi$lib$getTransCol(
       feedbackTable,
       "feedback",
       language
     )
-    params <- list(
+    params = list(
       scoresTable = paste0(test$code, "_scores"),
       sessionsTable = paste0(test$code, "_sessions"),
       feedbackTable = feedbackTable,
@@ -2024,7 +2034,7 @@ ORDER BY orderIndex ASC, title ASC",
       feedbackTransCol = feedbackTransCol
     )
 
-    sql <- "
+    sql = "
 (
 SELECT
   score.id,
@@ -2059,23 +2069,53 @@ WHERE score.id IN (
 )
 )
 "
-    sql <- concerto.table.insertParams(sql, params)
-    sqlArray <- c(sqlArray, sql)
+    sql = concerto.table.insertParams(sql, params)
+    sqlArray = c(sqlArray, sql)
   }
 
-  testsSelected <- length(sqlArray) > 0
+praxisSql <- "
+(
+SELECT
+  score.id,
+  score.name COLLATE utf8_bin AS name,
+  score.value,
+  'PRAXIS' AS testCode,
+'Praxis Composite' AS testTitle,
+'Praxis Composite' AS testTitle_trans,
+  score.timeCreated,
+  NULL AS session_id,
+  NULL AS participantMonths,
+  NULL AS admin_login,
+  NULL AS feedback,
+  NULL AS feedback_trans
+FROM PRAXIS_scores AS score
+WHERE score.id IN (
+  SELECT MAX(id)
+  FROM PRAXIS_scores
+  WHERE participant_id='{{participant_id}}'
+  GROUP BY name
+)
+)
+"
 
-  # collection
-  collection <- NULL
+praxisSql <- concerto.table.insertParams(
+  praxisSql,
+  list(participant_id = query$participantId)
+)
+sqlArray <- c(sqlArray, praxisSql)
+  testsSelected = length(sqlArray) > 0
+
+  #collection
+  collection = NULL
   if (testsSelected) {
-    sqlCollection <- paste0(
+    sqlCollection = paste0(
       "
 SELECT *, UNIX_TIMESTAMP(timeCreated) AS timestamp FROM (",
       paste0(sqlArray, collapse = " UNION "),
       ") AS tu
 ORDER BY timeCreated ASC"
     )
-    collection <- concerto.table.query(sqlCollection)
+    collection = concerto.table.query(sqlCollection)
   }
 
   list(
@@ -2084,13 +2124,13 @@ ORDER BY timeCreated ASC"
   )
 }
 
-fetchSessionScores <- function(testCode, sessionId) {
-  admin <- c.get("admin", T)
+fetchSessionScores = function(testCode, sessionId) {
+  admin = c.get("admin", T)
   if (!is.list(admin)) {
     return(NULL)
   }
 
-  test <- concerto.table.query(
+  test = concerto.table.query(
     "SELECT * FROM EASI_tests WHERE code='{{testCode}}'",
     list(testCode = testCode)
   )
@@ -2098,7 +2138,7 @@ fetchSessionScores <- function(testCode, sessionId) {
     stop("invalid test")
   }
 
-  params <- list(
+  params = list(
     testCode = testCode,
     admin_id = admin$id,
     session_id = sessionId,
@@ -2107,7 +2147,7 @@ fetchSessionScores <- function(testCode, sessionId) {
     hiddenScores = test$hiddenScores
   )
 
-  sql <- "
+  sql = "
 SELECT score.id, name COLLATE utf8_bin AS name, value, '{{testCode}}' AS testCode, '{{testTitle}}' AS testTitle, UNIX_TIMESTAMP(score.timeCreated) AS timestamp,
 session_id, session.participantMonths,
 feedback.feedback
@@ -2123,20 +2163,20 @@ AND ('{{hiddenScores}}'='' OR !JSON_CONTAINS('{{hiddenScores}}',JSON_QUOTE(name)
 ORDER BY score.timeCreated ASC
 "
 
-  collection <- concerto.table.query(sql, params)
+  collection = concerto.table.query(sql, params)
 
   list(
     collection = collection
   )
 }
 
-fetchSessionResponses <- function(testCode, sessionId) {
-  admin <- c.get("admin", T)
+fetchSessionResponses = function(testCode, sessionId) {
+  admin = c.get("admin", T)
   if (!is.list(admin)) {
     return(NULL)
   }
 
-  test <- concerto.table.query(
+  test = concerto.table.query(
     "SELECT * FROM EASI_tests WHERE code='{{testCode}}'",
     list(testCode = testCode)
   )
@@ -2144,40 +2184,40 @@ fetchSessionResponses <- function(testCode, sessionId) {
     stop("invalid test")
   }
 
-  itemTable <- paste0(testCode, "_items")
+  itemTable = paste0(testCode, "_items")
 
-  auditLabelTransCol <- concerto$globals$easi$lib$getTransCol(
+  auditLabelTransCol = concerto$globals$easi$lib$getTransCol(
     itemTable,
     "auditLabel",
     language
   )
-  optionLabel1TransCol <- concerto$globals$easi$lib$getTransCol(
+  optionLabel1TransCol = concerto$globals$easi$lib$getTransCol(
     itemTable,
     "optionLabel1",
     language
   )
-  optionLabel2TransCol <- concerto$globals$easi$lib$getTransCol(
+  optionLabel2TransCol = concerto$globals$easi$lib$getTransCol(
     itemTable,
     "optionLabel2",
     language
   )
-  optionLabel3TransCol <- concerto$globals$easi$lib$getTransCol(
+  optionLabel3TransCol = concerto$globals$easi$lib$getTransCol(
     itemTable,
     "optionLabel3",
     language
   )
-  optionLabel4TransCol <- concerto$globals$easi$lib$getTransCol(
+  optionLabel4TransCol = concerto$globals$easi$lib$getTransCol(
     itemTable,
     "optionLabel4",
     language
   )
-  optionLabel5TransCol <- concerto$globals$easi$lib$getTransCol(
+  optionLabel5TransCol = concerto$globals$easi$lib$getTransCol(
     itemTable,
     "optionLabel5",
     language
   )
 
-  params <- list(
+  params = list(
     itemTable = itemTable,
     testCode = testCode,
     admin_id = admin$id,
@@ -2192,7 +2232,7 @@ fetchSessionResponses <- function(testCode, sessionId) {
     optionLabel5TransCol = optionLabel5TransCol
   )
 
-  sql <- "
+  sql = "
 SELECT
 response.*,
 item.excludeFromScoring,
@@ -2213,25 +2253,25 @@ WHERE response.session_id='{{session_id}}' AND
 ('{{admin_type}}'=1 OR participant.admin_id='{{admin_id}}' OR ('{{admin_type}}'=2 AND participant.researchGroup='{{admin_researchGroup}}'))
 ORDER BY response.timeCreated
 "
-  collection <- concerto.table.query(sql, params)
+  collection = concerto.table.query(sql, params)
 
   list(
     collection = collection
   )
 }
 
-fetchDemographics <- function(participantId) {
-  admin <- c.get("admin", T)
+fetchDemographics = function(participantId) {
+  admin = c.get("admin", T)
   if (!is.list(admin)) {
     return(NULL)
   }
 
-  labelTransCol <- concerto$globals$easi$lib$getTransCol(
+  labelTransCol = concerto$globals$easi$lib$getTransCol(
     "EASI_demographics_fields",
     "label",
     language
   )
-  demog <- concerto.table.query(
+  demog = concerto.table.query(
     "
 SELECT
 *,
@@ -2255,13 +2295,13 @@ WHERE participant.id='{{p_pid}}' AND
 }
 
 
-sendSessionEmail <- function(session) {
-  admin <- c.get("admin", T)
+sendSessionEmail = function(session) {
+  admin = c.get("admin", T)
   if (!is.list(admin)) {
     return(NULL)
   }
 
-  # send test invitation
+  #send test invitation
   concerto.test.run(
     "EASI-email-invitation",
     list(
@@ -2270,7 +2310,7 @@ sendSessionEmail <- function(session) {
   )
 }
 
-isValidEmail <- function(email) {
+isValidEmail = function(email) {
   grepl(
     "\\<[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,}\\>",
     as.character(email),
@@ -2278,7 +2318,7 @@ isValidEmail <- function(email) {
   )
 }
 
-isValidJson <- function(json) {
+isValidJson = function(json) {
   tryCatch(
     {
       fromJSON(json)
@@ -2290,16 +2330,16 @@ isValidJson <- function(json) {
   )
 }
 
-importParticipant <- function(params) {
-  admin <- c.get("admin", T)
+importParticipant = function(params) {
+  admin = c.get("admin", T)
   if (!is.list(admin)) {
     return(NULL)
   }
 
-  content <- params$content
+  content = params$content
   writeLines(content, "import.csv")
 
-  csv <- tryCatch(
+  csv = tryCatch(
     {
       read.csv("import.csv")
     },
@@ -2314,14 +2354,14 @@ importParticipant <- function(params) {
     ))
   }
 
-  response <- list(
+  response = list(
     messages = list(),
     num = nrow(csv)
   )
 
-  success <- T
-  # required cols
-  reqCols <- c(
+  success = T
+  #required cols
+  reqCols = c(
     "initials",
     "dateOfBirth",
     "gender",
@@ -2337,9 +2377,9 @@ importParticipant <- function(params) {
   )
   for (reqCol in reqCols) {
     if (!reqCol %in% colnames(csv)) {
-      msg <- paste0(c.trans("csv_client_validation_columns_missing"), reqCol)
-      response$messages <- append(response$messages, msg)
-      success <- F
+      msg = paste0(c.trans("csv_client_validation_columns_missing"), reqCol)
+      response$messages = append(response$messages, msg)
+      success = F
     }
   }
   if (!success) {
@@ -2348,145 +2388,145 @@ importParticipant <- function(params) {
 
   if (nrow(csv) > 0) {
     for (i in 1:nrow(csv)) {
-      row <- csv[i, ]
+      row = csv[i, ]
 
-      # dateOfBirth
-      valid <- !is.na(as.Date(row$dateOfBirth, format = "%Y-%m-%d"))
+      #dateOfBirth
+      valid = !is.na(as.Date(row$dateOfBirth, format = "%Y-%m-%d"))
       if (!valid) {
-        msg <- paste0(c.trans("csv_client_validation_invalid_dob"), i + 1)
-        response$messages <- append(response$messages, msg)
-        success <- F
+        msg = paste0(c.trans("csv_client_validation_invalid_dob"), i + 1)
+        response$messages = append(response$messages, msg)
+        success = F
       }
 
-      # countryOfResidence
-      valid <- nchar(as.character(row$countryOfResidence)) <= 64
+      #countryOfResidence
+      valid = nchar(as.character(row$countryOfResidence)) <= 64
       if (!valid) {
-        msg <- paste0(c.trans("csv_client_validation_invalid_country"), i + 1)
-        response$messages <- append(response$messages, msg)
-        success <- F
+        msg = paste0(c.trans("csv_client_validation_invalid_country"), i + 1)
+        response$messages = append(response$messages, msg)
+        success = F
       }
 
-      # gender
-      valid <- nchar(as.character(row$gender)) <= 64
+      #gender
+      valid = nchar(as.character(row$gender)) <= 64
       if (!valid) {
-        msg <- paste0(c.trans("csv_client_validation_invalid_gender"), i + 1)
-        response$messages <- append(response$messages, msg)
-        success <- F
+        msg = paste0(c.trans("csv_client_validation_invalid_gender"), i + 1)
+        response$messages = append(response$messages, msg)
+        success = F
       }
 
-      # languageCode
-      valid <- nchar(as.character(row$languageCode)) <= 32
+      #languageCode
+      valid = nchar(as.character(row$languageCode)) <= 32
       if (!valid) {
-        msg <- paste0(
+        msg = paste0(
           c.trans("csv_client_validation_invalid_language_code"),
           i + 1
         )
-        response$messages <- append(response$messages, msg)
-        success <- F
+        response$messages = append(response$messages, msg)
+        success = F
       }
 
-      # initials
-      valid <- nchar(as.character(row$initials)) <= 4
+      #initials
+      valid = nchar(as.character(row$initials)) <= 4
       if (!valid) {
-        msg <- paste0(c.trans("csv_client_validation_invalid_initials"), i + 1)
-        response$messages <- append(response$messages, msg)
-        success <- F
+        msg = paste0(c.trans("csv_client_validation_invalid_initials"), i + 1)
+        response$messages = append(response$messages, msg)
+        success = F
       }
 
-      # email
-      valid <- row$email == "" || isValidEmail(row$email)
+      #email
+      valid = row$email == "" || isValidEmail(row$email)
       if (!valid) {
-        msg <- paste0(c.trans("csv_client_validation_invalid_email"), i + 1)
-        response$messages <- append(response$messages, msg)
-        success <- F
+        msg = paste0(c.trans("csv_client_validation_invalid_email"), i + 1)
+        response$messages = append(response$messages, msg)
+        success = F
       }
-      valid <- nchar(as.character(row$email)) <= 128
+      valid = nchar(as.character(row$email)) <= 128
       if (!valid) {
-        msg <- paste0(
+        msg = paste0(
           c.trans("csv_client_validation_invalid_email_length"),
           i + 1
         )
-        response$messages <- append(response$messages, msg)
-        success <- F
+        response$messages = append(response$messages, msg)
+        success = F
       }
 
-      # diagnoses
-      valid <- row$diagnoses %in% c(0, 1)
+      #diagnoses
+      valid = row$diagnoses %in% c(0, 1)
       if (!valid) {
-        msg <- paste0(c.trans("csv_client_validation_invalid_diagnoses"), i + 1)
-        response$messages <- append(response$messages, msg)
-        success <- F
+        msg = paste0(c.trans("csv_client_validation_invalid_diagnoses"), i + 1)
+        response$messages = append(response$messages, msg)
+        success = F
       }
 
-      # diagnosesSelected
-      valid <- isValidJson(as.character(row$diagnosesSelected))
+      #diagnosesSelected
+      valid = isValidJson(as.character(row$diagnosesSelected))
       if (!valid) {
-        msg <- paste0(
+        msg = paste0(
           c.trans("csv_client_validation_invalid_diagnoses_selected"),
           i + 1
         )
-        response$messages <- append(response$messages, msg)
-        success <- F
+        response$messages = append(response$messages, msg)
+        success = F
       }
 
-      # assessmentReason
-      valid <- nchar(as.character(row$assessmentReason)) <= 128
+      #assessmentReason
+      valid = nchar(as.character(row$assessmentReason)) <= 128
       if (!valid) {
-        msg <- paste0(
+        msg = paste0(
           c.trans("csv_client_validation_invalid_assessment_reason"),
           i + 1
         )
-        response$messages <- append(response$messages, msg)
-        success <- F
+        response$messages = append(response$messages, msg)
+        success = F
       }
 
-      # clinicalAssessmentReferrer
-      valid <- nchar(as.character(row$clinicalAssessmentReferrer)) <= 128
+      #clinicalAssessmentReferrer
+      valid = nchar(as.character(row$clinicalAssessmentReferrer)) <= 128
       if (!valid) {
-        msg <- paste0(
+        msg = paste0(
           c.trans("csv_client_validation_clinical_assessment_referrer"),
           i + 1
         )
-        response$messages <- append(response$messages, msg)
-        success <- F
+        response$messages = append(response$messages, msg)
+        success = F
       }
 
-      # researchProjectSelected
-      valid <- isValidJson(as.character(row$researchProjectSelected))
+      #researchProjectSelected
+      valid = isValidJson(as.character(row$researchProjectSelected))
       if (!valid) {
-        msg <- paste0(
+        msg = paste0(
           c.trans("csv_client_validation_research_project_selected"),
           i + 1
         )
-        response$messages <- append(response$messages, msg)
-        success <- F
+        response$messages = append(response$messages, msg)
+        success = F
       }
 
-      # autoDemographicsInvite
-      valid <- row$autoDemographicsInvite %in% c(0, 1)
+      #autoDemographicsInvite
+      valid = row$autoDemographicsInvite %in% c(0, 1)
       if (!valid) {
-        msg <- paste0(
+        msg = paste0(
           c.trans("csv_client_validation_invalid_auto_demographics_invite"),
           i + 1
         )
-        response$messages <- append(response$messages, msg)
-        success <- F
+        response$messages = append(response$messages, msg)
+        success = F
       }
     }
   } else {
-    msg <- "No data"
-    response$messages <- append(response$messages, msg)
-    success <- F
+    msg = "No data"
+    response$messages = append(response$messages, msg)
+    success = F
   }
 
   if (success) {
-    csv[, "admin_id"] <- admin$id
-    csv[, "customId"] <- NULL
-    csv[, "demographicsToken"] <- NULL
+    csv[, "admin_id"] = admin$id
+    csv[, "customId"] = NULL
+    csv[, "demographicsToken"] = NULL
 
     for (i in 1:nrow(csv)) {
-      csv[i, "customId"] <- generateRandomId()
-      csv[i, "demographicsToken"] <- generateRandomId()
+      csv[i, "customId"] = generateRandomId()
+      csv[i, "demographicsToken"] = generateRandomId()
 
       concerto.table.query(
         "
@@ -2508,7 +2548,7 @@ customId='{{customId}}',
 admin_id='{{admin_id}}'",
         csv[i, ]
       )
-      csv[i, "id"] <- concerto.table.lastInsertId()
+      csv[i, "id"] = concerto.table.lastInsertId()
     }
     autoNominate(csv)
 
@@ -2520,15 +2560,15 @@ admin_id='{{admin_id}}'",
   response
 }
 
-sendParentEmail <- function(participants) {
-  # sending emails in batches, separate batch for each language code
-  languageCodes <- unique(participants$languageCode)
+sendParentEmail = function(participants) {
+  #sending emails in batches, separate batch for each language code
+  languageCodes = unique(participants$languageCode)
 
   for (languageCode in languageCodes) {
     if (is.list(participants)) {
-      participantsSubset <- participants
+      participantsSubset = participants
     } else {
-      participantsSubset <- participants[
+      participantsSubset = participants[
         participants$languageCode == languageCode,
       ]
     }
@@ -2542,15 +2582,15 @@ sendParentEmail <- function(participants) {
   }
 }
 
-createLoginToken <- function(admin, token) {
-  expiryTime <- NULL
+createLoginToken = function(admin, token) {
+  expiryTime = NULL
   if (!is.na(admin)) {
-    # create new token
+    #create new token
     repeat {
       if (is.null(token)) {
-        token <- paste0(sample(c(letters, 0:9), 128, replace = T), collapse = "")
+        token = paste0(sample(c(letters, 0:9), 128, replace = T), collapse = "")
       }
-      result <- concerto.table.query(
+      result = concerto.table.query(
         "SELECT * FROM EASI_admin_tokens WHERE token='{{token}}'",
         list(token = token)
       )
@@ -2558,9 +2598,9 @@ createLoginToken <- function(admin, token) {
         break
       }
     }
-    expiryTime <- Sys.time() + (3 * 3600)
-    expiryTimeDb <- format(expiryTime, "%Y-%m-%d %H:%M:%S")
-    expiryTimeIso <- format(expiryTime, "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
+    expiryTime = Sys.time() + (3 * 3600)
+    expiryTimeDb = format(expiryTime, "%Y-%m-%d %H:%M:%S")
+    expiryTimeIso = format(expiryTime, "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
     concerto.table.query(
       "INSERT INTO EASI_admin_tokens SET admin_id='{{id}}', token='{{token}}', expiryTime='{{expiryTime}}'",
       list(id = admin$id, token = token, expiryTime = expiryTimeDb)
@@ -2569,27 +2609,28 @@ createLoginToken <- function(admin, token) {
   list(token = token, expiryTime = expiryTimeIso)
 }
 
-getAdminFromToken <- function(token) {
+getAdminFromToken = function(token) {
   # TODO: login to cognito with refresh token, validate it's validity
-
-  result <- concerto.table.query(
+    
+  result = concerto.table.query(
     "SELECT * FROM EASI_admin_tokens WHERE token='{{token}}' AND expiryTime > NOW()",
     list(token = token)
   )
   if (nrow(result) == 0) {
-    concerto.log("dont have an unexpired token!")
-    list(admin = NULL, token = NULL, expiryTime = NULL)
+    concerto.log("dont have an unexpired token!");
+     list(admin = NULL, token = NULL, expiryTime = NULL)
   } else {
-    concerto.log("have an unexpired token")
-    expiryTime <- Sys.time() + (3 * 3600)
-    expiryTimeDb <- format(expiryTime, "%Y-%m-%d %H:%M:%S")
-    expiryTimeIso <- format(expiryTime, "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
-    expiryTimeFormatted <- format(expiryTime, "%Y-%m-%d %H:%M:%S")
+  
+    concerto.log("have an unexpired token");
+    expiryTime = Sys.time() + (3 * 3600)
+    expiryTimeDb = format(expiryTime, "%Y-%m-%d %H:%M:%S")
+    expiryTimeIso = format(expiryTime, "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
+    expiryTimeFormatted = format(expiryTime, "%Y-%m-%d %H:%M:%S")
     concerto.table.query(
       "UPDATE EASI_admin_tokens SET expiryTime='{{expiryTime}}' WHERE id='{{id}}'",
-      list(id = result$id, expiryTime = expiryTimeDb)
+      list(id = result$id,expiryTime=expiryTimeDb)
     )
-    admin <- as.list(concerto.table.query(
+    admin = as.list(concerto.table.query(
       "
 SELECT
 id,
@@ -2610,36 +2651,36 @@ FROM EASI_admins WHERE id='{{id}}'",
       list(id = result$admin_id)
     ))
 
-    list(admin = admin, token = token, expiryTime = expiryTimeIso)
-  }
+  list(admin = admin, token = token, expiryTime = expiryTimeIso)
+}
 }
 
-getTherapists <- function(PaginationToken, Filter) {
+getTherapists = function(PaginationToken, Filter) {
   # library("paws")
   # library("paws.security.identity")
-  # getEnvOrFail("AWS_ACCESS_KEY_ID")
-  # getEnvOrFail("AWS_SECRET_ACCESS_KEY")
-  # getEnvOrFail("AWS_REGION")
-  # AuthString <- paste(SecretAccessKey, AccessKeyId, sep = ":")
+  #getEnvOrFail("AWS_ACCESS_KEY_ID")
+  #getEnvOrFail("AWS_SECRET_ACCESS_KEY")
+  #getEnvOrFail("AWS_REGION")
+  #AuthString <- paste(SecretAccessKey, AccessKeyId, sep = ":")
 
   # Sys.setenv(
   #  AWS_ACCESS_KEY_ID = AccessKeyId,
   #  AWS_SECRET_ACCESS_KEY = SecretAccessKey,
   #  AWS_REGION = Region
   # )
-
-
-  CognitoPaginateLoop <- TRUE
-  CombinedUsers <- list()
-  PaginationToken <- NULL
-  counter <- 0
-  maxcounter <- 7
+  
+  
+  CognitoPaginateLoop = TRUE
+  CombinedUsers = list()
+  PaginationToken = NULL
+  counter = 0
+  maxcounter = 7
   while (CognitoPaginateLoop) {
-    counter <- counter + 1
-
+  counter = counter + 1
+  
     if (counter > maxcounter) {
-      stop("Cognito pagination exceeded maxPages")
-    }
+    stop("Cognito pagination exceeded maxPages")
+  }
     cognitoidentityprovider <- paws.security.identity::cognitoidentityprovider()
     list_users <- cognitoidentityprovider$list_users(
       UserPoolId = UserPoolId,
@@ -2648,17 +2689,17 @@ getTherapists <- function(PaginationToken, Filter) {
       PaginationToken = PaginationToken,
       Filter = Filter
     )
-    userCount <- if (is.null(list_users$Users)) 0 else length(list_users$Users)
-    PaginationToken <- list_users$PaginationToken
-    CognitoPaginateLoop <- is.character(PaginationToken) &&
+    userCount = if (is.null(list_users$Users)) 0 else length(list_users$Users)
+    PaginationToken = list_users$PaginationToken
+    CognitoPaginateLoop = is.character(PaginationToken) &&
       length(PaginationToken) == 1 &&
       nchar(list_users$PaginationToken) > 0
-    if (is.null(list_users$Users) || length(list_users$Users) == 0) {
-      break
-    }
+  if (is.null(list_users$Users) || length(list_users$Users) == 0) {
+    break
+  }
     for (i in 1:length(list_users$Users)) {
-      user <- list_users$Users[[i]]
-      CombinedUser <- list(
+      user = list_users$Users[[i]]
+      CombinedUser = list(
         cognito = list(
           "Enabled" = user$Enabled,
           "UserCreateDate" = user$UserCreateDate,
@@ -2700,22 +2741,22 @@ getTherapists <- function(PaginationToken, Filter) {
         )
       )
       for (j in 1:length(user$Attributes)) {
-        attribute <- user$Attributes[[j]]
-        CombinedUser$cognito[attribute$Name] <- attribute$Value
+        attribute = user$Attributes[[j]]
+        CombinedUser$cognito[attribute$Name] = attribute$Value
       }
-      CombinedUsers[[CombinedUser$cognito$email]] <- CombinedUser
+      CombinedUsers[[CombinedUser$cognito$email]] = CombinedUser
     }
   }
 
-  emails <- names(CombinedUsers)
-  emails <- lapply(emails, function(a) {
-    paste0("'", a, "'", sep = "")
+  emails = names(CombinedUsers)
+  emails = lapply(emails, function(a) {
+    paste0("'", a, "'", sep = '')
   })
-  emails <- paste0(emails, collapse = ",", sep = "")
-  params <- list(
+  emails = paste0(emails, collapse = ",", sep = '')
+  params = list(
     emails = emails
   )
-  admins <- concerto.table.query(paste0(
+  admins = concerto.table.query(paste0(
     "SELECT * FROM EASI_admins WHERE login IN (",
     emails,
     ")"
@@ -2723,9 +2764,9 @@ getTherapists <- function(PaginationToken, Filter) {
 
   if (nrow(admins) > 0) {
     for (i in 1:nrow(admins)) {
-      admin <- admins[i, ]
-      email <- admin$login
-      CombinedUsers[[email]]$esp <- list(
+      admin = admins[i, ]
+      email = admin$login
+      CombinedUsers[[email]]$esp = list(
         "login" = admin$login,
         "enabled" = admin$enabled,
         "type" = admin$type,
@@ -2750,12 +2791,12 @@ getTherapists <- function(PaginationToken, Filter) {
   )
 }
 
-fetchDictionary <- function() {
-  # TODO
+fetchDictionary = function() {
+  #TODO
 }
 
-logIn <- function(login, password, token) {
-  admin <- getAdmin(login, password)
+logIn = function(login, password, token) {
+  admin = getAdmin(login, password)
   if (admin$id < 0) {
     # error_state
     c.set("admin", NA, T) # log user out
@@ -2764,10 +2805,10 @@ logIn <- function(login, password, token) {
   }
 
   if (is.null(getElement(admin, "refreshToken"))) {
-    newToken <- createLoginToken(admin, NULL)
+    newToken = createLoginToken(admin, NULL)
   } else {
-    token <- admin$refreshToken
-    newToken <- createLoginToken(admin, token)
+    token = admin$refreshToken
+    newToken = createLoginToken(admin, token)
   }
 
   c.set("admin", admin, T)
@@ -2775,19 +2816,19 @@ logIn <- function(login, password, token) {
   list(user = admin, token = newToken$token, expiryTime = newToken$expiryTime)
 }
 
-logInWithToken <- function(token) {
-  adminResult <- getAdminFromToken(token)
+logInWithToken = function(token) {
+  adminResult = getAdminFromToken(token) 
   if (!is.null(adminResult$token)) {
     c.set("admin", adminResult$admin, T)
     c.set("token", token, T)
     list(user = adminResult$admin, token = token, expiryTime = adminResult$expiryTime)
   } else {
-    list(user = NULL, token = NULL, expiryTime = NULL)
+  list(user = NULL, token = NULL, expiryTime = NULL)
   }
 }
 
-setAdminLanguage <- function(languageCode) {
-  admin <- c.get("admin", T)
+setAdminLanguage = function(languageCode) {
+  admin = c.get("admin", T)
   if (!is.list(admin)) {
     return(NULL)
   }
@@ -2798,28 +2839,28 @@ setAdminLanguage <- function(languageCode) {
   )
 }
 
-getParticipantIdsForSelection <- function(selection, admin, exportExclusionFlag = FALSE) {
+getParticipantIdsForSelection = function(selection, admin, exportExclusionFlag = FALSE) {
   # If you are using this to get participants for the export, make sure you exclude those with
-  # the exportExclusion flag = true
-  permissionSql <- getAdminPermissionSql(admin, "p")
+  # the exportExclusion flag = true 
+  permissionSql = getAdminPermissionSql(admin, "p")
 
-  params <- list(
+  params = list(
     admin_id = admin$id,
     admin_researchGroup = admin$researchGroup
   )
-
-  exportExclusionSql <- ""
-
+  
+  exportExclusionSql = ""
+  
   if (exportExclusionFlag == TRUE) {
-    exportExclusionSql <- " AND p.exportExclusion = 0 "
+     exportExclusionSql = " AND p.exportExclusion = 0 "
   }
   if (selection$mode == "explicit") {
-    ids <- paste0(
+    ids = paste0(
       as.numeric(names(selection$includedIds)),
       collapse = ","
     )
-    params$ids <- ids
-    query <- paste0(
+    params$ids = ids
+    query = paste0(
       "SELECT p.id ",
       "FROM EASI_participants p LEFT JOIN EASI_admins a ON a.id = p.admin_id",
       " WHERE",
@@ -2828,12 +2869,12 @@ getParticipantIdsForSelection <- function(selection, admin, exportExclusionFlag 
       permissionSql
     )
 
-    rows <- concerto.table.query(query, params)
+    rows = concerto.table.query(query, params)
     return(rows[, "id"])
   } else {
-    filterSql <- getFilterSql(list(filters = selection$filters))
-    exclusionClauseSql <- getExcludedIdsSql(selection$excludedIds, "p")
-    query <- paste0(
+    filterSql = getFilterSql(list(filters = selection$filters))
+    exclusionClauseSql = getExcludedIdsSql(selection$excludedIds, "p")
+    query = paste0(
       "SELECT p.id ",
       "FROM EASI_participants p LEFT JOIN EASI_admins a ON a.id = p.admin_id",
       " WHERE ",
@@ -2842,14 +2883,14 @@ getParticipantIdsForSelection <- function(selection, admin, exportExclusionFlag 
       permissionSql,
       exportExclusionSql
     )
-    rows <- concerto.table.query(query, params)
+    rows = concerto.table.query(query, params)
     return(rows[, "id"])
   }
   return(NULL)
 }
 
-createDownload <- function(selection, cols) {
-  admin <- c.get("admin", T)
+createDownload = function(selection, cols) {
+  admin = c.get("admin", T)
   if (!is.list(admin)) {
     return(list(
       success = FALSE,
@@ -2858,8 +2899,8 @@ createDownload <- function(selection, cols) {
   }
 
   # Make the filepath:
-  filename <- paste0(format(Sys.time(), "%Y%m%dT%H%M%SZ", tz = "GMT"), ".csv")
-  session <- concerto.table.query(
+  filename = paste0(format(Sys.time(), "%Y%m%dT%H%M%SZ", tz = "GMT"), ".csv")
+  session = concerto.table.query(
     "SELECT hash FROM TestSession WHERE id='{{id}}'",
     list(id = concerto$session$id)
   )
@@ -2870,15 +2911,15 @@ createDownload <- function(selection, cols) {
     ))
   }
 
-  dirPath <- paste0("/data/sessions/", session$hash, "/files")
+  dirPath = paste0("/data/sessions/", session$hash, "/files")
   if (!dir.exists(dirPath)) {
     dir.create(dirPath, recursive = TRUE, showWarnings = FALSE)
   }
 
-  filePath <- paste0(dirPath, "/", filename)
+  filePath = paste0(dirPath, "/", filename)
   # get the participant columns
-  participantCols <- NULL
-  validParticipantCols <- c(
+  participantCols = NULL
+  validParticipantCols = c(
     "id",
     "customId",
     "dateOfBirth",
@@ -2895,13 +2936,13 @@ createDownload <- function(selection, cols) {
     "researchGroup"
   )
 
-  participantCols <- intersect(
-    names(cols)[cols == "true"],
+  participantCols = intersect(
+    names(cols)[cols == 'true'],
     validParticipantCols
   )
 
   # Get the participant Ids, exclude those with ExportExclusion true
-  ids <- getParticipantIdsForSelection(selection, admin, TRUE)
+  ids = getParticipantIdsForSelection(selection, admin, TRUE)
 
   if (length(ids) == 0) {
     # No valid participant ids returned
@@ -2911,7 +2952,7 @@ createDownload <- function(selection, cols) {
     ))
   }
 
-  params <- list(
+  params = list(
     ids = ids,
     admin_id = admin$id,
     admin_researchGroup = admin$researchGroup,
@@ -2919,30 +2960,30 @@ createDownload <- function(selection, cols) {
   )
 
   # Get the participants
-  participantsSql <- paste0(
+  participantsSql = paste0(
     "SELECT {{participantCols}} ",
     "FROM EASI_participants p ",
     "WHERE p.id IN ({{ids}})"
   )
 
-  participants <- concerto.table.query(participantsSql, params)
+  participants = concerto.table.query(participantsSql, params)
 
   # get the testCodes
-  testCodes <- concerto.table.query(
+  testCodes = concerto.table.query(
     "SELECT code FROM EASI_tests ORDER BY orderIndex ASC"
   )[, 1]
-  filteredTestCodes <- NULL
+  filteredTestCodes = NULL
   for (testCode in testCodes) {
-    if (testCode %in% ls(cols) && cols[testCode] == "true") {
-      filteredTestCodes <- c(filteredTestCodes, testCode)
+    if (testCode %in% ls(cols) && cols[testCode] == 'true') {
+      filteredTestCodes = c(filteredTestCodes, testCode)
     }
   }
-  testCodes <- filteredTestCodes
+  testCodes = filteredTestCodes
   if (
     is.null(testCodes) &&
-      (cols["testAdmin"] == "true" ||
-        cols["testResponses"] == "true" ||
-        cols["testScores"] == "true")
+      (cols['testAdmin'] == 'true' ||
+        cols['testResponses'] == 'true' ||
+        cols['testScores'] == 'true')
   ) {
     return(list(
       success = FALSE,
@@ -2951,17 +2992,17 @@ createDownload <- function(selection, cols) {
   }
 
   # Get the scores
-  scores <- data.frame()
-  if (cols["testAdmin"] == "true" || cols["testScores"] == "true") {
-    scoresSql <- paste0(
+  scores = data.frame()
+  if (cols['testAdmin'] == 'true' || cols['testScores'] == 'true') {
+    scoresSql = paste0(
       "SELECT '",
       testCodes,
-      "' COLLATE utf8_bin AS testCode,
-      session_id, s.name COLLATE utf8_bin AS name,
+      "' COLLATE utf8_bin AS testCode, 
+      session_id, s.name COLLATE utf8_bin AS name, 
       value COLLATE utf8_bin AS value, s.participant_id, a.id AS admin_id, a.login AS admin_login, se.dateAssessment as dateAssessment
     FROM ",
       testCodes,
-      "_scores AS s
+      "_scores AS s 
     LEFT JOIN ",
       testCodes,
       "_sessions AS se ON se.id=s.session_id
@@ -2970,25 +3011,25 @@ createDownload <- function(selection, cols) {
       testCodes,
       "_scores WHERE participant_id=s.participant_id)"
     )
-    scoresSql <- paste0(
+    scoresSql = paste0(
       "SELECT * FROM (",
       paste0(scoresSql, collapse = " UNION ALL "),
       ") t ORDER BY testCode, name"
     )
-    scores <- concerto.table.query(scoresSql, params)
+    scores = concerto.table.query(scoresSql, params)
     if (nrow(scores) == 0) {
-      scores <- data.frame()
+      scores = data.frame()
     }
   }
   # now get responses
-  responses <- data.frame()
-  if (cols["testResponses"] == "true") {
-    responsesSql <- paste0(
+  responses = data.frame()
+  if (cols['testResponses'] == 'true') {
+    responsesSql = paste0(
       "SELECT '",
       testCodes,
-      "' COLLATE utf8_bin AS testCode,
-      r.session_id,
-      r.item_id,
+      "' COLLATE utf8_bin AS testCode, 
+      r.session_id, 
+      r.item_id, 
       CASE
       WHEN r.value COLLATE utf8_bin = i.optionValue1 COLLATE utf8_bin THEN i.optionLabel1 COLLATE utf8_bin
       WHEN r.value COLLATE utf8_bin = i.optionValue2 COLLATE utf8_bin THEN i.optionLabel2 COLLATE utf8_bin
@@ -2996,13 +3037,13 @@ createDownload <- function(selection, cols) {
       WHEN r.value COLLATE utf8_bin = i.optionValue4 COLLATE utf8_bin THEN i.optionLabel4 COLLATE utf8_bin
       WHEN r.value COLLATE utf8_bin = i.optionValue5 COLLATE utf8_bin THEN i.optionLabel5 COLLATE utf8_bin
       END label,
-      r.score,
+      r.score, 
       r.value COLLATE utf8_bin AS value,
-      r.skipped,
+      r.skipped, 
       se.participant_id
       FROM ",
       testCodes,
-      "_responses AS r
+      "_responses AS r 
       LEFT JOIN ",
       testCodes,
       "_sessions AS se ON se.id=r.session_id
@@ -3015,135 +3056,136 @@ createDownload <- function(selection, cols) {
       testCodes,
       "_sessions as ses on ses.id=session_id WHERE ses.participant_id=se.participant_id)"
     )
-    responsesSql <- paste0(
+    responsesSql = paste0(
       "SELECT * FROM (",
       paste0(responsesSql, collapse = " UNION ALL "),
       ") t ORDER BY testCode, item_id"
     )
-    responses <- concerto.table.query(responsesSql, params)
+    responses = concerto.table.query(responsesSql, params)
   } else {
-    responses <- data.frame()
+    responses = data.frame()
   }
 
   # now do the R stuff
-  dfi <- list()
+  dfi = list()
   for (name in ls(participants)) {
-    dfi[[name]] <- participants[[name]]
+    dfi[[name]] = participants[[name]]
   }
 
-  cellDefault <- NA
-  colIndex <- length(dfi)
-  adminColIndexOffset <- 0
-  lastTestCode <- ""
-  lastScoreName <- ""
-  lastItemId <- 0
+  cellDefault = NA
+  colIndex = length(dfi)
+  adminColIndexOffset = 0
+  lastTestCode = ''
+  lastScoreName = ''
+  lastItemId = 0
 
   if (
-    (cols["testAdmin"] == "true" || cols["testScores"] == "true") &&
+    (cols['testAdmin'] == 'true' || cols['testScores'] == 'true') &&
       nrow(scores) > 0
   ) {
     for (i in seq_len(nrow(scores))) {
-      score <- scores[i, ]
-      participantIndex <- which(participants$id == score$participant_id)
+      score = scores[i, ]
+      participantIndex = which(participants$id == score$participant_id)
 
       if (score$testCode != lastTestCode) {
-        if (cols["testAdmin"] == "true") {
-          dfi[[paste0(score$testCode, ": admin_id")]] <- rep(
+      
+        if (cols['testAdmin'] == 'true') {
+          dfi[[paste0(score$testCode, ": admin_id")]] = rep(
             cellDefault,
             nrow(participants)
           )
-          dfi[[paste0(score$testCode, ": admin_login")]] <- rep(
+          dfi[[paste0(score$testCode, ": admin_login")]] = rep(
             cellDefault,
             nrow(participants)
           )
-          dfi[[paste0(score$testCode, ": dateAssessment")]] <- rep(
+          dfi[[paste0(score$testCode, ": dateAssessment")]] = rep(
             cellDefault,
             nrow(participants)
           )
 
-          colIndex <- colIndex + 3
-          adminColIndexOffset <- 0
+          colIndex = colIndex + 3
+          adminColIndexOffset = 0
         }
 
-        lastTestCode <- score$testCode
+        lastTestCode = score$testCode
       }
 
       if (score$name != lastScoreName) {
-        if (cols["testScores"] == "true") {
-          dfi[[paste0(score$testCode, ": ", score$name)]] <- rep(
+        if (cols['testScores'] == 'true') {
+          dfi[[paste0(score$testCode, ": ", score$name)]] = rep(
             cellDefault,
             nrow(participants)
           )
 
-          colIndex <- colIndex + 1
-          adminColIndexOffset <- adminColIndexOffset + 1
+          colIndex = colIndex + 1
+          adminColIndexOffset = adminColIndexOffset + 1
         }
 
-        lastScoreName <- score$name
+        lastScoreName = score$name
       }
 
-      if (cols["testAdmin"] == "true") {
-        dfi[[paste0(score$testCode, ": admin_id")]][[participantIndex]] <-
-          score$admin_id
+      if (cols['testAdmin'] == 'true') {
+  dfi[[paste0(score$testCode, ": admin_id")]][[participantIndex]] =
+    score$admin_id
 
-        dfi[[paste0(score$testCode, ": admin_login")]][[participantIndex]] <-
-          score$admin_login
+  dfi[[paste0(score$testCode, ": admin_login")]][[participantIndex]] =
+    score$admin_login
 
-        dfi[[paste0(score$testCode, ": dateAssessment")]][[participantIndex]] <-
-          score$dateAssessment
+  dfi[[paste0(score$testCode, ": dateAssessment")]][[participantIndex]] =
+    score$dateAssessment
       }
-      if (cols["testScores"] == "true") {
-        dfi[[paste0(score$testCode, ": ", score$name)]][[participantIndex]] <-
-          score$value
-      }
+if (cols['testScores'] == 'true') {
+  dfi[[paste0(score$testCode, ": ", score$name)]][[participantIndex]] =
+    score$value
+}
     }
   }
 
-  if ((cols["testResponses"] == "true") && (nrow(responses) > 0)) {
+  if ((cols['testResponses'] == 'true') && (nrow(responses) > 0)) {
     for (i in 1:nrow(responses)) {
-      response <- responses[i, ]
-      participantIndex <- which(participants$id == response$participant_id)
+      response = responses[i, ]
+      participantIndex = which(participants$id == response$participant_id)
 
       if (response$testCode != lastTestCode || response$item_id != lastItemId) {
         dfi[[paste0(
-          response$testCode,
-          ": item #",
-          response$item_id,
+          response$testCode, 
+          ": item #", 
+          response$item_id, 
           " response label"
-        )]] <- rep(cellDefault, nrow(participants))
+          )]] = rep(cellDefault, nrow(participants))
         dfi[[paste0(
           response$testCode,
           ": item #",
           response$item_id,
           " response value"
-        )]] <- rep(cellDefault, nrow(participants))
-
+        )]] = rep(cellDefault, nrow(participants))
+      
         dfi[[paste0(
           response$testCode,
           ": item #",
           response$item_id,
           " response score"
-        )]] <- rep(cellDefault, nrow(participants))
+        )]] = rep(cellDefault, nrow(participants))
         dfi[[paste0(
           response$testCode,
           ": item #",
           response$item_id,
           " response skipped"
-        )]] <- rep(cellDefault, nrow(participants))
+        )]] = rep(cellDefault, nrow(participants))
 
-        colIndex <- colIndex + 4
-        lastTestCode <- response$testCode
-        lastItemId <- response$item_id
+        colIndex = colIndex + 4
+        lastTestCode = response$testCode
+        lastItemId = response$item_id
       }
-
-      dfi[[colIndex - 3]][[participantIndex]] <- response$label
-      dfi[[colIndex - 2]][[participantIndex]] <- response$value
-      dfi[[colIndex - 1]][[participantIndex]] <- response$score
-      dfi[[colIndex]][[participantIndex]] <- response$skipped
+      
+      dfi[[colIndex - 3]][[participantIndex]] = response$label
+      dfi[[colIndex - 2]][[participantIndex]] = response$value
+      dfi[[colIndex - 1]][[participantIndex]] = response$score
+      dfi[[colIndex]][[participantIndex]] = response$skipped
     }
   }
 
-  result <- data.frame(dfi, check.rows = F, check.names = F, fix.empty.names = F)
+  result = data.frame(dfi, check.rows = F, check.names = F, fix.empty.names = F)
 
   write.csv(result, filePath, row.names = F, na = "")
   return(list(
@@ -3171,12 +3213,12 @@ list(
     fetchAdmins(response)
   },
   fetchParticipants = function(response) {
-    query <- response$query
-    filters <- response$filters
+  query = response$query
+  filters = response$filters
 
-    if (is.character(filters)) {
-      filters <- jsonlite::fromJSON(filters, simplifyVector = FALSE)
-    }
+  if (is.character(filters)) {
+    filters = jsonlite::fromJSON(filters, simplifyVector = FALSE)
+  }
     fetchParticipantsInternal(query, filters)
   },
   fetchSingleParticipant = function(response) {
@@ -3192,42 +3234,42 @@ list(
     createDownload(response$selection, response$cols)
   },
   addParticipant = function(response) {
-    result <- addParticipant(response$participant)
+    result = addParticipant(response$participant)
     list(participant = result)
   },
   createParticipant = function(response) {
-    result <- createParticipant(response$participant)
+    result = createParticipant(response$participant)
     list(participant = result)
   },
   saveParticipant = function(response) {
-    result <- saveParticipant(response$participant)
+    result = saveParticipant(response$participant)
     list(participant = result)
   },
   fetchAllTests = function(response) {
-    result <- fetchAllTests()
+    result = fetchAllTests()
     list(tests = result)
   },
   fetchSessions = function(response) {
     fetchSessions(response)
   },
   addSession = function(response) {
-    result <- addSession(response$session)
+    result = addSession(response$session)
     list(session = result)
   },
   deleteSessions = function(response) {
     deleteSessions(response$ids)
   },
   fetchScores = function(response) {
-    result <- fetchScores(response)
+    result = fetchScores(response)
   },
   fetchSessionScores = function(response) {
-    result <- fetchSessionScores(response$testCode, response$sessionId)
+    result = fetchSessionScores(response$testCode, response$sessionId)
   },
   fetchSessionResponses = function(response) {
-    result <- fetchSessionResponses(response$testCode, response$sessionId)
+    result = fetchSessionResponses(response$testCode, response$sessionId)
   },
   fetchDemographics = function(response) {
-    result <- fetchDemographics(response$participantId)
+    result = fetchDemographics(response$participantId)
     list(demographics = result)
   },
   emailSession = function(response) {
@@ -3240,7 +3282,7 @@ list(
     sendParentEmail(response$participant)
   },
   updateUserProfile = function(response) {
-    profileOutput <- updateUserProfile(response$user, response$token)
+    profileOutput = updateUserProfile(response$user, response$token)
 
     if (is.null(profileOutput$token)) {
       # error_state
@@ -3255,7 +3297,7 @@ list(
     )
   },
   refreshUserProfile = function(response) {
-    profileOutput <- refreshUserProfile(response$user, response$token)
+    profileOutput = refreshUserProfile(response$user, response$token)
 
     if (is.null(profileOutput$token)) {
       # error_state
@@ -3269,6 +3311,7 @@ list(
       error = profileOutput$error
     )
   },
+
   fetchDictionary = function(response) {
     fetchDictionary()
   },
