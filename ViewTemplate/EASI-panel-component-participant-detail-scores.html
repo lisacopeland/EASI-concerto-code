@@ -1,7 +1,8 @@
 <src>
 	<div class="print-header">{{'panel_results_tested_by'|trans}} <strong>[[getAdminName()]]</strong></div>
-	<div class="print-header">{{'panel_results_client'|trans}} <strong>#[[participant.id]], [[participant.initials]], [[participant.dateOfBirth]]</strong></div>
-	
+	<div class="print-header">{{'panel_results_client'|trans}} <strong>#[[participant.id]], [[participant.initials]],
+			[[participant.dateOfBirth]]</strong></div>
+
 	<div layout="row" layout-align="end center" class="actions">
 		<md-button class="md-raised" ng-click="print()"><md-icon>printer</md-icon> {{'print'|trans}}</md-button>
 		<md-button class="md-raised" ng-click="getScores()"><md-icon>refresh</md-icon> {{'refresh'|trans}}</md-button>
@@ -16,7 +17,13 @@
 		<md-switch ng-model="query.allTests" ng-true-value="1" ng-false-value="0" ng-change="allTestsChanged()">
 			{{'all_tests'|trans}}
 		</md-switch>
-		<md-switch ng-model="query.tests[test.id]" ng-true-value="1" ng-false-value="0" ng-repeat="test in testSelections" ng-show="query.allTests == 0">
+		<div ng-show="query.allTests == 1">
+			<md-switch ng-model="displayEmpty" ng-change="allTestsChanged()">
+				{{'Show Tests with no Scores'|trans}}
+			</md-switch>
+		</div>
+		<md-switch ng-model="query.tests[test.id]" ng-true-value="1" ng-false-value="0"
+			ng-repeat="test in testSelections" ng-show="query.allTests == 0">
 			[[test.code]]
 		</md-switch>
 	</div>
@@ -26,6 +33,7 @@
 			<md-icon>[[expandables.summary ? 'expand_more' : 'expand_less']]</md-icon>
 			{{'panel_results_scores_summary'|trans}}
 		</md-subheader>
+
 		<div layout="column" layout-align="center center" ng-show="expandables.summary && summaryDataSets.length > 0">
 			<div class="chart-container">
 				<canvas id="summaryChart"></canvas>
@@ -39,7 +47,8 @@
 			{{'panel_results_results'|trans}}
 		</md-subheader>
 		<div ng-show="expandables.details">
-			<fieldset ng-repeat="test in tests" ng-if="getTestScores(test.code).length > 0" style="align-self: stretch; page-break-inside: avoid;">
+			<fieldset ng-repeat="test in tests" ng-if="getTestScores(test.code).length > 0"
+				style="align-self: stretch; page-break-inside: avoid;">
 				<legend>{{test.title_trans|trans}}</legend>
 
 				<md-list layout="row" layout-wrap layout-align="start start">
@@ -67,6 +76,7 @@
 			</div>
 		</div>
 	</div>
-	
-	<msg type="warning" ng-if="scoresDataSets.length === 0 && summaryDataSets.length === 0">{{'panel_results_no_data'|trans}}</msg>
+
+	<msg type="warning" ng-if="scoresDataSets.length === 0 && summaryDataSets.length === 0">
+		{{'panel_results_no_data'|trans}}</msg>
 </src>
