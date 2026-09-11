@@ -1,35 +1,20 @@
-isValid <- function(trait) {
-  !is.null(trait) && !is.na(trait) && length(trait) > 0
-}
-
-getPropName <- function(trait, name, includeTraitInScoreName = FALSE) {
-  if (isValid(trait) && includeTraitInScoreName) {
-    paste0(trait, " - ", name)
-  } else {
-    name
-  }
-}
-
 getScorableItems <- function(responses, items, trait = NULL) {
-
-scoringResponses <- if (
-  is.null(trait) ||
-  length(trait) == 0 ||
-  is.na(trait) ||
-  !nzchar(trait)
-) {
+  scoringResponses <- if (
+    is.null(trait) ||
+      length(trait) == 0 ||
+      is.na(trait) ||
+      !nzchar(trait)
+  ) {
     responses
   } else {
     responses[responses$trait == trait, ]
   }
-  
+
   scoreableItems <- items[
     is.na(items$excludeFromScoring) |
       items$excludeFromScoring != 1, ,
     drop = FALSE
   ]
-
-
 
   responseKeys <- paste(
     scoringResponses$test,
@@ -327,12 +312,12 @@ createScores <- function(
   b3,
   sd
 ) {
-  rawScoreProp <- getPropName(trait, "raw score", includeTraitInScoreName)
-  zScoreProp <- getPropName(trait, "z score", includeTraitInScoreName)
-  percentileProp <- getPropName(trait, "percentile", includeTraitInScoreName)
-  meanProp <- getPropName(trait, "predicted mean", includeTraitInScoreName)
-  sdProp <- getPropName(trait, "sd", includeTraitInScoreName)
-  measureProp <- getPropName(trait, "measure", includeTraitInScoreName)
+  rawScoreProp <- concerto$globals$easi$lib$getPropName(trait, "raw score", includeTraitInScoreName)
+  zScoreProp <- concerto$globals$easi$lib$getPropName(trait, "z score", includeTraitInScoreName)
+  percentileProp <- concerto$globals$easi$lib$getPropName(trait, "percentile", includeTraitInScoreName)
+  meanProp <- concerto$globals$easi$lib$getPropName(trait, "predicted mean", includeTraitInScoreName)
+  sdProp <- concerto$globals$easi$lib$getPropName(trait, "sd", includeTraitInScoreName)
+  measureProp <- concerto$globals$easi$lib$getPropName(trait, "measure", includeTraitInScoreName)
 
   predictedMean <- b0 +
     b1 * age +
@@ -352,13 +337,11 @@ createScores <- function(
 
 
 runScoring <- function(responses, items, settings) {
-
   allScores <- list()
   for (scoreSetting in settings$scoreSettings) {
     trait <- scoreSetting$trait
-    scorableResponses <- getScorableItems(responses, items, trait)
+    scorableResponses <- concerto$globals$easi$lib$getScorableItems(responses, items, trait)
 
-    
     scoreRange <- getScoreRange(scorableResponses, items)
     newMeasure <- getMeasure(scorableResponses, items, scoreRange)
 

@@ -25,101 +25,116 @@ getTranslationDictionary <- function() {
   translationDictionaryCache
 }
 
-lib = list(
-helloWorld = function() {
-concerto.log("hello from hello world")
-  "hello"
-},
-  oldTranslate = function(entryKey, languageCode) {
-    if(languageCode == "") { languageCode = "en" }
-    columns = concerto.table.query("SHOW COLUMNS FROM `EASI_translation_dictionary` LIKE '{{languageCode}}'", list(languageCode=languageCode));
-    concerto.log(columns, "COLUMNS");
-    if(nrow(columns) == 0) { languageCode = "en" }
-    
-    result = concerto.table.query("SELECT entryKey, IF({{languageCode}} IS NOT NULL, {{languageCode}}, en) AS translation FROM EASI_translation_dictionary WHERE entryKey='{{entryKey}}'", list(entryKey=entryKey, languageCode=languageCode))
-    if(nrow(result) == 0) {
-      entryKey
+isValid <- function(trait) {
+  !is.null(trait) && !is.na(trait) && length(trait) > 0
+}
+
+lib <- list(
+  isValid = isValid,
+  getPropName = function(trait, name, includeTraitInScoreName = FALSE) {
+    if (isValid(trait) && includeTraitInScoreName) {
+      paste0(trait, " - ", name)
     } else {
-      result$translation
+      name
     }
   },
-  
+  getScorableItems = function(responses, items, trait = NULL) {
+    scoringResponses <- if (
+      is.null(trait) ||
+        length(trait) == 0 ||
+        is.na(trait) ||
+        !nzchar(trait)
+    ) {
+      responses
+    } else {
+      responses[responses$trait == trait, ]
+    }
+
+    scoreableItems <- items[
+      is.na(items$excludeFromScoring) |
+        items$excludeFromScoring != 1, ,
+      drop = FALSE
+    ]
+
+    responseKeys <- paste(
+      scoringResponses$test,
+      scoringResponses$item_id
+    )
+
+    itemKeys <- paste(
+      scoreableItems$test,
+      scoreableItems$id
+    )
+
+    scoreableResponses <- scoringResponses[
+      responseKeys %in% itemKeys &
+        scoringResponses$scoreStatus == "scored",
+    ]
+
+    scoreableResponses
+  },
   translate = function(entryKey, languageCode) {
-  if (is.null(languageCode) || languageCode == "") {
-    languageCode <- "en"
-  }
+    if (is.null(languageCode) || languageCode == "") {
+      languageCode <- "en"
+    }
 
-  dict <- getTranslationDictionary()
+    dict <- getTranslationDictionary()
 
-  if (!(languageCode %in% names(dict))) {
-    languageCode <- "en"
-  }
+    if (!(languageCode %in% names(dict))) {
+      languageCode <- "en"
+    }
 
-  row <- dict[dict$entryKey == entryKey, ]
+    row <- dict[dict$entryKey == entryKey, ]
 
-  if (nrow(row) == 0) {
-    return(entryKey)
-  }
+    if (nrow(row) == 0) {
+      return(entryKey)
+    }
 
-  translation <- row[[languageCode]]
+    translation <- row[[languageCode]]
 
-  if (is.null(translation) || is.na(translation) || translation == "") {
-    translation <- row[["en"]]
-  }
+    if (is.null(translation) || is.na(translation) || translation == "") {
+      translation <- row[["en"]]
+    }
 
-  if (is.null(translation) || is.na(translation) || translation == "") {
-    entryKey
-  } else {
-    translation
-  }
-},
+    if (is.null(translation) || is.na(translation) || translation == "") {
+      entryKey
+    } else {
+      translation
+    }
+  },
 
-  #translate data frame
+  # translate data frame
   transDF = function(tdf, language, cols) {
     if (nrow(tdf) > 0) {
       for (col in cols) {
-        transColName = paste0(col, "_trans")
-        tdf[, transColName] = NA
+        transColName <- paste0(col, "_trans")
+        tdf[, transColName] <- NA
       }
 
       for (i in 1:nrow(tdf)) {
-        row = tdf[i, ]
+        row <- tdf[i, ]
         for (col in cols) {
-          langColName = paste0(col, "_", language)
-          transColName = paste0(col, "_trans")
-          langColValue = row[[langColName]]
+          langColName <- paste0(col, "_", language)
+          transColName <- paste0(col, "_trans")
+          langColValue <- row[[langColName]]
           if (!is.null(langColValue) && !is.na(langColValue)) {
-            row[[transColName]] = langColValue
+            row[[transColName]] <- langColValue
           } else {
-            row[[transColName]] = row[[col]]
+            row[[transColName]] <- row[[col]]
           }
         }
 
-        tdf[i, ] = data.frame(row)
+        tdf[i, ] <- data.frame(row)
       }
     }
 
     tdf
   },
-
   getTransCol = function(table, col, language) {
     tableCols <- getTableColumns(table)
 
     transColName <- paste0(col, "_", language)
     if (transColName %in% tableCols) {
-      transColName
-    } else {
-      col
-    }
-  },
-
-  oldGetTransCol = function(table, col, language) {
-    transColName = paste0(col, "_", language)
-    result = concerto.table.query(
-      "SHOW COLUMNS FROM `{{table}}` WHERE Field='{{transColName}}'",
-      list(table = table, transColName = transColName)
-    )
-    if (nrow(result) > 0) {
       transColName
     } else {
       col

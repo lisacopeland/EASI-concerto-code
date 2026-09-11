@@ -5,10 +5,19 @@ testRunner.controllerProvider.register('assessment', function ($scope, $mdDialog
   $scope.groups = [];
   $scope.discontinueReason = "Item exceeded the child's ability";
   $scope.discontinuing = false;
+  $scope.testDiscontinueReason = '';
 
-$scope.skipReasons = $scope.test.skipReasons
-  ? JSON.parse($scope.test.skipReasons)
-  : [];
+  $scope.itemSkipReasons = $scope.test.itemSkipReasons
+    ? JSON.parse($scope.test.itemSkipReasons)
+    : [];
+
+  $scope.testDiscontinueReasons = $scope.test.testDiscontinueReasons
+    ? JSON.parse($scope.test.testDiscontinueReasons)
+    : [];
+
+  $scope.groupDiscontinueReasons = $scope.test.groupDiscontinueReasons
+    ? JSON.parse($scope.test.groupDiscontinueReasons)
+    : [];
 
   $scope.isValid = function (form) {
     if ($scope.items.length === 0) return true;
@@ -41,28 +50,26 @@ $scope.skipReasons = $scope.test.skipReasons
             } else {
               responseValue = null;
               skipped = true;
-              skipReason = $scope.discontinueReason;
+              skipReason = $scope.testDiscontinueReason;
             }
           } else {
             // not discontinuing
             responseValue = item.value;
             if (stimulus.stimulusSkipped !== undefined) {
-            
-            skipped = stimulus.stimulusSkipped ? 1 : 0;
+              skipped = stimulus.stimulusSkipped ? 1 : 0;
             } else {
-            skipped = undefined;
+              skipped = undefined;
             }
             skipReason = stimulus.stimulusSkipped ? stimulus.stimulusSkipReason : null;
           }
 
-          if ((responseValue !== undefined) || (skipped !== undefined)) {
-          
-          responses.push({
-            item_id: item.id,
-            value: responseValue,
-            skipped: skipped,
-            skipReason: skipReason,
-          });
+          if (responseValue !== undefined || skipped !== undefined) {
+            responses.push({
+              item_id: item.id,
+              value: responseValue,
+              skipped: skipped,
+              skipReason: skipReason,
+            });
           }
         }
       }
@@ -96,23 +103,25 @@ $scope.skipReasons = $scope.test.skipReasons
   };
 
   $scope.openDiscontinueDialog = function () {
-    $mdDialog
-      .show({
+    try {
+      const reason = await;
+      $mdDialog.show({
         controller: DialogDiscontinueTestController,
+        locals: {
+          testDiscontinueReasons: $scope.testDiscontinueReasons,
+        },
+
         templateUrl: '/ViewTemplate/EASI-test-discontinue-dialog/html',
         clickOutsideToClose: true,
-      })
-      .then(
-        function (reason) {
-          console.log('reason was ', reason);
-          $scope.discontinueReason = reason;
-          $scope.discontinuing = true;
-          submitView(true);
-        },
-        function () {
-          console.log('not discontinuing');
-        },
-      );
+      });
+      console.log('reason was ', reason);
+      $scope.testDiscontinueReason = reason;
+      $scope.discontinuing = true;
+      submitView(true);
+    } catch (error) {
+      // User clicked Cancel
+      console.log('not discontinuing');
+    }
   };
 
   $scope.skipReasonChanged = function (itemType, item) {
@@ -124,14 +133,14 @@ $scope.skipReasons = $scope.test.skipReasons
       }
     }
     if (itemType === 'group') {
-    const group = item;
+      const group = item;
       for (let x = 0; x < group.stimuli.length; x++) {
         let stimulus = group.stimuli[x];
         stimulus.stimulusSkipped = group.groupSkipped;
         stimulus.stimulusSkipReason = group.groupSkipReason;
         for (let y = 0; y < stimulus.items.length; y++) {
           let item = stimulus.items[y];
-          item.skipReason = stimulus.stimulusSkipReason;
+          item.skipReason = group.groupSkipReason;
         }
       }
     }
@@ -148,10 +157,12 @@ $scope.skipReasons = $scope.test.skipReasons
       if (!matchingGroup) {
         matchingGroup = {
           groupId: curr.groupId,
+          groupLabel: curr.groupLabel,
           groupCanSkip: true,
           groupSkipped: false,
           groupSkipReason: null,
           stimuli: [],
+          hideGroup: curr.hideGroup === 1,
         };
 
         acc.push(matchingGroup);
@@ -164,7 +175,6 @@ $scope.skipReasons = $scope.test.skipReasons
       if (!matchingStimulus) {
         matchingStimulus = {
           stimulusId: curr.stimulusId,
-          stimulusOrder: curr.stimulusOrder,
           stimulousStemTrans: curr.stem_trans,
           stimulusCanSkip: curr.skippable === 1,
           stimulusSkipped: undefined,
@@ -182,7 +192,7 @@ $scope.skipReasons = $scope.test.skipReasons
     groups.sort((a, b) => a.groupOrder - b.groupOrder);
 
     groups.forEach((group) => {
-      group.stimuli.sort((a, b) => a.stimulusOrder - b.stimulusOrder);
+      group.stimuli.sort((a, b) => a.stimulusId - b.stimulusId);
 
       group.stimuli.forEach((stimulus) => {
         stimulus.items.sort((a, b) => a.itemOrder - b.itemOrder);

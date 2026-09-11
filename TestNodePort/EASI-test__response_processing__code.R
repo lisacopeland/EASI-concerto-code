@@ -1,7 +1,6 @@
 concerto.log("Hi from response processing")
 
 getItemResponseLabel <- function(item, itemResponse) {
-
   if (!is.null(itemResponse$skipped) && itemResponse$skipped == "1") {
     value <- 0
   } else {
@@ -28,11 +27,11 @@ getItemResponseLabel <- function(item, itemResponse) {
   NULL
 }
 
-# gets single numeric representation of response value
 getItemResponseScorableValue <- function(item, itemResponse) {
   if (
-    (!is.null(itemResponse$skipped) && itemResponse$skipped == "1") &&
-      itemResponse$skipReason == "Item exceeded the child's ability"
+    (!is.null(itemResponse$skipped) &&
+      itemResponse$skipped == "1") &&
+      (grepl("exceeded the child's ability", itemResponse$skipReason, ignore.case = TRUE))
   ) {
     return(0)
   }
@@ -78,8 +77,12 @@ getItemScoringResult <- function(item, itemResponse) {
     ))
   }
 
-if (!is.null(itemResponse$skipped) && (itemResponse$skipped == "1")) {
-    if (itemResponse$skipReason == "Item exceeded the child's ability") {
+  if (!is.null(itemResponse$skipped) && (itemResponse$skipped == "1")) {
+    if (grepl(
+      "exceeded the child's ability",
+      itemResponse$skipReason,
+      ignore.case = TRUE
+    )) {
       label <- getItemResponseLabel(item, itemResponse)
       return(list(
         score = 0,
@@ -96,7 +99,7 @@ if (!is.null(itemResponse$skipped) && (itemResponse$skipped == "1")) {
       ))
     }
   }
-  
+
   score <- getItemScore(item, itemResponse)
   label <- getItemResponseLabel(item, itemResponse)
 

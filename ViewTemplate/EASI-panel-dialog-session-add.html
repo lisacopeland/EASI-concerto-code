@@ -1,24 +1,75 @@
 <src>
-	<md-dialog style="width: 500px;">
+	<md-dialog class="session-add-dialog">
 		<form ng-cloak="" name="sessionForm">
 			<md-toolbar>
 				<div class="md-toolbar-tools">
 					<h2>[['panel_session_adding'|trans]]</h2>
 				</div>
-			</md-toolbar> 
+			</md-toolbar>
 			<md-dialog-content>
 				<div class="md-dialog-content">
 					<md-input-container style="width: 100%;">
 						<label>[['panel_session_test'|trans]]</label>
-						<md-select ng-model="session.testCode">
-							<md-option ng-repeat="test in testService.collection | orderBy:'+orderIndex'" ng-value="test.code">[[test.title_trans|trans]]</md-option>
+						<md-select ng-model="testCode" ng-change="getSessions()">
+							<md-option ng-repeat="test in testService.collection | orderBy:'+orderIndex'"
+								ng-value="test.code">[[test.title_trans|trans]]</md-option>
 						</md-select>
 					</md-input-container>
 				</div>
-			</md-dialog-content> 
-			<md-dialog-actions layout="row" layout-align="end"> 
-				<md-button ng-click="cancel()"> [['cancel'|trans]] </md-button> 
-				<md-button ng-click="add()" ng-disabled="!session.testCode"> [['add'|trans]] </md-button> 
+				<div ng-if="selectedSessions.length > 0">
+					<md-table-container class="session-add-table">
+						<table md-table ng-model="selectedSessions">
+							<thead md-head>
+								<tr md-row>
+									<th md-column><span>[['panel_session_date_of_assessment'|trans]]</span></th>
+									<th md-column><span>[['panel_session_time_started'|trans]]</span></th>
+									<th md-column><span>[['panel_session_test_iteration'|trans]]</span></th>
+									<th md-column><span>[['panel_session_status'|trans]]</span></th>
+								</tr>
+							</thead>
+							<tbody>
+								<tr md-row ng-repeat="session in selectedSessions">
+									<td md-cell>[[session.dateAssessment ? session.dateAssessment : '-']]</td>
+									<td md-cell>[[session.timeStarted ? session.timeStarted : '-']]</td>
+									<td md-cell>
+										<div ng-if="session.testIteration !== -1">
+											[[session.testIteration === 0 ? 'Initial' : 'Retest ' +
+											session.testIteration ]]
+										</div>
+										<div ng-if="session.testIteration === -1">
+											none
+										</div>
+									</td>
+									<td md-cell><span session-status="session.status"></span></td>
+								</tr>
+
+							</tbody>
+						</table>
+					</md-table-container>
+				</div>
+				<div class="session-add-input" ng-if="selectedSessions.length > 0">
+					<md-radio-group ng-change="validateSession()" ng-model="sessionType">
+						<md-radio-button value="initial" ng-if="!hasInitialSession">
+							Initial Session
+						</md-radio-button>
+
+						<md-radio-button value="retest">
+							Retest Session
+						</md-radio-button>
+
+					</md-radio-group>
+
+					<md-input-container ng-if="sessionType === 'retest'">
+						<label>Retest Session Number</label>
+
+						<input type="number" ng-change="validateSession()" ng-model="testIteration"
+							min="[[ nextRetestNumber ]]">
+					</md-input-container>
+				</div>
+			</md-dialog-content>
+			<md-dialog-actions layout="row" layout-align="end">
+				<md-button ng-click="cancel()"> [['cancel'|trans]] </md-button>
+				<md-button ng-click="add()" ng-disabled="!validEntry"> [['add'|trans]] </md-button>
 			</md-dialog-actions>
 		</form>
 	</md-dialog>
