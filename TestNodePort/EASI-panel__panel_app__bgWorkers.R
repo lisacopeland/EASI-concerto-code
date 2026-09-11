@@ -1780,6 +1780,7 @@ fetchSessions <- function(query) {
         s.timeCreated,
         s.timeStarted,
         s.timeFinished,
+        IFNULL(testIteration, -1) AS testIteration,
         s.statusDescription COLLATE utf8_bin AS statusDescription,
         s.status,
         s.token COLLATE utf8_bin AS token,
@@ -1818,7 +1819,7 @@ fetchSessions <- function(query) {
     "SELECT * FROM (",
     paste0(sqlArray, collapse = " UNION ALL "),
     ") AS tu
-    ORDER BY {{orderSql}} {{limitSql}}"
+    ORDER BY testIteration ASC, {{orderSql}} {{limitSql}}"
   )
   collection <- concerto.table.query(sqlCollection, params)
 
@@ -1997,16 +1998,15 @@ fetchScores <- function(query) {
     language
   )
   tests <- concerto.table.query(
-    "
-SELECT
-id,
-code,
-title,
-IFNULL({{titleTransCol}}, title) title_trans,
-summaryScores,
-hiddenScores
-FROM EASI_tests
-ORDER BY orderIndex ASC, title ASC",
+    "SELECT
+    id,
+    code,
+    title,
+    IFNULL({{titleTransCol}}, title) title_trans,
+    summaryScores,
+    hiddenScores
+    FROM EASI_tests
+    ORDER BY orderIndex ASC, title ASC",
     list(titleTransCol = titleTransCol)
   )
   filteredTests <- NULL
@@ -2047,68 +2047,67 @@ ORDER BY orderIndex ASC, title ASC",
     )
 
     sql <- "
-(
-SELECT
-  score.id,
-  score.name COLLATE utf8_bin AS name,
-  score.value,
-  '{{testCode}}' AS testCode,
-  '{{testTitle}}' AS testTitle,
-  '{{testTitle_trans}}' AS testTitle_trans,
-  score.timeCreated,
-  score.session_id,
-  session.participantMonths,
-  IFNULL(admin.login, 'Unknown') AS admin_login,
-  feedback.feedback,
-  IFNULL({{feedbackTransCol}}, feedback.feedback) AS feedback_trans
-FROM {{scoresTable}} AS score
-LEFT JOIN {{sessionsTable}} AS session ON session.id = score.session_id
-LEFT JOIN EASI_admins AS admin ON session.admin_id = admin.id
-LEFT JOIN {{feedbackTable}} AS feedback
-  ON score.name REGEXP feedback.namePattern COLLATE utf8_bin
-  AND (feedback.minParticipantMonths IS NULL OR feedback.minParticipantMonths <= session.participantMonths)
-  AND (feedback.maxParticipantMonths IS NULL OR feedback.maxParticipantMonths > session.participantMonths)
-  AND (feedback.minRange IS NULL OR feedback.minRange <= score.value)
-  AND (feedback.maxRange IS NULL OR feedback.maxRange > score.value)
-WHERE score.id IN (
-  SELECT MAX(score.id)
-  FROM {{scoresTable}} AS score
-  LEFT JOIN {{sessionsTable}} AS session ON session.id = score.session_id
-  WHERE score.participant_id='{{participant_id}}'
-    AND session.status=2
-  GROUP BY score.name
-  HAVING ('{{hiddenScores}}'='' OR !JSON_CONTAINS('{{hiddenScores}}', JSON_QUOTE(score.name)))
-)
-)
-"
+      (SELECT
+        score.id,
+        score.name COLLATE utf8_bin AS name,
+        score.value,
+        '{{testCode}}' AS testCode,
+        '{{testTitle}}' AS testTitle,
+        '{{testTitle_trans}}' AS testTitle_trans,
+        score.timeCreated,
+        score.session_id,
+        session.participantMonths,
+        IFNULL(admin.login, 'Unknown') AS admin_login,
+        feedback.feedback,
+        IFNULL({{feedbackTransCol}}, feedback.feedback) AS feedback_trans
+      FROM {{scoresTable}} AS score
+      LEFT JOIN {{sessionsTable}} AS session ON session.id = score.session_id
+      LEFT JOIN EASI_admins AS admin ON session.admin_id = admin.id
+      LEFT JOIN {{feedbackTable}} AS feedback
+        ON score.name REGEXP feedback.namePattern COLLATE utf8_bin
+        AND (feedback.minParticipantMonths IS NULL OR feedback.minParticipantMonths <= session.participantMonths)
+        AND (feedback.maxParticipantMonths IS NULL OR feedback.maxParticipantMonths > session.participantMonths)
+        AND (feedback.minRange IS NULL OR feedback.minRange <= score.value)
+        AND (feedback.maxRange IS NULL OR feedback.maxRange > score.value)
+      WHERE score.id IN (
+        SELECT MAX(score.id)
+        FROM {{scoresTable}} AS score
+        INNER JOIN {{sessionsTable}} AS session ON session.id = score.session_id
+        WHERE score.participant_id='{{participant_id}}'
+          AND session.status=2
+        GROUP BY score.name
+        HAVING ('{{hiddenScores}}'='' OR !JSON_CONTAINS('{{hiddenScores}}', JSON_QUOTE(score.name)))
+      )
+      )
+      "
     sql <- concerto.table.insertParams(sql, params)
     sqlArray <- c(sqlArray, sql)
   }
 
   praxisSql <- "
-(
-SELECT
-  score.id,
-  score.name COLLATE utf8_bin AS name,
-  score.value,
-  'PRAXIS' AS testCode,
-'Praxis Composite' AS testTitle,
-'Praxis Composite' AS testTitle_trans,
-  score.timeCreated,
-  NULL AS session_id,
-  NULL AS participantMonths,
-  NULL AS admin_login,
-  NULL AS feedback,
-  NULL AS feedback_trans
-FROM PRAXIS_scores AS score
-WHERE score.id IN (
-  SELECT MAX(id)
-  FROM PRAXIS_scores
-  WHERE participant_id='{{participant_id}}'
-  GROUP BY name
-)
-)
-"
+    (
+    SELECT
+      score.id,
+      score.name COLLATE utf8_bin AS name,
+      score.value,
+      'PRAXIS' AS testCode,
+    'Praxis Composite' AS testTitle,
+    'Praxis Composite' AS testTitle_trans,
+      score.timeCreated,
+      NULL AS session_id,
+      NULL AS participantMonths,
+      NULL AS admin_login,
+      NULL AS feedback,
+      NULL AS feedback_trans
+    FROM PRAXIS_scores AS score
+    WHERE score.id IN (
+      SELECT MAX(id)
+      FROM PRAXIS_scores
+      WHERE participant_id='{{participant_id}}'
+      GROUP BY name
+    )
+    )
+    "
 
   praxisSql <- concerto.table.insertParams(
     praxisSql,
@@ -2121,11 +2120,10 @@ WHERE score.id IN (
   collection <- NULL
   if (testsSelected) {
     sqlCollection <- paste0(
-      "
-SELECT *, UNIX_TIMESTAMP(timeCreated) AS timestamp FROM (",
-      paste0(sqlArray, collapse = " UNION "),
+      "SELECT *, UNIX_TIMESTAMP(timeCreated) AS timestamp FROM (",
+      paste0(sqlArray, collapse = " UNION ALL"),
       ") AS tu
-ORDER BY timeCreated ASC"
+      ORDER BY timeCreated ASC"
     )
     collection <- concerto.table.query(sqlCollection)
   }
