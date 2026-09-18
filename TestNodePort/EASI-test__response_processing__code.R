@@ -1,6 +1,7 @@
 concerto.log("Hi from response processing")
 
 getItemResponseLabel <- function(item, itemResponse) {
+
   if (!is.null(itemResponse$skipped) && itemResponse$skipped == "1") {
     value <- 0
   } else {
@@ -8,7 +9,7 @@ getItemResponseLabel <- function(item, itemResponse) {
   }
 
   if (is.null(value)) {
-    return(NULL)
+    return(NA_real_)
   }
 
   for (i in 1:5) {
@@ -20,13 +21,18 @@ getItemResponseLabel <- function(item, itemResponse) {
     }
 
     if (item[[valueProp]] == value) {
-      return(item[[labelProp]])
+      if (!is.null(item[[labelProp]])) {
+        return(item[[labelProp]])
+      } else {
+        return(NA_real_)
+      }
     }
   }
 
-  NULL
+  return(NA_real_)
 }
 
+# gets single numeric representation of response value
 getItemResponseScorableValue <- function(item, itemResponse) {
   if (
     (!is.null(itemResponse$skipped) &&
@@ -40,7 +46,6 @@ getItemResponseScorableValue <- function(item, itemResponse) {
     itemResponse$value
   )
 }
-
 getSubtractScorableValue <- function(item, itemResponse) {
   if (is.null(itemResponse$value)) {
     return(NULL)

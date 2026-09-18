@@ -1113,6 +1113,27 @@ getAdminPermissionSql <- function(admin, alias = "") {
   stop("Unknown admin type")
 }
 
+getSessionSelectionSql <- function(session, alias = "") {
+  prefix <- if (alias == "") "" else paste0(alias, ".")
+  if (session$selection == "all") {
+    return("")
+  }
+  if (session$selection == "initial") {
+    return(paste0(
+      " AND ", prefix, "testIteration = 0"
+    ))
+    
+  } 
+  if (session$selection == "retest") {
+    return(paste0(
+      " AND ", prefix, "testIteration = ", session$iteration
+    ))
+    
+  } 
+  stop("Unknown session selection")
+
+}
+
 deleteParticipantsTransactions <- function(selection) {
   admin <- c.get("admin", T)
   if (!is.list(admin)) {
@@ -2043,7 +2064,8 @@ fetchScores <- function(query) {
       testTitle = test$title,
       testTitle_trans = test$title_trans,
       hiddenScores = test$hiddenScores,
-      feedbackTransCol = feedbackTransCol
+      feedbackTransCol = feedbackTransCol,
+      iteration = query$iteration
     )
 
     sql <- "
@@ -2069,15 +2091,9 @@ fetchScores <- function(query) {
         AND (feedback.maxParticipantMonths IS NULL OR feedback.maxParticipantMonths > session.participantMonths)
         AND (feedback.minRange IS NULL OR feedback.minRange <= score.value)
         AND (feedback.maxRange IS NULL OR feedback.maxRange > score.value)
-      WHERE score.id IN (
-        SELECT MAX(score.id)
-        FROM {{scoresTable}} AS score
-        INNER JOIN {{sessionsTable}} AS session ON session.id = score.session_id
-        WHERE score.participant_id='{{participant_id}}'
-          AND session.status=2
-        GROUP BY score.name
-        HAVING ('{{hiddenScores}}'='' OR !JSON_CONTAINS('{{hiddenScores}}', JSON_QUOTE(score.name)))
-      )
+  WHERE score.participant_id = '{{participant_id}}'
+    AND session.status = 2
+    AND session.testIteration = '{{iteration}}'
       )
       "
     sql <- concerto.table.insertParams(sql, params)
@@ -2100,18 +2116,13 @@ fetchScores <- function(query) {
       NULL AS feedback,
       NULL AS feedback_trans
     FROM PRAXIS_scores AS score
-    WHERE score.id IN (
-      SELECT MAX(id)
-      FROM PRAXIS_scores
-      WHERE participant_id='{{participant_id}}'
-      GROUP BY name
-    )
+    WHERE participant_id='{{participant_id}}' and score.testIteration = '{{iteration}}'
     )
     "
 
   praxisSql <- concerto.table.insertParams(
     praxisSql,
-    list(participant_id = query$participantId)
+    list(participant_id = query$participantId, iteration = query$iteration)
   )
   sqlArray <- c(sqlArray, praxisSql)
   testsSelected <- length(sqlArray) > 0
@@ -2898,7 +2909,8 @@ getParticipantIdsForSelection <- function(selection, admin, exportExclusionFlag 
   return(NULL)
 }
 
-createDownload <- function(selection, cols) {
+createDownload <- function(selection, cols, session) {
+  concerto.log("========== CREATE DOWNLOAD STARTED - NEW TEST ==========")
   admin <- c.get("admin", T)
   if (!is.list(admin)) {
     return(list(
@@ -2909,18 +2921,18 @@ createDownload <- function(selection, cols) {
 
   # Make the filepath:
   filename <- paste0(format(Sys.time(), "%Y%m%dT%H%M%SZ", tz = "GMT"), ".csv")
-  session <- concerto.table.query(
+  testSession <- concerto.table.query(
     "SELECT hash FROM TestSession WHERE id='{{id}}'",
     list(id = concerto$session$id)
   )
-  if (nrow(session) == 0) {
+  if (nrow(testSession) == 0) {
     return(list(
       success = FALSE,
       error = "Session not found"
     ))
   }
 
-  dirPath <- paste0("/data/sessions/", session$hash, "/files")
+  dirPath <- paste0("/data/sessions/", testSession$hash, "/files")
   if (!dir.exists(dirPath)) {
     dir.create(dirPath, recursive = TRUE, showWarnings = FALSE)
   }
@@ -3000,80 +3012,140 @@ createDownload <- function(selection, cols) {
     ))
   }
 
+concerto.log("session")
+concerto.log(
+  jsonlite::toJSON(session, pretty = TRUE, auto_unbox = TRUE)
+)
+
   # Get the scores
+  sessionSql <- getSessionSelectionSql(session, "se")
   scores <- data.frame()
   if (cols["testAdmin"] == "true" || cols["testScores"] == "true") {
-    scoresSql <- paste0(
-      "SELECT '",
-      testCodes,
-      "' COLLATE utf8_bin AS testCode,
-      session_id, s.name COLLATE utf8_bin AS name,
-      value COLLATE utf8_bin AS value, s.participant_id, a.id AS admin_id, a.login AS admin_login, se.dateAssessment as dateAssessment
-    FROM ",
-      testCodes,
-      "_scores AS s
-    LEFT JOIN ",
-      testCodes,
-      "_sessions AS se ON se.id=s.session_id
-    LEFT JOIN EASI_admins AS a ON a.id=se.admin_id
-    WHERE s.participant_id IN ({{ids}}) AND session_id = (SELECT MAX(session_id) FROM ",
-      testCodes,
-      "_scores WHERE participant_id=s.participant_id)"
-    )
-    scoresSql <- paste0(
-      "SELECT * FROM (",
-      paste0(scoresSql, collapse = " UNION ALL "),
-      ") t ORDER BY testCode, name"
-    )
+scoresSql <- paste0(
+
+  "SELECT '",
+  testCodes,
+  "' COLLATE utf8_bin AS testCode,
+  
+  s.session_id,
+  s.name COLLATE utf8_bin AS name,
+  s.value COLLATE utf8_bin AS value,
+  s.participant_id,
+  a.id AS admin_id,
+  a.login AS admin_login,
+  se.dateAssessment AS dateAssessment,
+  se.testIteration AS testIteration
+
+  FROM ",
+  testCodes,
+  "_scores AS s
+
+  LEFT JOIN ",
+  testCodes,
+  "_sessions AS se
+    ON se.id = s.session_id
+
+  LEFT JOIN EASI_admins AS a
+    ON a.id = se.admin_id
+
+  WHERE s.participant_id IN ({{ids}})",
+
+  sessionSql
+)
+
+  praxisSessionSql <- getSessionSelectionSql(session, "score")
+praxisSql <- paste0(
+  "SELECT
+      'PRAXIS' COLLATE utf8_bin AS testCode,
+      NULL AS session_id,
+      score.name COLLATE utf8_bin AS name,
+      score.value AS value,
+      score.participant_id,
+      NULL AS admin_id,
+      NULL AS admin_login,
+      score.timeCreated AS dateAssessment,
+      score.testIteration AS testIteration
+   FROM PRAXIS_scores AS score
+   WHERE score.participant_id IN ({{ids}})",
+  praxisSessionSql
+)
+    
+scoresSql <- paste0(
+  "SELECT * FROM (",
+  paste(c(scoresSql, praxisSql), collapse = " UNION ALL "),
+  ") t ORDER BY testCode, name"
+)
     scores <- concerto.table.query(scoresSql, params)
+    concerto.log(paste0("***************Rows returned from scores query: ", nrow(scores)))
     if (nrow(scores) == 0) {
       scores <- data.frame()
     }
   }
+  
+  
+  
   # now get responses
   responses <- data.frame()
   if (cols["testResponses"] == "true") {
-    responsesSql <- paste0(
-      "SELECT '",
-      testCodes,
-      "' COLLATE utf8_bin AS testCode,
-      r.session_id,
-      r.item_id,
-      CASE
-      WHEN r.value COLLATE utf8_bin = i.optionValue1 COLLATE utf8_bin THEN i.optionLabel1 COLLATE utf8_bin
-      WHEN r.value COLLATE utf8_bin = i.optionValue2 COLLATE utf8_bin THEN i.optionLabel2 COLLATE utf8_bin
-      WHEN r.value COLLATE utf8_bin = i.optionValue3 COLLATE utf8_bin THEN i.optionLabel3 COLLATE utf8_bin
-      WHEN r.value COLLATE utf8_bin = i.optionValue4 COLLATE utf8_bin THEN i.optionLabel4 COLLATE utf8_bin
-      WHEN r.value COLLATE utf8_bin = i.optionValue5 COLLATE utf8_bin THEN i.optionLabel5 COLLATE utf8_bin
-      END label,
-      r.score,
-      r.value COLLATE utf8_bin AS value,
-      r.skipped,
-      se.participant_id
-      FROM ",
-      testCodes,
-      "_responses AS r
-      LEFT JOIN ",
-      testCodes,
-      "_sessions AS se ON se.id=r.session_id
-      LEFT JOIN ",
-      testCodes,
-      "_items AS i ON i.id=r.item_id
-      WHERE se.participant_id IN ({{ids}}) AND session_id = (SELECT MAX(session_id) FROM ",
-      testCodes,
-      "_responses LEFT JOIN ",
-      testCodes,
-      "_sessions as ses on ses.id=session_id WHERE ses.participant_id=se.participant_id)"
-    )
+   responsesSql <- paste0(
+
+  "SELECT '",
+  testCodes,
+  "' COLLATE utf8_bin AS testCode,
+
+  r.session_id,
+  r.item_id,
+
+  CASE
+    WHEN r.value COLLATE utf8_bin = i.optionValue1 COLLATE utf8_bin
+      THEN i.optionLabel1 COLLATE utf8_bin
+    WHEN r.value COLLATE utf8_bin = i.optionValue2 COLLATE utf8_bin
+      THEN i.optionLabel2 COLLATE utf8_bin
+    WHEN r.value COLLATE utf8_bin = i.optionValue3 COLLATE utf8_bin
+      THEN i.optionLabel3 COLLATE utf8_bin
+    WHEN r.value COLLATE utf8_bin = i.optionValue4 COLLATE utf8_bin
+      THEN i.optionLabel4 COLLATE utf8_bin
+    WHEN r.value COLLATE utf8_bin = i.optionValue5 COLLATE utf8_bin
+      THEN i.optionLabel5 COLLATE utf8_bin
+  END label,
+
+  r.score,
+  r.value COLLATE utf8_bin AS value,
+  r.skipped,
+  se.participant_id,
+  se.testIteration AS testIteration
+
+  FROM ",
+  testCodes,
+  "_responses AS r
+
+  LEFT JOIN ",
+  testCodes,
+  "_sessions AS se
+    ON se.id = r.session_id
+
+  LEFT JOIN ",
+  testCodes,
+  "_items AS i
+    ON i.id = r.item_id
+
+  WHERE se.participant_id IN ({{ids}})",
+
+  sessionSql
+
+)
     responsesSql <- paste0(
       "SELECT * FROM (",
       paste0(responsesSql, collapse = " UNION ALL "),
       ") t ORDER BY testCode, item_id"
     )
     responses <- concerto.table.query(responsesSql, params)
+    concerto.log(paste0("**************Rows returned from responses query: ", nrow(responses)))
   } else {
     responses <- data.frame()
   }
+
+
 
   # now do the R stuff
   dfi <- list()
@@ -3239,7 +3311,7 @@ list(
     toggleArchivedParticipants(response$selection)
   },
   createDownload = function(response) {
-    createDownload(response$selection, response$cols)
+    createDownload(response$selection, response$cols, response$session)
   },
   addParticipant = function(response) {
     result <- addParticipant(response$participant)

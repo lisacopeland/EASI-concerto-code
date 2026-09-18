@@ -32,15 +32,15 @@ testRunner.service('sessions', function (api, $rootScope, $mdDialog, $location, 
     });
   };
 
-  this.addDialog = function (session) {
+  this.addDialog = function (sessionAddObject) {
     let service = this;
     return new Promise((resolve, reject) => {
       $mdDialog
         .show({
           controller: DialogSessionAddController,
           resolve: {
-            session: () => {
-              return session;
+            sessionAddObject: () => {
+              return sessionAddObject;
             },
           },
           templateUrl: '/ViewTemplate/EASI-panel-dialog-session-add/html',

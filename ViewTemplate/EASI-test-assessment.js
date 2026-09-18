@@ -91,7 +91,6 @@ testRunner.controllerProvider.register('assessment', function ($scope, $mdDialog
   };
 
   $scope.skipStimulus = function (stimulus) {
-    console.log('lets skip this one: ', stimulus);
     stimulus.stimulusSkipped = !stimulus.stimulusSkipped;
     stimulusSkipReason = null;
     for (let y = 0; y < stimulus.items.length; y++) {
@@ -102,10 +101,9 @@ testRunner.controllerProvider.register('assessment', function ($scope, $mdDialog
     }
   };
 
-  $scope.openDiscontinueDialog = function () {
+  $scope.openDiscontinueDialog = async function () {
     try {
-      const reason = await;
-      $mdDialog.show({
+      const reason = await $mdDialog.show({
         controller: DialogDiscontinueTestController,
         locals: {
           testDiscontinueReasons: $scope.testDiscontinueReasons,
@@ -117,7 +115,7 @@ testRunner.controllerProvider.register('assessment', function ($scope, $mdDialog
       console.log('reason was ', reason);
       $scope.testDiscontinueReason = reason;
       $scope.discontinuing = true;
-      submitView(true);
+      $scope.submitView(true);
     } catch (error) {
       // User clicked Cancel
       console.log('not discontinuing');
@@ -147,8 +145,6 @@ testRunner.controllerProvider.register('assessment', function ($scope, $mdDialog
   };
 
   this.$onInit = function () {
-    console.log('hi from assessment - items: ', $scope.items);
-
     $scope.hasGroups = $scope.test.hasGroups;
     $scope.allowIncomplete = $scope.test.allowIncomplete;
     const groups = $scope.items.reduce((acc, curr) => {
@@ -199,6 +195,5 @@ testRunner.controllerProvider.register('assessment', function ($scope, $mdDialog
       });
     });
     $scope.groups = [...groups];
-    console.log('groups: ', $scope.groups);
   };
 });

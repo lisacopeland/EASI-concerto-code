@@ -47,8 +47,8 @@
 						</table>
 					</md-table-container>
 				</div>
-				<div class="session-add-input" ng-if="selectedSessions.length > 0">
-					<md-radio-group ng-change="validateSession()" ng-model="sessionType">
+				<div class="session-add-input" ng-if="testCode !== ''">
+					<md-radio-group ng-model="sessionType">
 						<md-radio-button value="initial" ng-if="!hasInitialSession">
 							Initial Session
 						</md-radio-button>
@@ -62,7 +62,7 @@
 					<md-input-container ng-if="sessionType === 'retest'">
 						<label>Retest Session Number</label>
 
-						<input type="number" ng-change="validateSession()" ng-model="testIteration"
+						<input type="number" name="testIteration" required ng-change="validateSession()" ng-model="session.testIteration"
 							min="[[ nextRetestNumber ]]">
 					</md-input-container>
 				</div>

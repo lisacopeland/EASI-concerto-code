@@ -8,6 +8,42 @@
 		<md-dialog-content>
 			<div class="md-dialog-content">
 				<div ng-if="!generationStarted">
+
+					<p>[['panel_results_session'|trans]]</p>
+
+						<md-radio-group class="cols-container" ng-model="session.selection" ng-change="sessionSelectionChanged()">
+                            <div class="cols-elem">
+							<md-radio-button value="initial" aria-label="Initial">
+								[['initial testing'|trans]]
+								
+							</md-radio-button>
+							</div>
+							<div class="cols-elem">
+							<md-radio-button value="all" aria-label="all">
+								[['all test sessions'|trans]]
+							</md-radio-button>
+							</div>
+							<div class="cols-elem">
+							<md-radio-button value="retest" aria-label="iteration">
+								[['Retest session'|trans]]
+							</md-radio-button>
+							</div>
+						</md-radio-group>
+						
+                        <div class="cols-container">   
+                                                <div class="cols-elem">
+                                                </div>
+                                                <div class="cols-elem">
+                                                </div>
+	                                                
+                        <div class="cols-elem">
+						<md-input-container ng-show="showRetest">
+							<label>[['panel_results_session_number'|trans]]</label>
+							<input ng-model="session.iteration" name="iteration" min="1" md-placeholder="Enter retest #"
+								type="number" />
+						</md-input-container>
+                        </div>
+                        </div>
 					<p>[['select_exported_columns'|trans]]</p>
 					<div class="cols-container">
 						<div class="cols-elem">
@@ -85,6 +121,7 @@
 								ng-false-value="false">[[test.title_trans]]</md-checkbox>
 						</div>
 					</div>
+
 				</div>
 
 				<div ng-if="generationStarted">

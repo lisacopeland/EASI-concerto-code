@@ -3,10 +3,10 @@
 		<div ng-html="item.question_trans|trans" class="item-options-question">
 		</div>
 
-		<div ng-if="item.skippable" class="skip">
+		<!-- <div ng-if="item.skippable" class="skip">
 			<input type="checkbox" id="s-[[item.id]]" ng-model="item.skipped" ng-change="onSkipChanged()" tabindex="-1" ng-true-value="1" ng-false-value="0" />
 			<label ng-html="skipLabel|trans" for="s-[[item.id]]"></label>
-		</div>
+		</div> -->
 		
 		<md-input-container>
 			<label>{{placeholder|trans}}</label>

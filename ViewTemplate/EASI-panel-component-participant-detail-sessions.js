@@ -53,7 +53,8 @@ testRunner.component('participantDetailSessions', {
 
     $scope.add = function() {
       sessions.addDialog({
-        participant_id: $scope.participant.id
+        participant_id: $scope.participant.id,
+        sessions: $scope.sessionsCollection
       }).then(session => {
         notif.toast(transFilter('panel_session_added', {id: $scope.participant.customId}));
       });

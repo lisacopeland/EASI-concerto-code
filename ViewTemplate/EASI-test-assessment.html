@@ -9,24 +9,25 @@
         layout-margin=""
         class="page-content"
       >
-        <div class="group-container" ng-repeat="group in groups track by $index">
+        <div ng-class="{'group-container' : !group.hideGroup}" ng-repeat="group in groups track by $index">
           <div
-            ng-if="hasGroups"
+            ng-if="hasGroups && !group.hideGroup"
             class="group-header"
             layout="row"
             layout-align="space-between center"
           >
-            <span class="md-headline"> [[ group.groupId ]] </span>
+            <span class="md-headline"> [[ group.groupLabel ]] </span>
             <div layout="row" ng-if="group.groupCanSkip">
               <div class="skip-reason" ng-if="group.groupSkipped">
                 <label>Skip Reason</label>
                 <md-select
                   ng-model="group.groupSkipReason"
+                  aria-label="skipreason"
                   ng-change="skipReasonChanged('group', group)"
                   name="skipReason"
                 >
                   <md-option value=""><em>Not selected</em></md-option>
-                  <md-option ng-repeat="reason in skipReasons" ng-value="reason">
+                  <md-option ng-repeat="reason in groupDiscontinueReasons" ng-value="reason">
                     [[reason]]
                   </md-option>
                 </md-select>
@@ -61,12 +62,13 @@
                       <label for="skipReason">Skip Reason</label>
                       <md-select
                         ng-model="stimulus.stimulusSkipReason"
+                                          aria-label="skipreason"
                         ng-change="skipReasonChanged('stimulus', stimulus)"
                         id="skipReason"
                         name="skipReason"
                       >
                         <md-option value=""><em>Not selected</em></md-option>
-                        <md-option ng-repeat="reason in skipReasons" ng-value="reason">
+                        <md-option ng-repeat="reason in itemSkipReasons" ng-value="reason">
                           [[reason]]
                         </md-option>
                       </md-select>
@@ -89,7 +91,7 @@
                     >
                   </div>
                 </div>
-                <div ng-if="!stimulus.stimulusSkipped"> 
+                <div class="stim-content" ng-if="!stimulus.stimulusSkipped"> 
                   <div
                     ng-repeat="item in stimulus.items track by $index"
                     ng-switch="item.type"

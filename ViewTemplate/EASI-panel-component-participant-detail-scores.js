@@ -26,24 +26,30 @@ testRunner.component('participantDetailScores', {
   bindings: {
     participant: '=',
   },
-  controller: function controller($scope, sessions, scores, $window, auth) {
+  controller: function controller($scope, sessions, scores, $window, auth, $timeout) {
     $scope.participant = null;
 
     $scope.scoresCollection = [];
     $scope.scoresDataSets = [];
 
     $scope.tests = [];
+    $scope.allTests = [];
+    $scope.selectedTestCodes = [];
+    $scope.selectedTests = [];
     $scope.testSelections = [];
     $scope.summaryDataSets = [];
     $scope.suppressTestsWatch = false;
     $scope.ongoingFetchesNum = 0;
-    $scope.displayEmpty = false;
+    $scope.displayEmpty = true;
+    $scope.showInitial = 'initial';
+    $scope.showRetest = false;
     $scope.query = {
       participantId: null,
       tests: {},
       allTests: 1,
       metrics: {},
       allMetrics: 1,
+      iteration: 0,
       datesPreset: 'all',
     };
     $scope.expandables = {
@@ -53,54 +59,59 @@ testRunner.component('participantDetailScores', {
       details: true,
     };
 
+    // Gets called when user toggles all tests vs test selection, and show all vs only tests with scores
     $scope.allTestsChanged = function () {
       $scope.suppressTestsWatch = true;
       if ($scope.query.allTests) {
-        // Send "all tests"
         $scope.query.tests = {};
-        $scope.getScores();
+        $scope.updateCharts();
       } else {
-        // Initialize every test to unselected
         $scope.query.tests = {};
-
         angular.forEach($scope.tests, function (test) {
           $scope.query.tests[test.id] = 0;
         });
       }
     };
 
-    $scope.$watch(
-      function () {
-        return angular.toJson($scope.query.tests);
-      },
-      function (newValue, oldValue) {
-        if (newValue === oldValue) return;
-        if ($scope.suppressTestsWatch) {
-          $scope.suppressTestsWatch = false;
-          return;
+    $scope.testSelectionChanged = function () {
+      let hasSelected = false;
+
+      angular.forEach($scope.query.tests, function (selected) {
+        if (selected === 1) {
+          hasSelected = true;
         }
-        var hasSelected = false;
-        angular.forEach($scope.query.tests, function (selected) {
-          if (selected) {
-            hasSelected = true;
-          }
-        });
-        if (hasSelected) {
-          $scope.getScores();
-        }
-      },
-    );
+      });
+
+      if (hasSelected) {
+        $scope.updateCharts();
+      }
+    };
+
+    $scope.showRetestField = function () {
+      if ($scope.showInitial === 'initial') {
+        $scope.showRetest = false;
+        $scope.query.iteration = 0;
+      } else {
+        $scope.showRetest = true;
+        $scope.query.iteration = 1;
+      }
+      $scope.fetchScores();
+    };
+ 
+
 
     this.$onInit = function () {
       $scope.participant = this.participant;
       $scope.query.participantId = this.participant.id;
-      $scope.getScores();
+      // lets see if I can do only one fetch
+      $scope.fetchScores();
     };
 
     //scores
     let makeScoresDataSet = function () {
       let dataSets = [];
       const metrics = $scope.scoresCollection
+        .filter((elem) => $scope.selectedTestCodes.includes(elem.testCode))
         .map((elem) => elem.name)
         .filter((elem, index, self) => self.indexOf(elem) === index);
       for (let i = 0; i < metrics.length; i++) {
@@ -143,6 +154,7 @@ testRunner.component('participantDetailScores', {
             datasets: $scope.scoresDataSets,
           },
           options: {
+            animation: false,
             scales: {
               y: {
                 beginAtZero: true,
@@ -172,13 +184,13 @@ testRunner.component('participantDetailScores', {
     let makeSummaryDataSet = function () {
       let dataSets = [];
       let summaryScores = [];
-      const tests = $scope.tests
-        .filter((test) => test.summaryScores)
-        .forEach((test) => {
+      $scope.selectedTests.forEach((test) => {
+        if (test.summaryScores !== undefined) {
           let testScores = JSON.parse(test.summaryScores);
           testScores.forEach((testScore) => (testScore.testCode = test.code));
           summaryScores.push(...testScores);
-        });
+        }
+      });
       summaryScores.sort((a, b) => a.order - b.order);
 
       for (let i = 0; i < summaryScores.length; i++) {
@@ -271,6 +283,7 @@ testRunner.component('participantDetailScores', {
       }
     };
 
+    // This is a fetch for the template
     $scope.getTestScores = function (testCode, withFeedbackOnly = false) {
       // Return from scoresCollection all rows where the testcode is testcode params and (not withfeedbackonly or e.feedback)
       return $scope.scoresCollection.filter(
@@ -278,23 +291,40 @@ testRunner.component('participantDetailScores', {
       );
     };
 
-    $scope.getScores = function () {
+    $scope.fetchScores = function () {
       $scope.ongoingFetchesNum++;
       scores.fetch($scope.query).then((response) => {
         $scope.scoresCollection = response.collection;
-        $scope.tests = response.tests;
+        $scope.allTests = response.tests;
+        // Test selections are the switches
         if ($scope.testSelections.length === 0) {
           $scope.testSelections = response.tests;
+          angular.forEach($scope.testSelections, function (test) {
+            if ($scope.query.tests[test.id] === undefined) {
+              $scope.query.tests[test.id] = 0;
+            }
+          });
         }
-        makeScoresDataSet();
-        drawScoresChart();
-
-        makeSummaryDataSet();
-        drawSummaryChart();
-
+        $scope.updateCharts();
         $scope.ongoingFetchesNum--;
-        $scope.$apply();
       });
+    };
+
+    $scope.updateCharts = function () {
+      $scope.selectedTests =
+        $scope.query.allTests === 1
+          ? $scope.allTests
+          : $scope.allTests.filter((test) => $scope.query.tests[test.id] === 1);
+
+      $scope.selectedTestCodes = $scope.selectedTests.map((test) => test.code);
+      makeScoresDataSet();
+      drawScoresChart();
+      makeSummaryDataSet();
+      $timeout(function () {
+        requestAnimationFrame(function () {
+          drawSummaryChart();
+        });
+      }, 0);
     };
 
     $scope.print = function () {

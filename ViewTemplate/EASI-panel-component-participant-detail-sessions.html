@@ -29,6 +29,7 @@
 						<th md-column md-order-by="dateAssessment"><span>{{'panel_session_date_of_assessment'|trans}}</span></th>
 						<th md-column md-order-by="timeStarted"><span>{{'panel_session_time_started'|trans}}</span></th>
 						<th md-column md-order-by="timeFinished"><span>{{'panel_session_time_finished'|trans}}</span></th>
+						<th md-column md-order-by="testIteration"><span>{{'panel_session_test_iteration'|trans}}</span></th>
 						<th md-column md-order-by="status"><span>{{'panel_session_status'|trans}}</span></th>
 						<th md-column><span></span></th>
 					</tr>
@@ -40,6 +41,15 @@
 						<td md-cell>[[session.dateAssessment ? session.dateAssessment : '-']]</td>
 						<td md-cell>[[session.timeStarted ? session.timeStarted : '-']]</td>
 						<td md-cell>[[session.timeFinished ? session.timeFinished : '-']]</td>
+						<td md-cell>
+						<div ng-if="session.testIteration !== -1">
+						[[session.testIteration === 0 ? 'Initial' : 'Retest ' + session.testIteration ]]
+						</div>
+						<div ng-if="session.testIteration === -1">
+						 none
+						</div>
+						
+						</td>
 						<td md-cell><span session-status="session.status"></span></td>
 						<td md-cell layout="row" layout-align="end center" layout-wrap>
 							<md-button ng-click="goToAudit(session)" ng-if="session.status === 2"><md-icon>show_chart</md-icon> {{'panel_session_audit'|trans}}</md-button>

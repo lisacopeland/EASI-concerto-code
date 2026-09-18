@@ -10,7 +10,7 @@
 				<md-icon>arrow_back</md-icon>
 				{{'test_go_back_to_instructions'|trans}}
 			</md-button>
-			<md-select ng-model="language" ng-change="onLanguageChanged()" tabindex="-1">
+			<md-select aria-label="languagechange" ng-model="language" ng-change="onLanguageChanged()" tabindex="-1">
 				<md-option ng-repeat="languageOption in languages" ng-value="languageOption.code" tabindex="-1">[[languageOption.label]]</md-option>
 			</md-select>
 		</div>

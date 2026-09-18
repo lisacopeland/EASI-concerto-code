@@ -10,16 +10,16 @@
 				<div class="md-dialog-content">
 					<md-input-container style="width: 100%;">
 						<label>[['test_discontinue_reason'|trans]]</label>
-						<md-select ng-model="skipReason">
-							<md-option ng-repeat="skipReason in skipReasons"
-								ng-value="skipReason">[[skipReason|trans]]</md-option>
+						<md-select ng-model="testDiscontinueReason">
+							<md-option ng-repeat="discontinueReason in testDiscontinueReasons"
+								ng-value="discontinueReason">[[discontinueReason|trans]]</md-option>
 						</md-select>
 					</md-input-container>
 				</div>
 			</md-dialog-content>
 			<md-dialog-actions layout="row" layout-align="end">
 				<md-button ng-click="cancel()"> [['cancel'|trans]] </md-button>
-				<md-button ng-click="discontinue()" ng-disabled="skipReason === ''"> [['discontinue'|trans]] </md-button>
+				<md-button ng-click="discontinue()" ng-disabled="testDiscontinueReason === ''"> [['discontinue'|trans]] </md-button>
 			</md-dialog-actions>
 		</form>
 	</md-dialog>

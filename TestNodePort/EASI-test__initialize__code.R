@@ -50,9 +50,9 @@ hasGroups <- !is.null(test$hasGroups) &&
   as.integer(test$hasGroups) == 1
 
 orderBySql <- if (hasGroups) {
-  "ORDER BY groupId ASC, stimulusOrder ASC, itemOrder ASC, id ASC"
+  "ORDER BY groupId ASC, stimulusId ASC, itemOrder ASC, id ASC"
 } else {
-  "ORDER BY stimulusOrder ASC, itemOrder ASC, id ASC"
+  "ORDER BY stimulusId ASC, itemOrder ASC, id ASC"
 }
 
 items <- concerto.table.query(
@@ -125,7 +125,7 @@ for (i in seq_len(nrow(extraSettings))) {
   extraSetting <- as.list(extraSettings[i, ])
   settings[[tolower(extraSetting$name)]] <- extraSetting$value
 }
-if (test$scoringAlgo == "new") {
+if (test$scoringAlgo != "norm") {
   settingsTableNew <- paste0(test$code, "_settings_new")
   extraSettingsNew <- concerto.table.query(
     "SELECT * FROM {{settingsTableNew}}",

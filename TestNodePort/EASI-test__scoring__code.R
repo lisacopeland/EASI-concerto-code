@@ -54,7 +54,12 @@ if (is.null(scores)) {
   updateScoreTable(test$code, session$id, session$participant_id, scores)
 }
 
-if (!is.null(test$compositeGroup) && test$compositeGroup != "") {
+if (
+  !is.null(test$compositeGroup) &&
+  !is.na(test$compositeGroup) &&
+  test$compositeGroup != ""
+) {
+  settings$testIteration = session$testIteration
   concerto.log("hi from test scoring code - going to invoke composite scoring")
   runCompositeScoring(settings, session$participant_id, test$compositeGroup)
 }

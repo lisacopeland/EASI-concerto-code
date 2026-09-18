@@ -65,6 +65,41 @@ src {
   height: 100%;
 }
 
+.session-add-dialog {
+  width: 800px;
+  max-width: 90%;
+  
+}
+
+.session-row {
+  min-height: 48px;
+  padding: 16px;
+  gap: 16px;
+}
+
+.session-iteration-input {
+    margin: 0 0 0 16px;
+    width: 100px;
+}
+
+.session-iteration-input .md-errors-spacer {
+    display: none;
+}
+
+.session-iteration-download-input {
+    align-self: flex-start;
+    margin-left: 220px;
+    width: 120px;
+}
+
+.session-add-table {
+  padding: 0px 16px;
+}
+
+.session-add-input {
+  padding: 16px;
+}
+
 md-sidenav {
   font-size: 0.8em;
   width: auto;
@@ -234,7 +269,16 @@ md-icon {
 }
 
 .cols-container .cols-elem {
-  width: 33%;
+    flex: 0 0 33.333%;
+    box-sizing: border-box;
+}
+
+.cols-container .cols-elem md-checkbox {
+    margin: 0 !important;
+}
+
+.cols-container .cols-elem md-checkbox .md-label {
+    white-space: normal;
 }
 
 @media print {

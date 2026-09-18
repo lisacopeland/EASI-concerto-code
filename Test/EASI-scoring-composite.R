@@ -1,4 +1,4 @@
-getResponses <- function(participant_id) {
+getResponses <- function(participant_id, testIteration) {
     # Query to get tests and responses:
     concerto.log(paste0("participant id :", participant_id))
     responses <- concerto.table.query(
@@ -28,7 +28,7 @@ JOIN (
             SELECT id
             FROM PRFD_sessions
             WHERE participant_id = '{{participant_id}}'
-              AND status = 2
+              AND status = 2 AND testIteration = '{{testIteration}}'
             ORDER BY dateAssessment DESC
             LIMIT 1
         ) prfd
@@ -37,7 +37,7 @@ JOIN (
             SELECT id
             FROM PRP_sessions
             WHERE participant_id = '{{participant_id}}'
-              AND status = 2
+              AND status = 2 AND testIteration = '{{testIteration}}'
             ORDER BY dateAssessment DESC
             LIMIT 1
         ) prp
@@ -46,7 +46,7 @@ JOIN (
             SELECT id
             FROM PRS_sessions
                         WHERE participant_id = '{{participant_id}}'
-              AND status = 2
+              AND status = 2 AND testIteration = '{{testIteration}}'
             ORDER BY dateAssessment DESC
             LIMIT 1
         ) prs
@@ -81,7 +81,7 @@ JOIN (
             SELECT id
             FROM PRFD_sessions
                         WHERE participant_id = '{{participant_id}}'
-              AND status = 2
+              AND status = 2 AND testIteration = '{{testIteration}}'
             ORDER BY dateAssessment DESC
             LIMIT 1
         ) prfd
@@ -90,7 +90,7 @@ JOIN (
             SELECT id
             FROM PRP_sessions
             WHERE participant_id = '{{participant_id}}'
-              AND status = 2
+              AND status = 2 AND testIteration = '{{testIteration}}'
             ORDER BY dateAssessment DESC
             LIMIT 1
         ) prp
@@ -99,7 +99,7 @@ JOIN (
             SELECT id
             FROM PRS_sessions
             WHERE participant_id = '{{participant_id}}'
-              AND status = 2
+              AND status = 2 AND testIteration = '{{testIteration}}'
             ORDER BY dateAssessment DESC
             LIMIT 1
         ) prs
@@ -134,7 +134,7 @@ JOIN (
             SELECT id
             FROM PRFD_sessions
             WHERE participant_id = '{{participant_id}}'
-              AND status = 2
+              AND status = 2 AND testIteration = '{{testIteration}}'
             ORDER BY dateAssessment DESC
             LIMIT 1
         ) prfd
@@ -143,7 +143,7 @@ JOIN (
             SELECT id
             FROM PRP_sessions
             WHERE participant_id = '{{participant_id}}'
-            AND status = 2
+            AND status = 2 AND testIteration = '{{testIteration}}'
             ORDER BY dateAssessment DESC
             LIMIT 1
         ) prp
@@ -152,13 +152,13 @@ JOIN (
             SELECT id
             FROM PRS_sessions
             WHERE participant_id = '{{participant_id}}'
-              AND status = 2
+              AND status = 2 AND testIteration = '{{testIteration}}'
             ORDER BY dateAssessment DESC
             LIMIT 1
         ) prs
 ) sessions
     ON r.session_id = sessions.prs_session_id",
-        list(participant_id = participant_id)
+        list(participant_id = participant_id, testIteration = testIteration)
     )
 }
 
@@ -178,7 +178,6 @@ getTests <- function() {
     maximumAge,
     stepDifficulty,
     stimulusId,
-    stimulusOrder,
     itemOrder,
     groupId
 FROM PRFD_items
@@ -200,7 +199,6 @@ SELECT
     maximumAge,
     stepDifficulty,
     stimulusId,
-    stimulusOrder,
     itemOrder,
     groupId
 FROM PRP_items
@@ -222,7 +220,6 @@ SELECT
     maximumAge,
     stepDifficulty,
     stimulusId,
-    stimulusOrder,
     itemOrder,
     groupId
 FROM PRS_items")
@@ -246,7 +243,7 @@ updateScoreTable <- function(participant_id, scores, sessionIds) {
     concerto.table.query("DELETE FROM {{scoresTable}} WHERE participant_id='{{participant_id}}'", list(scoresTable = scoresTable, participant_id = participant_id))
 
     if (is.list(scores) && length(scores) > 0) {
-        insertSql <- concerto.table.insertParams("INSERT INTO {{scoresTable}} (prp_session_id, prs_session_id, prfd_session_id, name, value, timeCreated, participant_id) VALUES ", list(scoresTable = scoresTable))
+        insertSql <- concerto.table.insertParams("INSERT INTO {{scoresTable}} (prp_session_id, prs_session_id, prfd_session_id, name, value, timeCreated, participant_id, testIteration) VALUES ", list(scoresTable = scoresTable))
         scoreValuesSqlArray <- NULL
         for (scoreName in names(scores)) {
             scoreValuesSql <- concerto.table.insertParams("('{{prp_session_id}}', '{{prs_session_id}}', '{{prfd_session_id}}', '{{name}}', IF('{{value}}'='', NULL, '{{value}}'), NOW(), '{{participant_id}}')", list(
@@ -255,7 +252,8 @@ updateScoreTable <- function(participant_id, scores, sessionIds) {
                 prfd_session_id = sessionIds[["PRFD"]],
                 name = scoreName,
                 value = scores[[scoreName]],
-                participant_id = participant_id
+                participant_id = participant_id,
+                testIteration = settings$testIteration
             ))
             scoreValuesSqlArray <- c(scoreValuesSqlArray, scoreValuesSql)
         }
@@ -267,7 +265,12 @@ updateScoreTable <- function(participant_id, scores, sessionIds) {
 
 # you get settings, participant_id, compositeGroup
 
-responses <- getResponses(participant_id)
+concerto.log("here are the settings")
+concerto.log(
+  jsonlite::toJSON(settings, pretty = TRUE, auto_unbox = TRUE)
+)
+
+responses <- getResponses(participant_id, settings$testIteration)
 concerto.log("ran get responses")
 
 requiredTests <- c("PRFD", "PRP", "PRS")
@@ -294,9 +297,7 @@ for (i in seq_len(nrow(settingsNew))) {
     names(row) <- tolower(names(row))
     settings$scoreSettings[[i]] <- row
 }
-concerto.log(
-  jsonlite::toJSON(settings, pretty = TRUE, auto_unbox = TRUE)
-)
+
 
 items <- getTests()
 

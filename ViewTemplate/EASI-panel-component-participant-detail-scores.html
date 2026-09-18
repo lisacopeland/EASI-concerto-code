@@ -5,7 +5,7 @@
 
 	<div layout="row" layout-align="end center" class="actions">
 		<md-button class="md-raised" ng-click="print()"><md-icon>printer</md-icon> {{'print'|trans}}</md-button>
-		<md-button class="md-raised" ng-click="getScores()"><md-icon>refresh</md-icon> {{'refresh'|trans}}</md-button>
+		<md-button class="md-raised" ng-click="fetchScores()"><md-icon>refresh</md-icon> {{'refresh'|trans}}</md-button>
 	</div>
 
 	<md-subheader class="md-primary expandable" ng-click="expandables.tests = !expandables.tests">
@@ -17,16 +17,40 @@
 		<md-switch ng-model="query.allTests" ng-true-value="1" ng-false-value="0" ng-change="allTestsChanged()">
 			{{'all_tests'|trans}}
 		</md-switch>
-		<div ng-show="query.allTests == 1">
+		<!-- <div ng-show="query.allTests == 1">
 			<md-switch ng-model="displayEmpty" ng-change="allTestsChanged()">
-				{{'Show Tests with no Scores'|trans}}
-			</md-switch>
-		</div>
+				{{'Show Tests without Scores'|trans}}
+			</md-switch> 
+		</div> -->
 		<md-switch ng-model="query.tests[test.id]" ng-true-value="1" ng-false-value="0"
-			ng-repeat="test in testSelections" ng-show="query.allTests == 0">
+			ng-repeat="test in testSelections" ng-change="testSelectionChanged()" ng-show="query.allTests == 0">
 			[[test.code]]
 		</md-switch>
 	</div>
+
+	<div layout="row" class="session-row" layout-align="start center">
+
+		<label>{{'panel_results_session'|trans}}</label>
+		
+			<md-radio-group layout="row" ng-model="showInitial" ng-change="showRetestField()">
+				<md-radio-button value="initial" aria-label="Initial">
+					{{'panel_results_session_initial'|trans}}
+				</md-radio-button>
+
+				<md-radio-button value="retest" aria-label="iteration">
+					{{'panel_results_session_retest'|trans}}
+				</md-radio-button>
+			</md-radio-group>
+			
+			<md-input-container class="session-iteration-input" ng-show="showRetest">
+				<label>{{'panel_results_session_number'|trans}}</label>
+				<input ng-model="query.iteration" 
+				       ng-model-options="{debounce:500}" 
+                       ng-change=fetchScores() 
+                       name="iteration" min="1" md-placeholder="Enter retest #"
+					type="number" />
+			</md-input-container>
+		</div>
 
 	<div ng-show="summaryDataSets.length > 0" class="print-page">
 		<md-subheader class="md-primary expandable" ng-click="expandables.summary = !expandables.summary">
@@ -47,7 +71,7 @@
 			{{'panel_results_results'|trans}}
 		</md-subheader>
 		<div ng-show="expandables.details">
-			<fieldset ng-repeat="test in tests" ng-if="getTestScores(test.code).length > 0"
+			<fieldset ng-repeat="test in selectedTests" ng-if="getTestScores(test.code).length > 0"
 				style="align-self: stretch; page-break-inside: avoid;">
 				<legend>{{test.title_trans|trans}}</legend>
 

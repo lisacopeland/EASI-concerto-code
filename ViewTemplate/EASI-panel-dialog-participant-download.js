@@ -1,16 +1,15 @@
-function DialogParticipantDownloadController(
-  $scope,
-  $mdDialog,
-  $timeout,
-  participants,
-  selection,
-  tests,
-) {
+function DialogParticipantDownloadController($scope, $mdDialog, participants, selection, tests) {
   $scope.generationStarted = false;
   $scope.selection = selection;
   $scope.errorMessage = '';
   $scope.status = 0; // not started = 0, in progress = 1, success = 2, error = -1
   $scope.filename = null;
+$scope.session = {
+  selection: 'initial',
+  iteration: 0
+};
+
+  $scope.iteration = 0;
   $scope.cols = {
     assessmentReason: true,
     clinicalAssessmentReferrer: true,
@@ -48,6 +47,18 @@ function DialogParticipantDownloadController(
   ];
   $scope.tests = [];
 
+  $scope.sessionSelectionChanged = function () {
+    if ($scope.session.selection === 'retest') {
+      $scope.showRetest = true;
+      $scope.session.iteration = 1;
+    
+    } else {
+      $scope.showRetest = false;
+      $scope.session.iteration = 0;
+    
+    }
+  };
+
   $scope.download = function () {
     const a = document.createElement('a');
     a.href = `/files/session/${$scope.filename}?token=${testRunner.getToken()}`;
@@ -69,7 +80,7 @@ function DialogParticipantDownloadController(
     $scope.status = 1; // in progress
 
     participants
-      .createDownload($scope.selection, $scope.cols)
+      .createDownload($scope.selection, $scope.cols, $scope.session)
       .then((response) => {
         // this looks like
         //     success = TRUE | false,
@@ -78,7 +89,7 @@ function DialogParticipantDownloadController(
         //     error = "error string"
         if (!response || !response.success) {
           $scope.status = -1;
-          $scope.errorMessage = (response.error) ? response.error : 'error message';
+          $scope.errorMessage = response.error ? response.error : 'error message';
           $scope.$applyAsync();
           return;
         }

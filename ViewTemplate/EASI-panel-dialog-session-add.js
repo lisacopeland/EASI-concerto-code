@@ -3,7 +3,9 @@ function DialogSessionAddController($scope, $mdDialog, tests, sessionAddObject, 
   $scope.testService = tests;
   $scope.selectedSessions = [];
   $scope.testCode = '';
-  $scope.session = {};
+$scope.session = {
+  testIteration: null
+};
   $scope.hasInitialSession = false;
   $scope.testIteration = null;
   $scope.nextRetestNumber = 0;
@@ -12,22 +14,23 @@ function DialogSessionAddController($scope, $mdDialog, tests, sessionAddObject, 
     $mdDialog.cancel();
   };
 
-  $scope.$watch('sessionType', function (value) {
-    if (value === 'initial') {
-      $scope.testIteration = 0;
-    }
+$scope.$watch('sessionType', function (value) {
+  if (value === 'initial') {
+    $scope.session.testIteration = 0;
+  }
 
-    if (value === 'retest') {
-      $scope.testIteration = $scope.nextRetestNumber;
-    }
-  });
+  if (value === 'retest') {
+    $scope.session.testIteration = $scope.nextRetestNumber;
+  }
+
+  $scope.validateSession();
+});
 
   $scope.add = function () {
-    $scope.session = {
-      participant_id: $scope.sessionAddObject.participant_id,
-      testCode: $scope.testCode,
-      testIteration: $scope.nextIteration,
-    };
+    $scope.session.participant_id = $scope.sessionAddObject.participant_id
+      $scope.session.testCode =  $scope.testCode,
+      // testIteration: $scope.testIteration,
+    
     $mdDialog.hide($scope.session);
   };
 
@@ -56,8 +59,13 @@ function DialogSessionAddController($scope, $mdDialog, tests, sessionAddObject, 
   };
 
   $scope.validateSession = function () {
+    console.log("testIteration is ", $scope.session.testIteration);
+    if (($scope.session.testIteration === undefined) || ($scope.session.testIteration === null)) {
+      $scope.validEntry = false;
+      return;
+    }
     // ensure that the input is not duplicating an existing session
-    const idx = $scope.selectedSessions.findIndex((x) => $scope.testIteration === x.testIteration);
+    const idx = $scope.selectedSessions.findIndex((x) => $scope.session.testIteration === x.testIteration);
     $scope.validEntry = idx === -1;
   };
 }

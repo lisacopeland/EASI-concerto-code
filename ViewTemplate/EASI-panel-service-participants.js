@@ -31,9 +31,9 @@ testRunner.service('participants', function (api, $rootScope, $mdDialog, $locati
     });
   };
 
-  this.createDownload = function (selection, cols) {
+  this.createDownload = function (selection, cols, session) {
     return api
-      .action('createDownload', { selection: selection, cols: cols })
+      .action('createDownload', { selection: selection, cols: cols, session: session })
       .then((response) => {
         return response;
       });

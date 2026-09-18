@@ -67,10 +67,10 @@ getScoreRange <- function(responses, items) {
   isMaximumScore <- FALSE
 
   if (rawScore == minimumScore) {
-    adjustedScore <- minimumScore + 0.5
+    adjustedScore <- minimumScore + 0.3
     isMinimumScore <- TRUE
   } else if (rawScore == maximumScore) {
-    adjustedScore <- maximumScore - 0.5
+    adjustedScore <- maximumScore - 0.3
     isMaximumScore <- TRUE
   }
 
