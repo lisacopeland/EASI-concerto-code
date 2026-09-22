@@ -1122,16 +1122,13 @@ getSessionSelectionSql <- function(session, alias = "") {
     return(paste0(
       " AND ", prefix, "testIteration = 0"
     ))
-    
-  } 
+  }
   if (session$selection == "retest") {
     return(paste0(
       " AND ", prefix, "testIteration = ", session$iteration
     ))
-    
-  } 
+  }
   stop("Unknown session selection")
-
 }
 
 deleteParticipantsTransactions <- function(selection) {
@@ -1215,168 +1212,120 @@ deleteParticipantsTransactions <- function(selection) {
   return(NULL)
 }
 
-getParticipantMonths <- function(dateOfBirth, assessmentDate) {
-  days <- as.numeric(difftime(
-    as.POSIXct(assessmentDate, tz = "UTC"),
-    as.POSIXct(dateOfBirth, tz = "UTC")
-  ))
-  round(days / 30.4375)
-}
 
-getTestSettings <- function(test, numberOfMonths) {
-  settingsTable <- paste0(test$code, "_settings")
+# TODO: need to update the session table with updated age
 
-  extraSettings <- concerto.table.query(
-    "
-    SELECT *
-    FROM {{settingsTable}}
-    WHERE
-      (minParticipantMonths<='{{months}}' OR minParticipantMonths IS NULL)
-      AND
-      (maxParticipantMonths>='{{months}}' OR maxParticipantMonths IS NULL)
-    ",
-    list(
-      settingsTable = settingsTable,
-      months = numberOfMonths
-    )
-  )
-  settings <- list()
-  settings$scoringalgo <- test$scoringAlgo
-
-  if (nrow(extraSettings) > 0) {
-    for (i in 1:nrow(extraSettings)) {
-      extraSetting <- as.list(extraSettings[i, ])
-      settings[[tolower(extraSetting$name)]] <- extraSetting$value
-    }
-  }
-  settings
-}
-
-saveScores <- function(testCode, session, scores) {
-  scoresTable <- paste0(testCode, "_scores")
-
-  concerto.table.query(
-    "DELETE FROM {{scoresTable}} WHERE session_id='{{session_id}}'",
-    list(
-      scoresTable = scoresTable,
-      session_id = session$id
-    )
-  )
-
-  if (is.list(scores) && length(scores) > 0) {
-    insertSql <- concerto.table.insertParams(
-      "INSERT INTO {{scoresTable}} (session_id, name, value, timeCreated, participant_id) VALUES ",
-      list(scoresTable = scoresTable)
-    )
-
-    scoreValuesSqlArray <- NULL
-
-    for (scoreName in names(scores)) {
-      scoreValuesSql <- concerto.table.insertParams(
-        "('{{session_id}}', '{{name}}', IF('{{value}}'='', NULL, '{{value}}'), NOW(), '{{participant_id}}')",
-        list(
-          session_id = session$id,
-          name = scoreName,
-          value = scores[[scoreName]],
-          participant_id = session$participant_id
-        )
-      )
-
-      scoreValuesSqlArray <- c(scoreValuesSqlArray, scoreValuesSql)
-    }
-
-    insertSql <- paste0(insertSql, paste0(scoreValuesSqlArray, collapse = ","))
-    concerto.table.query(insertSql)
-  }
-}
-
-# TODO: need to recalc based on method for test
-
-recalculateScores <- function(participantId) {
+recalculateScores <- function(participant) {
   tests <- concerto.table.query(
     "SELECT * FROM EASI_tests"
   )
-  participant <- fetchSingleParticipant(participantId)
+  compositesToRecalculate <- list()
 
   tryCatch(
     {
-      concerto.table.query("START TRANSACTION")
       for (i in seq_len(nrow(tests))) {
         test <- tests[i, ]
         testCode <- test$code
         scoringAlgo <- test$scoringAlgo
+
         if (is.na(testCode) || testCode == "") {
           next
         }
         sessionTable <- paste0(testCode, "_sessions")
         responseTable <- paste0(testCode, "_responses")
-        scoreTable <- paste0(testCode, "_scores")
-        settingsTable <- paste0(testCode, "_settings")
+        itemsTable <- paste0(testCode, "_items")
 
         # get sessions for these participants
         sessions <- concerto.table.query(
           paste0(
             "SELECT * FROM ",
             sessionTable,
-            " WHERE participant_id='{{id}}'"
+            " WHERE participant_id='{{id}}' and status = '2'"
           ),
           list(id = participant$id)
+        )
+        # No completed sessions for this test — move to next test
+        if (is.null(sessions) || nrow(sessions) == 0) {
+          next
+        }
+        items <- concerto.table.query(
+          paste0(
+            "SELECT * FROM ",
+            itemsTable
+          )
         )
 
         for (i in seq_len(nrow(sessions))) {
           session <- sessions[i, ]
 
-          if (session$status == 2) {
-            # test has been administered, update this one
-            participantMonths <- getParticipantMonths(
-              participant$dateOfBirth,
-              session$dateAssessment
-            )
-            params <- list(
-              sessionId = session$id
-            )
-            responses <- concerto.table.query(
-              paste0(
-                "SELECT * FROM ",
-                responseTable,
-                " WHERE session_id = {{sessionId}}"
-              ),
-              params
-            )
-            settings <- getTestSettings(test, participantMonths)
-            scores <- list()
-            if (
-              !is.null(settings$scoringalgo) &&
-                !is.na(settings$scoringalgo) &&
-                trimws(settings$scoringalgo) != ""
-            ) {
-              scoringModuleName <- paste0("EASI-scoring-", settings$scoringalgo)
-              scores <- concerto.test.run(
-                scoringModuleName,
-                list(
-                  items = NULL,
-                  responses = responses,
-                  settings = settings,
-                  scores = scores,
-                  session = session,
-                  test = test
-                )
-              )$scores
-            } else {
-              scores <- list(
-                "raw score" = sum(responses$score, na.rm = TRUE)
+          # test has been administered, update this one
+          ageInYears <- concerto$globals$easi$lib$getAgeYears(participant$dateOfBirth, session$dateAssessment)
+          participantMonths <- concerto$globals$easi$lib$getParticipantMonths(
+            participant$dateOfBirth,
+            session$dateAssessment
+          )
+          concerto.table.query("UPDATE {{sessionTable}} SET participantMonths='{{participantMonths}}' WHERE id='{{id}}'", list(
+            sessionTable = sessionTable,
+            participantMonths = participantMonths,
+            id = session$id
+          ))
+          settings <- concerto$globals$easi$lib$getSettings(test, participant$id, participantMonths, ageInYears)
+          if (concerto$globals$easi$lib$isValid(test$compositeGroup)) {
+            alreadyAdded <- any(vapply(
+              compositesToRecalculate,
+              function(x) {
+                x$compositeGroup == test$compositeGroup &&
+                  x$testIteration == session$testIteration
+              },
+              logical(1)
+            ))
+
+            if (!alreadyAdded) {
+              compositesToRecalculate[[length(compositesToRecalculate) + 1]] <- list(
+                compositeGroup = test$compositeGroup,
+                testIteration = session$testIteration,
+                settings = settings
               )
             }
+          }
+          params <- list(
+            sessionId = session$id
+          )
+          responses <- concerto.table.query(
+            paste0(
+              "SELECT * FROM ",
+              responseTable,
+              " WHERE session_id = {{sessionId}}"
+            ),
+            params
+          )
 
-            # now save them
-            saveScores(testCode, session, scores)
+          scores <- concerto$globals$easi$lib$calcScores(responses, items, settings)
+          if (is.null(scores)) {
+            concerto.log("No scores returned from scoring module")
+            scores <- list()
+          } else {
+            concerto$globals$easi$lib$updateScoreTable(test$code, session$id, participant$id, scores)
           }
         }
       }
-      concerto.table.query("COMMIT")
+
+      compositesToRecalculate <- unique(compositesToRecalculate)
+      if (length(compositesToRecalculate) > 0) {
+        for (composite in compositesToRecalculate) {
+          composite$settings$testIteration <- composite$testIteration
+          concerto.log("hi from recalc scores - going to invoke composite scoring")
+          scoringModuleName <- "EASI-scoring-composite"
+          concerto.log("hi from run composite scoring, here we go!")
+          scoringResult <- concerto.test.run(scoringModuleName, list(
+            settings = composite$settings,
+            participant_id = participant$id,
+            compositeGroup = composite$compositeGroup
+          ))
+        }
+      }
     },
     error = function(e) {
-      concerto.table.query("ROLLBACK")
       concerto.log(e, "recalculate Scores failed")
       stop(e)
     }
@@ -1586,8 +1535,12 @@ saveParticipant <- function(newParticipant) {
     params$exportExclusion <- NULL
   }
 
-  concerto.table.query(
-    "
+  concerto.table.query("START TRANSACTION")
+
+  tryCatch(
+    {
+      concerto.table.query(
+        "
 UPDATE EASI_participants SET
 dateOfBirth='{{dateOfBirth}}',
 countryOfResidence='{{countryOfResidence}}',
@@ -1604,13 +1557,22 @@ researchProjectSelected='{{researchProjectSelected}}',
 exportExclusion=IF('{{exportExclusion}}'='', exportExclusion, '{{exportExclusion}}'),
 valid=1
 WHERE id='{{id}}'",
-    params
-  )
+        params
+      )
 
-  # if the participants bdate changes, recalc scores
-  if (currentParticipant$dateOfBirth != newParticipant$dateOfBirth) {
-    recalculateScores(currentParticipant$id)
-  }
+      # if the participants bdate changes, recalc scores
+      if (currentParticipant$dateOfBirth != newParticipant$dateOfBirth) {
+        recalculateScores(newParticipant)
+      }
+
+      # Everything succeeded
+      concerto.table.query("COMMIT")
+    },
+    error = function(e) {
+      concerto.table.query("ROLLBACK")
+      stop(e)
+    }
+  )
 
   newParticipant <- as.list(concerto.table.query(
     "SELECT * FROM EASI_participants WHERE id='{{id}}'",
@@ -3012,21 +2974,20 @@ createDownload <- function(selection, cols, session) {
     ))
   }
 
-concerto.log("session")
-concerto.log(
-  jsonlite::toJSON(session, pretty = TRUE, auto_unbox = TRUE)
-)
+  concerto.log("session")
+  concerto.log(
+    jsonlite::toJSON(session, pretty = TRUE, auto_unbox = TRUE)
+  )
 
   # Get the scores
   sessionSql <- getSessionSelectionSql(session, "se")
   scores <- data.frame()
   if (cols["testAdmin"] == "true" || cols["testScores"] == "true") {
-scoresSql <- paste0(
+    scoresSql <- paste0(
+      "SELECT '",
+      testCodes,
+      "' COLLATE utf8_bin AS testCode,
 
-  "SELECT '",
-  testCodes,
-  "' COLLATE utf8_bin AS testCode,
-  
   s.session_id,
   s.name COLLATE utf8_bin AS name,
   s.value COLLATE utf8_bin AS value,
@@ -3037,25 +2998,24 @@ scoresSql <- paste0(
   se.testIteration AS testIteration
 
   FROM ",
-  testCodes,
-  "_scores AS s
+      testCodes,
+      "_scores AS s
 
   LEFT JOIN ",
-  testCodes,
-  "_sessions AS se
+      testCodes,
+      "_sessions AS se
     ON se.id = s.session_id
 
   LEFT JOIN EASI_admins AS a
     ON a.id = se.admin_id
 
   WHERE s.participant_id IN ({{ids}})",
+      sessionSql
+    )
 
-  sessionSql
-)
-
-  praxisSessionSql <- getSessionSelectionSql(session, "score")
-praxisSql <- paste0(
-  "SELECT
+    praxisSessionSql <- getSessionSelectionSql(session, "score")
+    praxisSql <- paste0(
+      "SELECT
       'PRAXIS' COLLATE utf8_bin AS testCode,
       NULL AS session_id,
       score.name COLLATE utf8_bin AS name,
@@ -3067,31 +3027,29 @@ praxisSql <- paste0(
       score.testIteration AS testIteration
    FROM PRAXIS_scores AS score
    WHERE score.participant_id IN ({{ids}})",
-  praxisSessionSql
-)
-    
-scoresSql <- paste0(
-  "SELECT * FROM (",
-  paste(c(scoresSql, praxisSql), collapse = " UNION ALL "),
-  ") t ORDER BY testCode, name"
-)
+      praxisSessionSql
+    )
+
+    scoresSql <- paste0(
+      "SELECT * FROM (",
+      paste(c(scoresSql, praxisSql), collapse = " UNION ALL "),
+      ") t ORDER BY testCode, name"
+    )
     scores <- concerto.table.query(scoresSql, params)
     concerto.log(paste0("***************Rows returned from scores query: ", nrow(scores)))
     if (nrow(scores) == 0) {
       scores <- data.frame()
     }
   }
-  
-  
-  
+
+
   # now get responses
   responses <- data.frame()
   if (cols["testResponses"] == "true") {
-   responsesSql <- paste0(
-
-  "SELECT '",
-  testCodes,
-  "' COLLATE utf8_bin AS testCode,
+    responsesSql <- paste0(
+      "SELECT '",
+      testCodes,
+      "' COLLATE utf8_bin AS testCode,
 
   r.session_id,
   r.item_id,
@@ -3116,24 +3074,22 @@ scoresSql <- paste0(
   se.testIteration AS testIteration
 
   FROM ",
-  testCodes,
-  "_responses AS r
+      testCodes,
+      "_responses AS r
 
   LEFT JOIN ",
-  testCodes,
-  "_sessions AS se
+      testCodes,
+      "_sessions AS se
     ON se.id = r.session_id
 
   LEFT JOIN ",
-  testCodes,
-  "_items AS i
+      testCodes,
+      "_items AS i
     ON i.id = r.item_id
 
   WHERE se.participant_id IN ({{ids}})",
-
-  sessionSql
-
-)
+      sessionSql
+    )
     responsesSql <- paste0(
       "SELECT * FROM (",
       paste0(responsesSql, collapse = " UNION ALL "),
@@ -3144,7 +3100,6 @@ scoresSql <- paste0(
   } else {
     responses <- data.frame()
   }
-
 
 
   # now do the R stuff

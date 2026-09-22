@@ -246,7 +246,7 @@ updateScoreTable <- function(participant_id, scores, sessionIds) {
         insertSql <- concerto.table.insertParams("INSERT INTO {{scoresTable}} (prp_session_id, prs_session_id, prfd_session_id, name, value, timeCreated, participant_id, testIteration) VALUES ", list(scoresTable = scoresTable))
         scoreValuesSqlArray <- NULL
         for (scoreName in names(scores)) {
-            scoreValuesSql <- concerto.table.insertParams("('{{prp_session_id}}', '{{prs_session_id}}', '{{prfd_session_id}}', '{{name}}', IF('{{value}}'='', NULL, '{{value}}'), NOW(), '{{participant_id}}')", list(
+            scoreValuesSql <- concerto.table.insertParams("('{{prp_session_id}}', '{{prs_session_id}}', '{{prfd_session_id}}', '{{name}}', IF('{{value}}'='', NULL, '{{value}}'), NOW(), '{{participant_id}}', '{{testIteration}}')", list(
                 prp_session_id = sessionIds[["PRP"]],
                 prs_session_id = sessionIds[["PRS"]],
                 prfd_session_id = sessionIds[["PRFD"]],

@@ -5,15 +5,6 @@ concerto.table.query(
   list(id = participant$id)
 )
 
-getAgeYears <- function(dateOfBirth, assessmentDate) {
-  dateOfBirth <- as.Date(dateOfBirth)
-  assessmentDate <- as.Date(assessmentDate)
-
-  round(
-    as.numeric(assessmentDate - dateOfBirth) / 365.25,
-    3
-  )
-}
 # responses
 responsesTable <- paste0(test$code, "_responses")
 responses <- concerto.table.query(
@@ -54,6 +45,7 @@ orderBySql <- if (hasGroups) {
 } else {
   "ORDER BY stimulusId ASC, itemOrder ASC, id ASC"
 }
+
 
 items <- concerto.table.query(
   paste0("
@@ -98,52 +90,8 @@ if (nrow(responses) > 0) {
   items <- rbind(answeredItems, unansweredItems)
 }
 
-# settings
-settings <- list(
-  itemsperpage = test$itemsPerPage,
-  scoringalgo = test$scoringAlgo,
-  itemselectionalgo = test$itemSelectionAlgo,
-  stopalgo = test$stopAlgo,
-  cangoback = test$canGoBack
-)
-
-# default settings
-if (is.na(settings$itemsperpage)) {
-  settings$itemsperpage <- nrow(items)
-}
-
-settingsTable <- paste0(test$code, "_settings")
-extraSettings <- concerto.table.query(
-  "
-SELECT * FROM {{settingsTable}}
-WHERE (minParticipantMonths<='{{months}}' OR minParticipantMonths IS NULL) AND
-(maxParticipantMonths>='{{months}}' OR maxParticipantMonths IS NULL)",
-  list(settingsTable = settingsTable, months = session$participantMonths)
-)
-
-for (i in seq_len(nrow(extraSettings))) {
-  extraSetting <- as.list(extraSettings[i, ])
-  settings[[tolower(extraSetting$name)]] <- extraSetting$value
-}
-if (test$scoringAlgo != "norm") {
-  settingsTableNew <- paste0(test$code, "_settings_new")
-  extraSettingsNew <- concerto.table.query(
-    "SELECT * FROM {{settingsTableNew}}",
-    list(settingsTableNew = settingsTableNew)
-  )
-
-  childsAge <- getAgeYears(participant$dateOfBirth, session$dateAssessment)
-  settings$childsAge <- childsAge
-
-  settings$scoreSettings <- list()
-
-  for (i in seq_len(nrow(extraSettingsNew))) {
-    row <- as.list(extraSettingsNew[i, ])
-    row$id <- NULL
-    names(row) <- tolower(names(row))
-    settings$scoreSettings[[i]] <- row
-  }
-}
+childsAgeInYears <- lib$getAgeYears(participant$dateOfBirth, session$dateAssessment)
+settings <- lib$getSettings(test, participant$id, session$participantMonths, childsAgeInYears)
 
 .branch <- "intro"
 instructionsAvailable <- 1
