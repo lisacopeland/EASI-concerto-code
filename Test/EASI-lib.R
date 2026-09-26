@@ -1,6 +1,29 @@
 transColumnCache <- list()
 translationCache <- list()
+EASItestsCache <- NULL
 translationDictionaryCache <- NULL
+
+getEASITests <- function() {
+  if (is.null(EASItestsCache)) {
+    titleTransCol <- getTransCol(
+    "EASI_tests",
+    "title",
+    language
+  )
+    EASItestsCache <<- concerto.table.query(
+    "
+    SELECT
+    *,
+    IFNULL({{titleTransCol}}, title) title_trans
+    FROM EASI_tests ORDER BY orderIndex ASC",
+    list(titleTransCol = titleTransCol)
+  )
+
+  }
+  EASItestsCache
+}
+
+
 
 getTableColumns <- function(table) {
   if (is.null(transColumnCache[[table]])) {
@@ -24,6 +47,17 @@ getTranslationDictionary <- function() {
 
   translationDictionaryCache
 }
+
+  getTransCol = function(table, col, language) {
+    tableCols <- getTableColumns(table)
+
+    transColName <- paste0(col, "_", language)
+    if (transColName %in% tableCols) {
+      transColName
+    } else {
+      col
+    }
+  }
 
 isValid = function(value) {
   !is.null(value) &&
@@ -145,9 +179,11 @@ lib <- list(
   getParticipantMonths = getParticipantMonths,
   getSettings = getSettings,
   getAgeYears = getAgeYears,
+  getEasiTests = getEasiTests,
   calcScores = calcScores,
   isValid = isValid,
   updateScoreTable = updateScoreTable,
+  getTransCol = getTransCol,
   getPropName = function(trait, name, includeTraitInScoreName = FALSE) {
     if (isValid(trait) && includeTraitInScoreName) {
       paste0(trait, " - ", name)
@@ -246,15 +282,6 @@ lib <- list(
     }
 
     tdf
-  },
-  getTransCol = function(table, col, language) {
-    tableCols <- getTableColumns(table)
-
-    transColName <- paste0(col, "_", language)
-    if (transColName %in% tableCols) {
-      transColName
-    } else {
-      col
-    }
   }
+
 )
